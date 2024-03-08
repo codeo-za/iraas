@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net7.0;net462</TargetFrameworks>
+    <RootNamespace>IRAAS.StressTest</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <IsPublishable>false</IsPublishable>
+    <Configurations>Debug;Release;ReleaseForDocker</Configurations>
+    <Platforms>AnyCPU</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PeanutButter.EasyArgs" Version="3.0.276" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Condition="'$(TargetFramework)' == 'net462'" Include="System.Net.Http" />
+    <Reference Condition="'$(TargetFramework)' == 'net462'" Include="System.Web" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <!-- don't warn for erronous framework-based "pacckage may not be fully compatible" warnings -->
+        <NoWarn>NU1701</NoWarn>
+        <IsPublishable>false</IsPublishable>
+        <Configurations>Debug;Release;ReleaseForDocker</Configurations>
+        <Platforms>AnyCPU</Platforms>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
+      <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="8.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+      <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+      <PackageReference Include="log4net" Version="2.0.15" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+      <PackageReference Include="NExpect" Version="2.0.77" />
+      <PackageReference Include="NExpect.Matchers.NSubstitute" Version="2.0.77" />
+      <PackageReference Include="NSubstitute" Version="5.1.0" />
+      <PackageReference Include="NUnit" Version="4.1.0" />
+      <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+      <PackageReference Include="PeanutButter.JObjectExtensions" Version="3.0.276" />
+      <PackageReference Include="PeanutButter.RandomGenerators" Version="3.0.276" />
+      <PackageReference Include="PeanutButter.SimpleHTTPServer" Version="3.0.276" />
+      <PackageReference Include="PeanutButter.SimpleTcpServer" Version="3.0.276" />
+      <PackageReference Include="PeanutButter.Utils" Version="3.0.276" />
+      <PackageReference Include="Quackers.TestLogger" Version="1.0.24" />
+      <PackageReference Include="SixLabors.ImageSharp" Version="2.1.7" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="resources\fluffy-cat.bmp" />
+      <Content Include="appsettings.json">
+        <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+      <Content Include="resources\fluffy-cat.bmp">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+      <None Remove="resources\fluffy-cat.jpg" />
+      <Content Include="resources\fluffy-cat.jpg">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\IRAAS\IRAAS.csproj" />
+    </ItemGroup>
+
+</Project>
