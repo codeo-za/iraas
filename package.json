@@ -1,7 +1,7 @@
 {
-    "name": "iraas",
+    "name": "ircs",
     "version": "1.0.0",
-    "description": "Image Resizing As A Service",
+    "description": "",
     "scripts": {
         "test": "zarro test-dotnet",
         "build": "zarro @",
@@ -41,6 +41,6 @@
         "semver": "^7.5.4",
         "simple-git": "^3.5.0",
         "yafs": "^1.34.0",
-        "zarro": "^1.169.0"
+        "zarro": "^1.170.0"
     }
 }

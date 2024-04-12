@@ -6,7 +6,7 @@
     <LangVersion>latest</LangVersion>
     <IsTranformWebConfigDisabled>true</IsTranformWebConfigDisabled>
     <ImplicitUsings>disable</ImplicitUsings>
-    <ContainerRepository>yumbi-iraas</ContainerRepository>
+    <ContainerRepository>iraas</ContainerRepository>
     <Configurations>Debug;Release;ReleaseForDocker</Configurations>
     <Platforms>AnyCPU</Platforms>
   </PropertyGroup>
@@ -41,9 +41,6 @@
     </Content>
     <Content Update="appsettings.json">
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="deploy.sh">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

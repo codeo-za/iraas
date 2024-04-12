@@ -155,7 +155,7 @@ namespace IRAAS.Tests.Security
             [TestFixture]
             public class WildBugs
             {
-                [TestCase("*.yumbidemo.com, *.yumbi.com", "static-test.yumbi.com")]
+                [TestCase("*.moodemo.com, *.moo.com", "static-test.moo.com")]
                 public void ShouldMatch_(string regex, string hostname)
                 {
                     // Arrange

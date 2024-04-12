@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Net.Http;
@@ -19,6 +20,7 @@ namespace IRAAS.Tests
 {
     [TestFixture]
     [Explicit("Discovery tests")]
+    [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility")]
     public class DiscoveryTests
     {
         [Test]
@@ -45,7 +47,7 @@ namespace IRAAS.Tests
                     Compand = true,
                     Sampler = new BicubicResampler()
                 }));
-            clone.SaveAsJpeg(
+            await clone.SaveAsJpegAsync(
                 targetStream,
                 new JpegEncoder()
                 {
