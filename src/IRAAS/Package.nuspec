@@ -1,0 +1,18 @@
+﻿<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>IRAAS</id>
+    <version>1.0.0</version>
+    <title>Image Resizing As A Service</title>
+    <authors>Davyd McColl</authors>
+    <owners>Codeo</owners>
+    <projectUrl>https://github.com/codeo-za/iraas</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>
+      IRAAS provides a web service to resize images on-the-fly using the ImageSharp
+      library.
+    </description>
+    <copyright>Copyright 2024</copyright>
+    <tags>jpg png bmp gif resize service asp.net core</tags>
+  </metadata>
+</package>
