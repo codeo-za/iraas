@@ -17,6 +17,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".config", ".config", "{5FEB
 		..\package.json = ..\package.json
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{93FEC7FE-990B-4539-AA21-0ADF681732AA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{C55FCB13-C06D-43B6-846C-10BCFA05DC64}"
+	ProjectSection(SolutionItems) = preProject
+		..\.github\workflows\release.yml = ..\.github\workflows\release.yml
+		..\.github\workflows\run-all-tests.yml = ..\.github\workflows\run-all-tests.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,5 +95,8 @@ Global
 		{5489BE03-DAC7-4D7D-80FC-628258DD9FF2}.Release|x86.Build.0 = Release|Any CPU
 		{5489BE03-DAC7-4D7D-80FC-628258DD9FF2}.ReleaseForDocker|Any CPU.ActiveCfg = ReleaseForDocker|Any CPU
 		{5489BE03-DAC7-4D7D-80FC-628258DD9FF2}.ReleaseForDocker|Any CPU.Build.0 = ReleaseForDocker|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C55FCB13-C06D-43B6-846C-10BCFA05DC64} = {93FEC7FE-990B-4539-AA21-0ADF681732AA}
 	EndGlobalSection
 EndGlobal
