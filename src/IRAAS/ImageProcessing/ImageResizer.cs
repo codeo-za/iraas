@@ -8,6 +8,7 @@ using IRAAS.Security;
 using PeanutButter.Utils;
 using PeanutButter.Utils.Dictionaries;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -54,10 +55,20 @@ namespace IRAAS.ImageProcessing
                 TimingHeaders.Fetch,
                 () => _fetcher.Fetch(options.Url, requestHeaders
                 ));
-            var sourceFormat = timer.Time(
-                TimingHeaders.SourceFormatDetection,
-                () => Image.DetectFormat(src.Stream)
-            );
+            IImageFormat sourceFormat = null;
+            try
+            {
+                sourceFormat = timer.Time(
+                    TimingHeaders.SourceFormatDetection,
+                    () => Image.DetectFormat(src.Stream)
+                );
+            }
+            catch (UnknownImageFormatException)
+            {
+                // suppress - previously, ImageSharp would
+                // simply return null from DetectFormat
+            }
+
             if (sourceFormat == null)
             {
                 throw new NotSupportedException(
@@ -302,7 +313,7 @@ namespace IRAAS.ImageProcessing
                 new JpegEncoder()
                 {
                     Quality = options.Quality,
-                    ColorType = options.JpegColorType
+                    ColorType = options.JpegEncodingColor
                 });
         }
 

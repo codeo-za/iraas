@@ -181,19 +181,19 @@ namespace IRAAS.Tests.ImageProcessing
                 // Arrange
                 var sut = Create();
                 // Act
-                Expect(sut.JpegColorType).To.Be.Null();
+                Expect(sut.JpegEncodingColor).To.Be.Null();
                 // Assert
             }
             [Test]
             public void ShouldBeSettable()
             {
                 // Arrange
-                var expected = GetRandom<JpegColorType>();
+                var expected = GetRandom<JpegEncodingColor>();
                 var sut = Create();
                 // Act
-                sut.JpegColorType = expected;
+                sut.JpegEncodingColor = expected;
                 // Assert
-                Expect(sut.JpegColorType).To.Equal(expected);
+                Expect(sut.JpegEncodingColor).To.Equal(expected);
             }
         }
 
