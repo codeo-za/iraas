@@ -167,7 +167,7 @@ public class TestUrlFetcher
         server.AddHandler(
             (processor, _) =>
             {
-                if (processor.Path != "/cat.bmp")
+                if (processor.Path.TrimStart('/') != "cat.bmp")
                 {
                     return HttpServerPipelineResult.NotHandled;
                 }
