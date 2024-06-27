@@ -109,7 +109,15 @@ namespace IRAAS.ImageProcessing
         private int? _height;
 
         public ResizeMode? ResizeMode { get; set; }
-        public JpegColorType? JpegColorType { get; set; }
+
+        [Obsolete("JpegColorType was renamed upstream to JpegEncodingColor")]
+        public JpegEncodingColor? JpegColorType
+        {
+            get => JpegEncodingColor;
+            set => JpegEncodingColor = value;
+        }
+
+        public JpegEncodingColor? JpegEncodingColor { get; set; }
 
         [Min(0)]
         [Max(1)]

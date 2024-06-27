@@ -24,13 +24,13 @@
       <PackageReference Include="NSubstitute" Version="5.1.0" />
       <PackageReference Include="NUnit" Version="4.1.0" />
       <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
-      <PackageReference Include="PeanutButter.JObjectExtensions" Version="3.0.276" />
-      <PackageReference Include="PeanutButter.RandomGenerators" Version="3.0.276" />
-      <PackageReference Include="PeanutButter.SimpleHTTPServer" Version="3.0.276" />
-      <PackageReference Include="PeanutButter.SimpleTcpServer" Version="3.0.276" />
-      <PackageReference Include="PeanutButter.Utils" Version="3.0.276" />
+      <PackageReference Include="PeanutButter.JObjectExtensions" Version="3.0.306" />
+      <PackageReference Include="PeanutButter.RandomGenerators" Version="3.0.306" />
+      <PackageReference Include="PeanutButter.SimpleHTTPServer" Version="3.0.306" />
+      <PackageReference Include="PeanutButter.SimpleTcpServer" Version="3.0.306" />
+      <PackageReference Include="PeanutButter.Utils" Version="3.0.306" />
       <PackageReference Include="Quackers.TestLogger" Version="1.0.24" />
-      <PackageReference Include="SixLabors.ImageSharp" Version="2.1.8" />
+      <PackageReference Include="SixLabors.ImageSharp" Version="3.1.4" />
     </ItemGroup>
 
     <ItemGroup>

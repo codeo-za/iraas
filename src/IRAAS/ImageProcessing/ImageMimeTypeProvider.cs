@@ -24,7 +24,17 @@ namespace IRAAS.ImageProcessing
                 throw new ArgumentNullException(nameof(imageStream));
             }
 
-            var format = Image.DetectFormat(imageStream);
+            IImageFormat format = null;
+            try
+            {
+                format = Image.DetectFormat(imageStream);
+            }
+            catch (UnknownImageFormatException)
+            {
+                // suppress - DetectFormat used to return
+                // null, now it throws on error
+            }
+
             if (format == null)
             {
                 throw new NotSupportedException(

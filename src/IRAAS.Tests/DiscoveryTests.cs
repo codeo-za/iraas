@@ -52,7 +52,7 @@ namespace IRAAS.Tests
                 new JpegEncoder()
                 {
                     Quality = 85,
-                    ColorType = JpegColorType.YCbCrRatio420
+                    ColorType = JpegEncodingColor.YCbCrRatio420
                 });
             targetStream.Close();
             // Assert
