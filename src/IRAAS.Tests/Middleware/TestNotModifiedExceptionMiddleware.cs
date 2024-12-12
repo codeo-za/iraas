@@ -36,7 +36,12 @@ namespace IRAAS.Tests.Middleware
                 // Act
                 await sut.InvokeAsync(
                     context,
-                    ctx => Task.Run(() => ctx.Response.StatusCode = expected)
+                    ctx => Task.Run(
+                        () =>
+                        {
+                            ctx.Response.StatusCode = expected;
+                        }
+                    )
                 );
                 // Assert
                 Expect(context.Response.StatusCode)

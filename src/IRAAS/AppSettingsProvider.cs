@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using IRAAS.ImageProcessing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PeanutButter.DuckTyping.Exceptions;
@@ -19,17 +20,32 @@ namespace IRAAS
 
         public static IAppSettings CreateAppSettings()
         {
-            return _cached ??= GetSettingsFrom(
+            return _cachedSettings ??= GenerateSettingsFrom(
                 CreateConfig()
             );
         }
 
-        public static void ClearCachedSettings()
+        public static IImageResizeParameters CreateDefaultImageParameters()
         {
-            _cached = null;
+            return _defaultParameters ?? GenerateParametersFrom(
+                CreateConfig()
+            );
         }
 
-        private static IAppSettings _cached;
+        private static IImageResizeParameters GenerateParametersFrom(
+            IConfigurationRoot createConfig
+        )
+        {
+            throw new NotImplementedException();
+        }
+
+        public static void ClearCachedSettings()
+        {
+            _cachedSettings = null;
+        }
+
+        private static IAppSettings _cachedSettings;
+        private static IImageResizeParameters _defaultParameters;
 
         public static IConfigurationRoot CreateConfig()
         {
@@ -58,19 +74,21 @@ namespace IRAAS
             return lines.All(l => !re.Match(l).Success);
         }
 
-        private static IAppSettings GetSettingsFrom(
-            IConfigurationRoot config)
+        private static IAppSettings GenerateSettingsFrom(
+            IConfigurationRoot config
+        )
         {
             var defaultConfig = CreateDefaultConfig();
             var providedConfig = config.GetSection("Settings")
                 ?.GetChildren()
                 .ToDictionary(s => s.Key, s => s.Value) ?? new Dictionary<string, string>();
-            DefaultSettingValueProviders.ForEach(kvp =>
-                DefaultSettingIfNotSet(
-                    providedConfig,
-                    kvp.Key,
-                    kvp.Value(providedConfig)
-                )
+            DefaultSettingValueProviders.ForEach(
+                kvp =>
+                    DefaultSettingIfNotSet(
+                        providedConfig,
+                        kvp.Key,
+                        kvp.Value(providedConfig)
+                    )
             );
             var logLevel = FindLogLevelFor(config, "IRAAS");
             if (!string.IsNullOrWhiteSpace(logLevel))
@@ -102,16 +120,18 @@ namespace IRAAS
         {
             return typeof(IAppSettings)
                 .GetProperties()
-                .Select(pi => (pi.Name, pi.GetCustomAttributes(true)
-                                   .OfType<DefaultSettingAttribute>()
-                                   .FirstOrDefault()?.Value)
+                .Select(
+                    pi => (pi.Name, pi.GetCustomAttributes(true)
+                               .OfType<DefaultSettingAttribute>()
+                               .FirstOrDefault()?.Value)
                 )
                 .ToDictionary(o => o.Name, o => o.Value);
         }
 
         private static string FindLogLevelFor(
             IConfigurationRoot config,
-            string name)
+            string name
+        )
         {
             return config
                 .GetSection("Logging")
@@ -162,7 +182,8 @@ namespace IRAAS
         private static void DefaultSettingIfNotSet(
             Dictionary<string, string> providedConfig,
             string key,
-            string defaultValue)
+            string defaultValue
+        )
         {
             var matchingKey = providedConfig.Keys.FirstOrDefault(
                 k => k.Equals(key, StringComparison.OrdinalIgnoreCase)
@@ -171,7 +192,8 @@ namespace IRAAS
         }
 
         private static string ResolveMaxConcurrency(
-            Dictionary<string, string> config)
+            Dictionary<string, string> config
+        )
         {
             return ResolveSetting(
                 config,
@@ -185,7 +207,8 @@ namespace IRAAS
             Dictionary<string, string> config,
             string key,
             Func<T, bool> validator,
-            T defaultValue)
+            T defaultValue
+        )
         {
             var configKey = config.Keys.FirstOrDefault(
                 k => k.Equals(key, StringComparison.OrdinalIgnoreCase)

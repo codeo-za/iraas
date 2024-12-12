@@ -176,7 +176,7 @@ namespace IRAAS.ImageProcessing
 
         private static IQuantizer CreateDefaultQuantizer()
         {
-            return new OctreeQuantizer();
+            return new WuQuantizer();
         }
 
         private static readonly Dictionary<string, Func<ImageResizeOptions, IQuantizer>> Quantizers
@@ -280,7 +280,7 @@ namespace IRAAS.ImageProcessing
                 new GifEncoder()
                 {
                     Quantizer = DetermineQuantizerFor(options),
-                    ColorTableMode = options.ColorTableMode
+                    ColorTableMode = options.GifColorTableMode
                 });
         }
 
@@ -297,9 +297,9 @@ namespace IRAAS.ImageProcessing
                     Quantizer = DetermineQuantizerFor(options),
                     Threshold = options.TransparencyThreshold ?? byte.MaxValue,
                     BitDepth = DeterminePngBitDepthFor(options.BitDepth),
-                    ColorType = options.ColorType,
+                    ColorType = options.PngColorType,
                     CompressionLevel = options.CompressionLevel.AsPngCompressionLevel(),
-                    FilterMethod = options.FilterMethod
+                    FilterMethod = options.PngFilterMethod
                 });
         }
 

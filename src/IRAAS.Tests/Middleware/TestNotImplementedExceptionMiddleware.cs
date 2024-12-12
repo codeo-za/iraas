@@ -26,7 +26,13 @@ namespace IRAAS.Tests.Middleware
                 // Act
                 await sut.InvokeAsync(
                     context,
-                    ctx => Task.Run(() => ctx.Response.StatusCode = expected));
+                    ctx => Task.Run(
+                        () =>
+                        {
+                            ctx.Response.StatusCode = expected;
+                        }
+                    )
+                );
                 // Assert
                 Expect(context.Response.StatusCode)
                     .To.Equal(expected);
@@ -43,18 +49,21 @@ namespace IRAAS.Tests.Middleware
                 var sut = Create();
                 var expected = GetRandomInt(200, 299);
                 var context = new FakeHttpContext();
-                var ex = GetRandomFrom(new Exception[]
-                {
-                    new ArgumentException(GetRandomString()),
-                    new InvalidOperationException(GetRandomString()),
-                    new ApplicationException(GetRandomString())
-                });
+                var ex = GetRandomFrom(
+                    new Exception[]
+                    {
+                        new ArgumentException(GetRandomString()),
+                        new InvalidOperationException(GetRandomString()),
+                        new ApplicationException(GetRandomString())
+                    }
+                );
                 // Act
-                Expect(() =>
-                    sut.InvokeAsync(
-                        context,
-                        ctx => Task.FromException(ex)
-                    )
+                Expect(
+                    () =>
+                        sut.InvokeAsync(
+                            context,
+                            ctx => Task.FromException(ex)
+                        )
                 ).To.Throw().With.Type(ex.GetType());
                 // Assert
             }

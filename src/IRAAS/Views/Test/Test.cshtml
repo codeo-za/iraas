@@ -12,41 +12,52 @@
     body {
         font-size: 14px;
     }
+
     div.row {
         display: grid;
         grid-template-columns: 1fr 1fr;
     }
+
     div.label {
         grid-column: 1;
     }
+
     div.input {
         grid-column: 2;
     }
+
     select, input {
         min-width: 200px;
         padding: 3px;
     }
+
     div.wrapper {
         display: inline-block;
         padding: 0 10px 0 10px;
     }
+
     img[src=""] {
         display: none;
     }
+
     .hidden {
         display: none;
     }
+
     table {
     }
+
     legend {
         user-select: none;
         text-decoration: underline;
         cursor: pointer;
         color: LinkText;
     }
+
     fieldset {
         margin: 10px;
     }
+
     fieldset.no-border {
         border: none;
     }
@@ -61,9 +72,9 @@
                 return result[0];
             default:
                 return result;
-            }
+        }
     }
-    
+
     function update() {
         var originalUrl = $$("#url").value;
         if (!originalUrl) {
@@ -72,10 +83,10 @@
             return;
         }
         console.log("fetch for", originalUrl);
-        
+
         var form = $$("form");
         var inputs = $$("input,select", form);
-        var params = inputs.reduce(function(acc, cur) {
+        var params = inputs.reduce(function (acc, cur) {
             if (cur.value) {
                 acc.push({
                     name: cur.name,
@@ -98,23 +109,28 @@
         $$("#resized-url").href = url;
         $$("#resized-url").innerText = url;
     }
+
     function generateQueryParamsFrom(params) {
         if (params.length === 0) {
             return "";
         }
         // cache-busting
-        params.push({ name: "t", value: Date.now() });
-        return "?" + params.map(function(p) {
+        params.push({
+            name: "t",
+            value: Date.now()
+        });
+        return "?" + params.map(function (p) {
             return [
                 encodeURIComponent(p.name),
                 encodeURIComponent(p.value)
             ].join("=")
         }).join("&");
     }
+
     function watch() {
         console.log("watching...");
-        var observer = new MutationObserver(function(changes) {
-            changes.forEach(function(change) {
+        var observer = new MutationObserver(function (changes) {
+            changes.forEach(function (change) {
                 if (change.type !== "attributes" || change.attributeName !== "src") {
                     return;
                 }
@@ -128,8 +144,8 @@
                     body: JSON.stringify({
                         url: img.src
                     })
-                }).then(function(response) {
-                    response.json().then(function(data) {
+                }).then(function (response) {
+                    response.json().then(function (data) {
                         $$("#" + img.id + "-size").innerText = data + " bytes";
                         console.log({
                             data: data,
@@ -139,16 +155,20 @@
                 });
             });
         });
-        observer.observe(document, { childList: true, subtree: true, attributes: true });
+        observer.observe(document, {
+            childList: true,
+            subtree: true,
+            attributes: true
+        });
     }
-    
+
     function toggleConfigurationVisibility() {
         var table = $$("#configuration-table");
         var fieldset = $$("#configuration-fieldset");
         if (table.classList.contains("hidden")) {
             table.classList.remove("hidden");
             fieldset.classList.remove("no-border");
-            
+
         } else {
             table.classList.add("hidden");
             fieldset.classList.add("no-border");
@@ -156,10 +176,12 @@
     }
     
     document.addEventListener("DOMContentLoaded", () => {
-        $$("#iraas-configuration")
-            .addEventListener("click", () => toggleConfigurationVisibility());
+        $$("#iraas-configuration").addEventListener(
+            "click", 
+            toggleConfigurationVisibility
+        );
     });
-    
+
     watch();
 </script>
 
@@ -171,13 +193,12 @@
         <table id="configuration-table" class="hidden">
             @foreach (var prop in settingsProps)
             {
-            <tr>
-                <td>@prop.Name</td>
-                <td>@prop.GetValue(Model)</td>
-            </tr>
+                <tr>
+                    <td>@prop.Name</td>
+                    <td>@prop.GetValue(Model)</td>
+                </tr>
             }
-        </table>
-    }
+        </table>}
 </fieldset>
 
 <form onsubmit="return false;">
@@ -195,11 +216,6 @@
 </form>
 
 
-<fieldset id="original-frame" class="hidden">
-    <legend>Original image</legend>
-    <img id="original" title="original image"/>
-    <div id="original-size"></div>
-</fieldset>
 <fieldset id="resized-frame" class="hidden">
     <legend>Resized image</legend>
     <img id="resized" title="resized image"/>
@@ -207,4 +223,9 @@
         <a id="resized-url"></a>
     </div>
     <div id="resized-size"></div>
+</fieldset>
+<fieldset id="original-frame" class="hidden">
+    <legend id="original-image-legend">Original image</legend>
+    <img id="original" title="original image"/>
+    <div id="original-size"></div>
 </fieldset>

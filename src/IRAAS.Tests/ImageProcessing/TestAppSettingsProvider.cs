@@ -231,7 +231,8 @@ public class TestAppSettingsProvider
         IAppSettings settings
     )
     {
-        return $@"{{
+        return $@"
+{{
   ""Logging"": {{
         ""LogLevel"": {{
             ""Default"": ""Warning"",
@@ -260,6 +261,28 @@ public class TestAppSettingsProvider
     ""LogFolder"": ""{settings.LogFolder}"",
     ""SuppressErrorDiagnostics"": ""{settings.SuppressErrorDiagnostics}"",
     }},
+    ""DefaultImageParameters"": {{
+        ""ReplaceTransparencyWith"": null,
+        ""Format"": null,
+        ""Quality"": ""85"",
+        ""Width"": null,
+        ""Height"": null,
+        ""ResizeMode"": null,
+        ""JpegColorType"": null,
+        ""JpegEncodingColor"": null,
+        ""Gamma"": null,
+        ""Quantizer"": null,
+        ""TransparencyThreshold"": null,
+        ""BitDepth"": null,
+        ""PngColorType"": null,
+        ""CompressionLevel"": null,
+        ""PngFilterMethod"": null,
+        ""Sampler"": null,
+        ""GifColorTableMode"": null,
+        ""MaxColors"": null,
+        ""Dither"": null,
+        ""DevicePixelRatio"": 1
+    }}
     ""AllowedHosts"": ""*""
 }}";
     }
@@ -293,6 +316,28 @@ public class TestAppSettingsProvider
     ""EnableConnectionKeepAlive"": ""{settings.EnableConnectionKeepAlive}"",
     ""LogFolder"": ""{settings.LogFolder}""
     }},
+    ""DefaultImageParameters"": {{
+        ""ReplaceTransparencyWith"": null,
+        ""Format"": null,
+        ""Quality"": ""85"",
+        ""Width"": null,
+        ""Height"": null,
+        ""ResizeMode"": null,
+        ""JpegColorType"": null,
+        ""JpegEncodingColor"": null,
+        ""Gamma"": null,
+        ""Quantizer"": null,
+        ""TransparencyThreshold"": null,
+        ""BitDepth"": null,
+        ""PngColorType"": null,
+        ""CompressionLevel"": null,
+        ""PngFilterMethod"": null,
+        ""Sampler"": null,
+        ""GifColorTableMode"": null,
+        ""MaxColors"": null,
+        ""Dither"": null,
+        ""DevicePixelRatio"": 1
+    }}
     ""AllowedHosts"": ""*""
 }}";
     }
@@ -325,6 +370,28 @@ public class TestAppSettingsProvider
     ""ShareConcurrentRequests"": ""{settings.ShareConcurrentRequests}"",
     ""EnableConnectionKeepAlive"": ""{settings.EnableConnectionKeepAlive}""
     }},
+    ""DefaultImageParameters"": {{
+        ""ReplaceTransparencyWith"": null,
+        ""Format"": null,
+        ""Quality"": ""85"",
+        ""Width"": null,
+        ""Height"": null,
+        ""ResizeMode"": null,
+        ""JpegColorType"": null,
+        ""JpegEncodingColor"": null,
+        ""Gamma"": null,
+        ""Quantizer"": null,
+        ""TransparencyThreshold"": null,
+        ""BitDepth"": null,
+        ""PngColorType"": null,
+        ""CompressionLevel"": null,
+        ""PngFilterMethod"": null,
+        ""Sampler"": null,
+        ""GifColorTableMode"": null,
+        ""MaxColors"": null,
+        ""Dither"": null,
+        ""DevicePixelRatio"": 1
+    }}
     ""AllowedHosts"": ""*""
 }}";
     }
