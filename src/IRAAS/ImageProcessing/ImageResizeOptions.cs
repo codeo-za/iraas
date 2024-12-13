@@ -11,54 +11,6 @@ using SixLabors.ImageSharp.Formats;
 
 namespace IRAAS.ImageProcessing;
 
-public interface IImageResizeParameters
-{
-    string ReplaceTransparencyWith { get; set; }
-    string Format { get; set; }
-    int Quality { get; set; }
-    int? Width { get; set; }
-    int? Height { get; set; }
-    ResizeMode? ResizeMode { get; set; }
-    JpegEncodingColor? JpegColorType { get; set; }
-    JpegEncodingColor? JpegEncodingColor { get; set; }
-    float? Gamma { get; set; }
-    string Quantizer { get; set; }
-    byte? TransparencyThreshold { get; set; }
-    int? BitDepth { get; set; }
-    PngColorType? PngColorType { get; set; }
-    int? CompressionLevel { get; set; }
-    PngFilterMethod? PngFilterMethod { get; set; }
-    string Sampler { get; set; }
-    GifColorTableMode? GifColorTableMode { get; set; }
-    int? MaxColors { get; set; }
-    bool? Dither { get; set; }
-    decimal DevicePixelRatio { get; set; }
-}
-
-public class DefaultImageResizeParameters : IImageResizeParameters
-{
-    public string ReplaceTransparencyWith { get; set; }
-    public string Format { get; set; }
-    public int Quality { get; set; }
-    public int? Width { get; set; }
-    public int? Height { get; set; }
-    public ResizeMode? ResizeMode { get; set; }
-    public JpegEncodingColor? JpegColorType { get; set; }
-    public JpegEncodingColor? JpegEncodingColor { get; set; }
-    public float? Gamma { get; set; }
-    public string Quantizer { get; set; }
-    public byte? TransparencyThreshold { get; set; }
-    public int? BitDepth { get; set; }
-    public PngColorType? PngColorType { get; set; }
-    public int? CompressionLevel { get; set; }
-    public PngFilterMethod? PngFilterMethod { get; set; }
-    public string Sampler { get; set; }
-    public GifColorTableMode? GifColorTableMode { get; set; }
-    public int? MaxColors { get; set; }
-    public bool? Dither { get; set; }
-    public decimal DevicePixelRatio { get; set; }
-}
-
 public class ImageResizeOptions
     : IImageResizeParameters
 {

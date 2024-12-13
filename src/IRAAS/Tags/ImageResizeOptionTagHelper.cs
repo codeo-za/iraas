@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -12,6 +13,15 @@ namespace IRAAS.Tags;
 [HtmlTargetElement("image-resize-option")]
 public class ImageResizeOptionTagHelper : TagHelper
 {
+    private readonly IDefaultImageResizeParameters _defaults;
+
+    public ImageResizeOptionTagHelper(
+        IDefaultImageResizeParameters defaults
+    )
+    {
+        _defaults = defaults;
+    }
+
     [HtmlAttributeName("prop")]
     public PropertyInfo Prop { get; set; }
 
@@ -25,7 +35,7 @@ public class ImageResizeOptionTagHelper : TagHelper
 
         var userInput = InputGenerators.Aggregate(
             null as XElement,
-            (acc, cur) => acc ?? cur(Prop)
+            (acc, cur) => acc ?? cur(Prop, _defaults)
         );
 
         var root = new XElement(
@@ -46,7 +56,7 @@ public class ImageResizeOptionTagHelper : TagHelper
         output.Content.AppendHtml(root.ToString());
     }
 
-    private static readonly Func<PropertyInfo, XElement>[] InputGenerators =
+    private static readonly Func<PropertyInfo, IDefaultImageResizeParameters, XElement>[] InputGenerators =
     {
         CreateDropDownByAttribute,
         CreateDropDownForEnum,
@@ -54,13 +64,19 @@ public class ImageResizeOptionTagHelper : TagHelper
         CreateTextInput
     };
 
-    private static XElement CreateNumericInput(PropertyInfo prop)
+    private static XElement CreateNumericInput(
+        PropertyInfo prop,
+        IDefaultImageResizeParameters defaults
+    )
     {
         var underlyingType = prop.PropertyType.GetUnderlyingType();
         var minAttrib = prop.GetCustomAttributes<MinAttribute>().FirstOrDefault();
         var maxAttrib = prop.GetCustomAttributes<MaxAttribute>().FirstOrDefault();
         var stepAttrib = prop.GetCustomAttributes<StepAttribute>().FirstOrDefault();
         var defaultAttrib = prop.GetCustomAttributes<DefaultAttribute>().FirstOrDefault();
+        var fallback = FindDefaultValueFor(prop, defaults);
+        var defaultValue = defaultAttrib?.Value
+            ?? (double.TryParse(fallback, out var v) ? v : null);
 
         if (underlyingType == typeof(byte))
         {
@@ -69,7 +85,7 @@ public class ImageResizeOptionTagHelper : TagHelper
                 minAttrib?.Value ?? byte.MinValue,
                 maxAttrib?.Value ?? byte.MaxValue,
                 stepAttrib?.Value ?? 1,
-                defaultAttrib?.Value
+                defaultValue
             );
         }
 
@@ -80,7 +96,7 @@ public class ImageResizeOptionTagHelper : TagHelper
                 minAttrib?.Value ?? int.MinValue,
                 maxAttrib?.Value ?? int.MaxValue,
                 stepAttrib?.Value ?? 1,
-                defaultAttrib?.Value
+                defaultValue
             );
         }
 
@@ -104,7 +120,7 @@ public class ImageResizeOptionTagHelper : TagHelper
             new XAttribute("max", max),
             new XAttribute("step", step)
         );
-        if (defaultValue != null)
+        if (defaultValue is not null)
         {
             result.Add(new XAttribute("value", defaultValue));
         }
@@ -112,7 +128,10 @@ public class ImageResizeOptionTagHelper : TagHelper
         return result;
     }
 
-    private static XElement CreateDropDownForEnum(PropertyInfo prop)
+    private static XElement CreateDropDownForEnum(
+        PropertyInfo prop,
+        IDefaultImageResizeParameters defaults
+    )
     {
         var underlyingType = prop.PropertyType.GetUnderlyingType();
         if (!underlyingType.IsEnum)
@@ -126,20 +145,80 @@ public class ImageResizeOptionTagHelper : TagHelper
             options.Insert(0, "");
         }
 
+        var selected = FindDefaultValueFor(prop, defaults);
+
         return CreateDropDownFor(
             prop,
+            $"{selected}",
             options
         );
     }
 
-    private static XElement CreateDropDownByAttribute(PropertyInfo prop)
+    private static XElement CreateDropDownByAttribute(
+        PropertyInfo prop,
+        IDefaultImageResizeParameters defaults
+    )
     {
         var allowedValuesAttrib = prop.GetCustomAttributes<OptionsAttribute>()
             .FirstOrDefault();
+        var selected = FindDefaultValueFor(prop, defaults);
         return allowedValuesAttrib == null
             ? null
-            : CreateDropDownFor(prop, allowedValuesAttrib.Options);
+            : CreateDropDownFor(prop, selected, allowedValuesAttrib.Options);
     }
+
+    private static string FindDefaultValueFor(
+        PropertyInfo prop,
+        IDefaultImageResizeParameters defaults
+    )
+    {
+        var defaultProp = TryFindDefaultPropertyMatching(prop);
+        if (defaultProp is null)
+        {
+            return null;
+        }
+
+        return $"{defaultProp.GetValue(defaults)}";
+    }
+
+    private static PropertyInfo TryFindDefaultPropertyMatching(
+        PropertyInfo other
+    )
+    {
+        var all = ReadProperties<IDefaultImageResizeParameters>();
+        return all.TryGetValue(other.Name, out var result)
+            ? result
+            : null;
+    }
+
+    private static Dictionary<string, PropertyInfo> ReadProperties<T>() where T : class
+    {
+        var type = typeof(T);
+        return PropertyCache.FindOrAdd(
+            type,
+            () =>
+            {
+                if (!type.IsInterface)
+                {
+                    return type.GetProperties()
+                        .ToDictionary(
+                            o => o.Name,
+                            o => o
+                        );
+                }
+
+                return new[] { type }.Concat(
+                        type.GetInterfaces()
+                    ).SelectMany(o => o.GetProperties())
+                    .ToDictionary(
+                        o => o.Name,
+                        o => o
+                    );
+            }
+        );
+    }
+
+    private static readonly ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>> PropertyCache = new();
 
     private static XAttribute Class(string name)
     {
@@ -148,12 +227,19 @@ public class ImageResizeOptionTagHelper : TagHelper
 
     private static XElement CreateDropDownFor(
         PropertyInfo prop,
+        string selected,
         IEnumerable<string> values
     )
     {
         var options = values.Select(
-            v =>
-                new XElement(
+            v => selected == v
+                ? new XElement(
+                    "option",
+                    new XAttribute("value", v),
+                    new XAttribute("selected", ""),
+                    new XText(v)
+                )
+                : new XElement(
                     "option",
                     new XAttribute("value", v),
                     new XText(v)
@@ -176,7 +262,10 @@ public class ImageResizeOptionTagHelper : TagHelper
         );
     }
 
-    private static XElement CreateTextInput(PropertyInfo prop)
+    private static XElement CreateTextInput(
+        PropertyInfo prop,
+        IDefaultImageResizeParameters defaultImageResizeParameters
+    )
     {
         return new XElement(
             "input",

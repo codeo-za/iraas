@@ -1,68 +1,67 @@
 using System;
 using System.Reflection;
 
-namespace IRAAS.ImageProcessing
+namespace IRAAS.ImageProcessing;
+
+public class OptionsAttribute : Attribute
 {
-    public class OptionsAttribute : Attribute
-    {
-        public string[] Options { get; }
+    public string[] Options { get; }
 
-        public OptionsAttribute(params string[] options)
-        {
-            Options = options;
-        }
+    public OptionsAttribute(params string[] options)
+    {
+        Options = options;
     }
+}
 
-    public class OptionsFrom : OptionsAttribute
+public class OptionsFrom : OptionsAttribute
+{
+    public OptionsFrom(Type type, string propertyName)
+        : base(GenerateOptionsFrom(type, propertyName))
     {
-        public OptionsFrom(Type type, string propertyName)
-            : base(GenerateOptionsFrom(type, propertyName))
-        {
             
-        }
-
-        private static string[] GenerateOptionsFrom(Type type, string propertyName)
-        {
-            var prop = type.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Static);
-            return (string[])prop.GetValue(null);
-        }
     }
 
-    public abstract class DoubleValueAttribute : Attribute
+    private static string[] GenerateOptionsFrom(Type type, string propertyName)
     {
-        public double Value { get; }
-
-        public DoubleValueAttribute(double value)
-        {
-            Value = value;
-        }
+        var prop = type.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Static);
+        return (string[])prop.GetValue(null);
     }
+}
 
-    public class MaxAttribute : DoubleValueAttribute
+public abstract class DoubleValueAttribute : Attribute
+{
+    public double Value { get; }
+
+    public DoubleValueAttribute(double value)
     {
-        public MaxAttribute(double value) : base(value)
-        {
-        }
+        Value = value;
     }
+}
 
-    public class MinAttribute : DoubleValueAttribute
+public class MaxAttribute : DoubleValueAttribute
+{
+    public MaxAttribute(double value) : base(value)
     {
-        public MinAttribute(double value) : base(value)
-        {
-        }
     }
+}
 
-    public class StepAttribute : DoubleValueAttribute
+public class MinAttribute : DoubleValueAttribute
+{
+    public MinAttribute(double value) : base(value)
     {
-        public StepAttribute(double value) : base(value)
-        {
-        }
     }
+}
 
-    public class DefaultAttribute : DoubleValueAttribute
+public class StepAttribute : DoubleValueAttribute
+{
+    public StepAttribute(double value) : base(value)
     {
-        public DefaultAttribute(double value) : base(value)
-        {
-        }
+    }
+}
+
+public class DefaultAttribute : DoubleValueAttribute
+{
+    public DefaultAttribute(double value) : base(value)
+    {
     }
 }

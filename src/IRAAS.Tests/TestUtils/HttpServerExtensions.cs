@@ -2,41 +2,40 @@
 using System.IO;
 using PeanutButter.SimpleHTTPServer;
 
-namespace IRAAS.Tests.TestUtils
+namespace IRAAS.Tests.TestUtils;
+
+internal static class HttpServerExtensions
 {
-    internal static class HttpServerExtensions
+    internal static void Serve(
+        this HttpServer server,
+        string path,
+        byte[] data,
+        string mimeType,
+        Action<HttpProcessor, Stream> onMatchedQuery
+    )
     {
-        internal static void Serve(
-            this HttpServer server,
-            string path,
-            byte[] data,
-            string mimeType,
-            Action<HttpProcessor, Stream> onMatchedQuery
-        )
-        {
-            server.AddHandler(
-                (processor, stream) =>
+        server.AddHandler(
+            (processor, stream) =>
+            {
+                if (processor.Path != path)
                 {
-                    if (processor.Path != path)
-                    {
-                        return HttpServerPipelineResult.NotHandled;
-                    }
-
-                    onMatchedQuery(processor, stream);
-
-                    processor.WriteOKStatusHeader();
-                    processor.WriteMIMETypeHeader(mimeType);
-                    processor.WriteConnectionClosesAfterCommsHeader();
-                    processor.WriteContentLengthHeader(
-                        data.Length
-                    );
-                    processor.WriteEmptyLineToStream();
-                    processor.WriteDataToStream(
-                        data
-                    );
-                    return HttpServerPipelineResult.Handled;
+                    return HttpServerPipelineResult.NotHandled;
                 }
-            );
-        }
+
+                onMatchedQuery(processor, stream);
+
+                processor.WriteOKStatusHeader();
+                processor.WriteMIMETypeHeader(mimeType);
+                processor.WriteConnectionClosesAfterCommsHeader();
+                processor.WriteContentLengthHeader(
+                    data.Length
+                );
+                processor.WriteEmptyLineToStream();
+                processor.WriteDataToStream(
+                    data
+                );
+                return HttpServerPipelineResult.Handled;
+            }
+        );
     }
 }

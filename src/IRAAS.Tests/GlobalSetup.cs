@@ -6,92 +6,91 @@ using PeanutButter.Utils;
 
 [assembly: Parallelizable(ParallelScope.All | ParallelScope.Children)]
 
-namespace IRAAS.Tests
+namespace IRAAS.Tests;
+
+[SetUpFixture]
+public class GlobalSetup
 {
-    [SetUpFixture]
-    public class GlobalSetup
+    [OneTimeTearDown]
+    public void GlobalTeardown()
     {
-        [OneTimeTearDown]
-        public void GlobalTeardown()
-        {
-            HttpServerPool.DisposeInstance();
-        }
+        HttpServerPool.DisposeInstance();
     }
+}
 
-    public class ReusableHttpServer : HttpServer
+public class ReusableHttpServer : HttpServer
+{
+    private bool _inUse = true;
+    private readonly object _lock = new object();
+
+    public bool IsInUse
     {
-        private bool _inUse = true;
-        private readonly object _lock = new object();
-
-        public bool IsInUse
-        {
-            get
-            {
-                lock (_lock)
-                {
-                    return _inUse;
-                }
-            }
-        }
-
-        public ReusableHttpServer TryBorrow()
+        get
         {
             lock (_lock)
             {
-                if (_inUse)
-                {
-                    return null;
-                }
-
-                _inUse = true;
-                return this;
+                return _inUse;
             }
-        }
-
-        public override void Dispose()
-        {
-            lock (_lock)
-            {
-                _inUse = false;
-                Reset();
-            }
-        }
-
-        public void TrulyDispose()
-        {
-            base.Dispose();
         }
     }
 
-    public class HttpServerPool
+    public ReusableHttpServer TryBorrow()
     {
-        private static readonly List<ReusableHttpServer> _servers
-            = new List<ReusableHttpServer>();
-
-        public static HttpServer Borrow()
+        lock (_lock)
         {
-            lock (_servers)
+            if (_inUse)
             {
-                var result = _servers
-                    .Select(s => s.TryBorrow())
-                    .FirstOrDefault();
-                if (result == null)
-                {
-                    result = new ReusableHttpServer();
-                    _servers.Add(result);
-                }
-                return result;
+                return null;
             }
+
+            _inUse = true;
+            return this;
         }
+    }
 
-        public static void DisposeInstance()
+    public override void Dispose()
+    {
+        lock (_lock)
         {
-            lock (_servers)
+            _inUse = false;
+            Reset();
+        }
+    }
+
+    public void TrulyDispose()
+    {
+        base.Dispose();
+    }
+}
+
+public class HttpServerPool
+{
+    private static readonly List<ReusableHttpServer> _servers
+        = new List<ReusableHttpServer>();
+
+    public static HttpServer Borrow()
+    {
+        lock (_servers)
+        {
+            var result = _servers
+                .Select(s => s.TryBorrow())
+                .FirstOrDefault();
+            if (result == null)
             {
-                var toDispose = _servers.ToArray();
-                toDispose.ForEach(d => d.TrulyDispose());
-                _servers.Clear();
+                result = new ReusableHttpServer();
+                _servers.Add(result);
             }
+            return result;
+        }
+    }
+
+    public static void DisposeInstance()
+    {
+        lock (_servers)
+        {
+            var toDispose = _servers.ToArray();
+            toDispose.ForEach(d => d.TrulyDispose());
+            _servers.Clear();
         }
     }
 }

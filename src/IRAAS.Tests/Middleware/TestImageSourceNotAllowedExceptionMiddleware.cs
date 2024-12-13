@@ -12,195 +12,194 @@ using PeanutButter.Utils;
 using static NExpect.Expectations;
 using static PeanutButter.RandomGenerators.RandomValueGen;
 
-namespace IRAAS.Tests.Middleware
+namespace IRAAS.Tests.Middleware;
+
+[TestFixture]
+public class TestImageSourceNotAllowedExceptionMiddleware
 {
     [TestFixture]
-    public class TestImageSourceNotAllowedExceptionMiddleware
+    public class WhenNoExceptionThrown
     {
-        [TestFixture]
-        public class WhenNoExceptionThrown
+        [Test]
+        public async Task ShouldNotInterfereWithTheResponse()
         {
-            [Test]
-            public async Task ShouldNotInterfereWithTheResponse()
-            {
-                // Arrange
-                var sut = Create();
-                var expected = GetRandomInt(200, 299);
-                var context = new FakeHttpContext();
-                // Act
-                await sut.InvokeAsync(
-                    context,
-                    ctx => Task.Run(
-                        () =>
-                        {
-                            ctx.Response.StatusCode = expected;
-                        }
-                    )
-                );
-                // Assert
-                Expect(context.Response.StatusCode)
-                    .To.Equal(expected);
-            }
-        }
-
-        [TestFixture]
-        public class WhenAnotherExceptionIsThrown
-        {
-            [Test]
-            public void ShouldNotInterfere()
-            {
-                // Arrange
-                var sut = Create();
-                var expected = GetRandomInt(200, 299);
-                var context = new FakeHttpContext();
-                var ex = GetRandomFrom(
-                    new Exception[]
-                    {
-                        new ArgumentException(GetRandomString()),
-                        new InvalidOperationException(GetRandomString()),
-                        new ApplicationException(GetRandomString())
-                    }
-                );
-                // Act
-                Expect(
+            // Arrange
+            var sut = Create();
+            var expected = GetRandomInt(200, 299);
+            var context = new FakeHttpContext();
+            // Act
+            await sut.InvokeAsync(
+                context,
+                ctx => Task.Run(
                     () =>
-                        sut.InvokeAsync(
-                            context,
-                            ctx => Task.FromException(ex)
-                        )
-                ).To.Throw().With.Type(ex.GetType());
-                // Assert
-            }
-        }
-
-        [TestFixture]
-        public class WhenImageSourceNotAllowedExceptionThrown
-        {
-            [Test]
-            public async Task ShouldSetResultStatusCodeTo_403()
-            {
-                // Arrange
-                var sut = Create();
-                var context = new FakeHttpContext();
-                var expected = 403;
-                var url = GetRandomHttpUrl();
-                Expect(context.Response.StatusCode)
-                    .Not.To.Equal(expected);
-                // Act
-                await sut.InvokeAsync(
-                    context,
-                    ctx => Task.FromException(new ImageSourceNotAllowedException(url))
-                );
-                // Assert
-                Expect(context.Response.StatusCode)
-                    .To.Equal(expected);
-                context.Response.Body.Rewind();
-                Expect(
-                    Encoding.UTF8.GetString(
-                        context.Response.Body.ReadAllBytes()
-                    )
-                ).To.Contain(url);
-            }
-        }
-
-        private static ImageSourceNotAllowedExceptionMiddleware Create()
-        {
-            return new ImageSourceNotAllowedExceptionMiddleware(Substitute.For<IAppSettings>());
+                    {
+                        ctx.Response.StatusCode = expected;
+                    }
+                )
+            );
+            // Assert
+            Expect(context.Response.StatusCode)
+                .To.Equal(expected);
         }
     }
 
     [TestFixture]
-    public class TestInvalidProcessingOptionsExceptionMiddleware
+    public class WhenAnotherExceptionIsThrown
     {
-        [TestFixture]
-        public class WhenNoExceptionThrown
+        [Test]
+        public void ShouldNotInterfere()
         {
-            [Test]
-            public async Task ShouldNotInterfereWithTheResponse()
-            {
-                // Arrange
-                var sut = Create();
-                var expected = GetRandomInt(200, 299);
-                var context = new FakeHttpContext();
-                // Act
-                await sut.InvokeAsync(
-                    context,
-                    ctx => Task.Run(
-                        () =>
-                        {
-                            ctx.Response.StatusCode = expected;
-                        }
+            // Arrange
+            var sut = Create();
+            var expected = GetRandomInt(200, 299);
+            var context = new FakeHttpContext();
+            var ex = GetRandomFrom(
+                new Exception[]
+                {
+                    new ArgumentException(GetRandomString()),
+                    new InvalidOperationException(GetRandomString()),
+                    new ApplicationException(GetRandomString())
+                }
+            );
+            // Act
+            Expect(
+                () =>
+                    sut.InvokeAsync(
+                        context,
+                        ctx => Task.FromException(ex)
                     )
-                );
-                // Assert
-                Expect(context.Response.StatusCode)
-                    .To.Equal(expected);
-            }
+            ).To.Throw().With.Type(ex.GetType());
+            // Assert
         }
+    }
 
-        [TestFixture]
-        public class WhenAnotherExceptionIsThrown
+    [TestFixture]
+    public class WhenImageSourceNotAllowedExceptionThrown
+    {
+        [Test]
+        public async Task ShouldSetResultStatusCodeTo_403()
         {
-            [Test]
-            public void ShouldNotInterfere()
-            {
-                // Arrange
-                var sut = Create();
-                var expected = GetRandomInt(200, 299);
-                var context = new FakeHttpContext();
-                var ex = GetRandomFrom(
-                    new Exception[]
-                    {
-                        new ArgumentException(GetRandomString()),
-                        new InvalidOperationException(GetRandomString()),
-                        new ApplicationException(GetRandomString())
-                    }
-                );
-                // Act
-                Expect(
-                    () =>
-                        sut.InvokeAsync(
-                            context,
-                            ctx => Task.FromException(ex)
-                        )
-                ).To.Throw().With.Type(ex.GetType());
-                // Assert
-            }
-        }
-
-        [TestFixture]
-        public class WhenImageSourceNotAllowedExceptionThrown
-        {
-            [Test]
-            public async Task ShouldSetResultStatusCodeTo_403()
-            {
-                // Arrange
-                var sut = Create();
-                var context = new FakeHttpContext();
-                var expectedCode = 400;
-                var expectedMessage = GetRandomString(32);
-                Expect(context.Response.StatusCode)
-                    .Not.To.Equal(expectedCode);
-                // Act
-                await sut.InvokeAsync(
-                    context,
-                    ctx => Task.FromException(new InvalidProcessingOptionsException(expectedMessage))
-                );
-                // Assert
-                Expect(context.Response.StatusCode)
-                    .To.Equal(expectedCode);
-                context.Response.Body.Rewind();
-                var body = Encoding.UTF8.GetString(
+            // Arrange
+            var sut = Create();
+            var context = new FakeHttpContext();
+            var expected = 403;
+            var url = GetRandomHttpUrl();
+            Expect(context.Response.StatusCode)
+                .Not.To.Equal(expected);
+            // Act
+            await sut.InvokeAsync(
+                context,
+                ctx => Task.FromException(new ImageSourceNotAllowedException(url))
+            );
+            // Assert
+            Expect(context.Response.StatusCode)
+                .To.Equal(expected);
+            context.Response.Body.Rewind();
+            Expect(
+                Encoding.UTF8.GetString(
                     context.Response.Body.ReadAllBytes()
-                );
-                Expect(body).To.Contain(expectedMessage);
-                Expect(body).To.Contain("Query parameters");
-            }
+                )
+            ).To.Contain(url);
         }
+    }
 
-        private static InvalidProcessingOptionsExceptionMiddleware Create()
+    private static ImageSourceNotAllowedExceptionMiddleware Create()
+    {
+        return new ImageSourceNotAllowedExceptionMiddleware(Substitute.For<IAppSettings>());
+    }
+}
+
+[TestFixture]
+public class TestInvalidProcessingOptionsExceptionMiddleware
+{
+    [TestFixture]
+    public class WhenNoExceptionThrown
+    {
+        [Test]
+        public async Task ShouldNotInterfereWithTheResponse()
         {
-            return new InvalidProcessingOptionsExceptionMiddleware(Substitute.For<IAppSettings>());
+            // Arrange
+            var sut = Create();
+            var expected = GetRandomInt(200, 299);
+            var context = new FakeHttpContext();
+            // Act
+            await sut.InvokeAsync(
+                context,
+                ctx => Task.Run(
+                    () =>
+                    {
+                        ctx.Response.StatusCode = expected;
+                    }
+                )
+            );
+            // Assert
+            Expect(context.Response.StatusCode)
+                .To.Equal(expected);
         }
+    }
+
+    [TestFixture]
+    public class WhenAnotherExceptionIsThrown
+    {
+        [Test]
+        public void ShouldNotInterfere()
+        {
+            // Arrange
+            var sut = Create();
+            var expected = GetRandomInt(200, 299);
+            var context = new FakeHttpContext();
+            var ex = GetRandomFrom(
+                new Exception[]
+                {
+                    new ArgumentException(GetRandomString()),
+                    new InvalidOperationException(GetRandomString()),
+                    new ApplicationException(GetRandomString())
+                }
+            );
+            // Act
+            Expect(
+                () =>
+                    sut.InvokeAsync(
+                        context,
+                        ctx => Task.FromException(ex)
+                    )
+            ).To.Throw().With.Type(ex.GetType());
+            // Assert
+        }
+    }
+
+    [TestFixture]
+    public class WhenImageSourceNotAllowedExceptionThrown
+    {
+        [Test]
+        public async Task ShouldSetResultStatusCodeTo_403()
+        {
+            // Arrange
+            var sut = Create();
+            var context = new FakeHttpContext();
+            var expectedCode = 400;
+            var expectedMessage = GetRandomString(32);
+            Expect(context.Response.StatusCode)
+                .Not.To.Equal(expectedCode);
+            // Act
+            await sut.InvokeAsync(
+                context,
+                ctx => Task.FromException(new InvalidProcessingOptionsException(expectedMessage))
+            );
+            // Assert
+            Expect(context.Response.StatusCode)
+                .To.Equal(expectedCode);
+            context.Response.Body.Rewind();
+            var body = Encoding.UTF8.GetString(
+                context.Response.Body.ReadAllBytes()
+            );
+            Expect(body).To.Contain(expectedMessage);
+            Expect(body).To.Contain("Query parameters");
+        }
+    }
+
+    private static InvalidProcessingOptionsExceptionMiddleware Create()
+    {
+        return new InvalidProcessingOptionsExceptionMiddleware(Substitute.For<IAppSettings>());
     }
 }
