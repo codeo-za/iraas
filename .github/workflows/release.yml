@@ -68,7 +68,7 @@ jobs:
           npm run refresh-aws-docker-login
       
   deploy:
-    uses: deploy-project.yml@master
+    uses: codeo-za/iraas/.github/workflows/deploy-project.yml@master
     needs: [ build-and-push ]
     with:
       project_name: iraas
