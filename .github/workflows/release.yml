@@ -68,8 +68,8 @@ jobs:
           npm run refresh-aws-docker-login
       
   deploy:
-    uses: codeo-za/yumbi-deployments/.github/workflows/deploy-project.yml@master
-    needs: [ build-and-push, test ]
+    uses: deploy-project.yml@master
+    needs: [ build-and-push ]
     with:
       project_name: iraas
       image_tag: ${{ needs.build-and-push.outputs.version }}

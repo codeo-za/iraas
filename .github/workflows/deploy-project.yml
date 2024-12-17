@@ -1,0 +1,116 @@
+name: Deploy Project
+on:
+  workflow_dispatch:
+    inputs:
+      project_name:
+        type: choice
+        description: "Project to deploy"
+        options:
+          - busd
+          - iraas
+          - rtapi
+          - yumbi-dashboard
+          - yumbi-reportio
+          - yumbi-web
+          - gateway
+      image_tag:
+        type: string
+        description: "Changeset to deploy"
+        required: true
+      environment:
+        type: choice
+        description: "Environment ('all-production' always deploys to 'production-za' first)"
+        options:
+          - staging-za
+          - staging2-za
+          - all-production
+          - production-bw
+          - production-ci
+          - production-ke
+          - production-na
+          - production-ng
+          - production-za
+          - production-zm
+  workflow_call:
+    inputs:
+      project_name:
+        type: string
+        required: true
+      image_tag:
+        type: string
+        required: true
+      environment:
+        type: string
+        required: true
+run-name: Deploy '${{ github.event.inputs.image_tag || inputs.image_tag }}' to ${{ github.event.inputs.project_name || inputs.project_name }} on ${{ github.event.inputs.environment || inputs.environment }}
+jobs:
+  deploy_to_nomad:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: codeo-za/yumbi-deployments
+          token: ${{ secrets.DEPLOYMENTS_REPO_ACCESS_TOKEN }}
+
+      - name: 🐢 Setup NodeJs
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: 🟠 Install AWS CLI
+        uses: unfor19/install-aws-cli-action@v1
+
+      - name: 🔑 Install 1Password CLI
+        uses: 1password/install-cli-action@v1
+
+      - name: 🔐 Generate temporary AWS credentials
+        run: ./generate-aws-credentials.sh
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+
+      - name: 🎫 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 📦 NPM Install
+        run: npm install
+        env:
+          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create app config file
+        run: |
+          ./create-app-config-file.sh
+        env:
+          APP_CONFIG: ${{ vars.APP_CONFIG }}
+
+      - name: 📬 Get Machine IP Address
+        run: echo "ip=$(curl https://api.ipify.org)" >> $GITHUB_OUTPUT
+        id: ip
+
+      - name: 🔑 Get Access to Nomad Cluster
+        run: npm run add-ip-to-security-group
+        env:
+          IP_ADDRESS: ${{ steps.ip.outputs.ip }}
+          SECURITY_GROUP_ID: ${{ env.NOMAD_SECURITY_GROUP }}
+
+      - name: 🚀 Deploy to Nomad
+        run: npm run deploy
+        env:
+          PROJECT_NAME: ${{ github.event.inputs.project_name || inputs.project_name }}
+          IMAGE_TAG: ${{ github.event.inputs.image_tag || inputs.image_tag }}
+          ENVIRONMENT: ${{ github.event.inputs.environment || inputs.environment }}
+          NOMAD_ADDR: ${{ env.NOMAD_ADDR }}
+          NOMAD_TOKEN: ${{ env.NOMAD_TOKEN }}
+
+      - name: 🔒 Revoke Access to Nomad Cluster
+        if: always()
+        run: |
+          npm run remove-ip-from-security-group
+        env:
+          IP_ADDRESS: ${{ steps.ip.outputs.ip }}
+          SECURITY_GROUP_ID: ${{ env.NOMAD_SECURITY_GROUP }}
