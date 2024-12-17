@@ -67,49 +67,48 @@ jobs:
         run: |
           npm run refresh-aws-docker-login
       
-  deploy:
-    - name: 🟠 Install AWS CLI
-      uses: unfor19/install-aws-cli-action@v1
+      - name: 🟠 Install AWS CLI
+        uses: unfor19/install-aws-cli-action@v1
 
-    - name: 🔑 Install 1Password CLI
-      uses: 1password/install-cli-action@v1
+      - name: 🔑 Install 1Password CLI
+        uses: 1password/install-cli-action@v1
 
-    - name: 🔐 Generate temporary AWS credentials
-      run: ./generate-aws-credentials.sh
-      env:
-        OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+      - name: 🔐 Generate temporary AWS credentials
+        run: ./generate-aws-credentials.sh
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
 
-    - name: 🎫 Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-        aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
-        aws-region: ${{ env.AWS_REGION }}
+      - name: 🎫 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    - name: 📬 Get Machine IP Address
-      run: echo "ip=$(curl https://api.ipify.org)" >> $GITHUB_OUTPUT
-      id: ip
+      - name: 📬 Get Machine IP Address
+        run: echo "ip=$(curl https://api.ipify.org)" >> $GITHUB_OUTPUT
+        id: ip
 
-    - name: 🔑 Get Access to Nomad Cluster
-      run: npm run add-ip-to-security-group
-      env:
-        IP_ADDRESS: ${{ steps.ip.outputs.ip }}
-        SECURITY_GROUP_ID: ${{ env.NOMAD_SECURITY_GROUP }}
+      - name: 🔑 Get Access to Nomad Cluster
+        run: npm run add-ip-to-security-group
+        env:
+          IP_ADDRESS: ${{ steps.ip.outputs.ip }}
+          SECURITY_GROUP_ID: ${{ env.NOMAD_SECURITY_GROUP }}
 
-    - name: 🚀 Deploy to Nomad
-      run: npm run deploy
-      env:
-        PROJECT_NAME: ${{ github.event.inputs.project_name || inputs.project_name }}
-        IMAGE_TAG: ${{ github.event.inputs.image_tag || inputs.image_tag }}
-        ENVIRONMENT: ${{ github.event.inputs.environment || inputs.environment }}
-        NOMAD_ADDR: ${{ env.NOMAD_ADDR }}
-        NOMAD_TOKEN: ${{ env.NOMAD_TOKEN }}
+      - name: 🚀 Deploy to Nomad
+        run: npm run deploy
+        env:
+          PROJECT_NAME: ${{ github.event.inputs.project_name || inputs.project_name }}
+          IMAGE_TAG: ${{ github.event.inputs.image_tag || inputs.image_tag }}
+          ENVIRONMENT: ${{ github.event.inputs.environment || inputs.environment }}
+          NOMAD_ADDR: ${{ env.NOMAD_ADDR }}
+          NOMAD_TOKEN: ${{ env.NOMAD_TOKEN }}
 
-    - name: 🔒 Revoke Access to Nomad Cluster
-      if: always()
-      run: |
-        npm run remove-ip-from-security-group
-      env:
-        IP_ADDRESS: ${{ steps.ip.outputs.ip }}
-        SECURITY_GROUP_ID: ${{ env.NOMAD_SECURITY_GROUP }}
+      - name: 🔒 Revoke Access to Nomad Cluster
+        if: always()
+        run: |
+          npm run remove-ip-from-security-group
+        env:
+          IP_ADDRESS: ${{ steps.ip.outputs.ip }}
+          SECURITY_GROUP_ID: ${{ env.NOMAD_SECURITY_GROUP }}
