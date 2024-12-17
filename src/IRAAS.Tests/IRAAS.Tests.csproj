@@ -20,16 +20,17 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="log4net" Version="2.0.15" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="NExpect" Version="2.0.110" />
-    <PackageReference Include="NExpect.Matchers.NSubstitute" Version="2.0.110" />
+    <PackageReference Include="NExpect" Version="2.0.111" />
+    <PackageReference Include="NExpect.Matchers.NSubstitute" Version="2.0.111" />
     <PackageReference Include="NSubstitute" Version="5.1.0" />
     <PackageReference Include="NUnit" Version="4.1.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
-    <PackageReference Include="PeanutButter.JObjectExtensions" Version="3.0.333" />
-    <PackageReference Include="PeanutButter.RandomGenerators" Version="3.0.333" />
-    <PackageReference Include="PeanutButter.SimpleHTTPServer" Version="3.0.333" />
-    <PackageReference Include="PeanutButter.SimpleTcpServer" Version="3.0.333" />
-    <PackageReference Include="PeanutButter.Utils" Version="3.0.333" />
+    <PackageReference Include="PeanutButter.JObjectExtensions" Version="3.0.335" />
+    <PackageReference Include="PeanutButter.RandomGenerators" Version="3.0.335" />
+    <PackageReference Include="PeanutButter.SimpleHTTPServer" Version="3.0.335" />
+    <PackageReference Include="PeanutButter.SimpleTcpServer" Version="3.0.335" />
+    <PackageReference Include="PeanutButter.TestUtils.AspNetCore" Version="3.0.335" />
+    <PackageReference Include="PeanutButter.Utils" Version="3.0.335" />
     <PackageReference Include="Quackers.TestLogger" Version="1.0.24" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
   </ItemGroup>

@@ -1,9 +1,6 @@
 using IRAAS.Security;
-using NExpect;
 using NSubstitute;
 using NUnit.Framework;
-using static NExpect.Expectations;
-using static PeanutButter.RandomGenerators.RandomValueGen;
 
 namespace IRAAS.Tests.Security;
 
@@ -33,7 +30,8 @@ public class TestWhitelist
             // Act
             var allowed = sut.IsAllowed(GetRandomHttpUrl());
             // Assert
-            Expect(allowed).To.Be.True();
+            Expect(allowed)
+                .To.Be.True();
         }
 
         [Test]
@@ -46,7 +44,8 @@ public class TestWhitelist
             // Act
             var result = sut.IsAllowed(url);
             // Assert
-            Expect(result).To.Be.True();
+            Expect(result)
+                .To.Be.True();
         }
 
         [Test]
@@ -60,7 +59,8 @@ public class TestWhitelist
             // Act
             var result = sut.IsAllowed(url);
             // Assert
-            Expect(result).To.Be.False();
+            Expect(result)
+                .To.Be.False();
         }
 
         [Test]
@@ -74,7 +74,8 @@ public class TestWhitelist
             // Act
             var result = sut.IsAllowed(url);
             // Assert
-            Expect(result).To.Be.True();
+            Expect(result)
+                .To.Be.True();
         }
             
         [Test]
@@ -88,12 +89,14 @@ public class TestWhitelist
             var sut = Create($"*.{parent}");
                 
             // Pre-assert
-            Expect(subDomain).Not.To.Contain(parent);
+            Expect(subDomain)
+                .Not.To.Contain(parent);
             Expect(subDomain.ToLower()).To.Contain(parent.ToLower());
             // Act
             var result = sut.IsAllowed(url);
             // Assert
-            Expect(result).To.Be.True();
+            Expect(result)
+                .To.Be.True();
         }
 
         [Test]
@@ -106,7 +109,8 @@ public class TestWhitelist
             // Act
             var result = sut.IsAllowed(url);
             // Assert
-            Expect(result).To.Be.True();
+            Expect(result)
+                .To.Be.True();
         }
 
         [Test]
@@ -120,7 +124,8 @@ public class TestWhitelist
             // Act
             var result = sut.IsAllowed(url);
             // Assert
-            Expect(result).To.Be.False();
+            Expect(result)
+                .To.Be.False();
         }
 
         [Test]
@@ -133,7 +138,8 @@ public class TestWhitelist
             // Act
             var result = sut.IsAllowed(url);
             // Assert
-            Expect(result).To.Be.False();
+            Expect(result)
+                .To.Be.False();
         }
 
         [TestCase(null)]
@@ -149,7 +155,8 @@ public class TestWhitelist
             // Act
             var result = sut.IsAllowed(url);
             // Assert
-            Expect(result).To.Be.True();
+            Expect(result)
+                .To.Be.True();
         }
 
         [TestFixture]
@@ -163,7 +170,8 @@ public class TestWhitelist
                 // Act
                 var result = sut.IsAllowed($"http://{hostname}/resources?id=123");
                 // Assert
-                Expect(result).To.Be.True();
+                Expect(result)
+                    .To.Be.True();
             }
         }
     }

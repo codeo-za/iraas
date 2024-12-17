@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using IRAAS.Exceptions;
 using IRAAS.ImageProcessing;
 using Microsoft.Extensions.Logging;
-using NExpect;
 using NExpect.Interfaces;
 using NExpect.MatcherLogic;
 using NSubstitute;
@@ -21,8 +20,6 @@ using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Processing;
-using static NExpect.Expectations;
-using static PeanutButter.RandomGenerators.RandomValueGen;
 
 namespace IRAAS.Tests.ImageProcessing;
 
@@ -130,8 +127,10 @@ public class TestImageResizer
         var scrubbedOfTimings = result.Headers.Where(
             h => !h.Key.StartsWith(TimingHeaders.PREFIX)
         ).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-        Expect(scrubbedOfTimings.IsEquivalentTo(responseHeaders))
-            .To.Be.True();
+        Expect(scrubbedOfTimings)
+            .To.Be.Equivalent.To(responseHeaders);
+        // Expect(scrubbedOfTimings.IsEquivalentTo(responseHeaders))
+        //     .To.Be.True();
     }
 
     [Test]
@@ -174,13 +173,16 @@ public class TestImageResizer
                 Url = url
             }, NoHeaders);
             // Assert
-            Expect(result).Not.To.Be.Null();
+            Expect(result)
+                .Not.To.Be.Null();
             await Expect(fetcher).To.Have.Received(1).Fetch(url, Arg.Any<IDictionary<string, string>>());
             var image = Image.Load(result.Stream);
             Expect(image.Metadata.GetFormatMetadata(JpegFormat.Instance).Quality)
                 .To.Equal(85);
-            Expect(image).To.Have.Width(expectedWidth);
-            Expect(image).To.Have.Height(expectedHeight);
+            Expect(image)
+                .To.Have.Width(expectedWidth);
+            Expect(image)
+                .To.Have.Height(expectedHeight);
         }
 
         [Test]
@@ -202,7 +204,8 @@ public class TestImageResizer
             var quality = image.Metadata
                 .GetFormatMetadata(JpegFormat.Instance)
                 .Quality;
-            Expect(quality).To.Equal(expected);
+            Expect(quality)
+                .To.Equal(expected);
         }
 
         [Test]
@@ -226,8 +229,10 @@ public class TestImageResizer
             }, NoHeaders);
             // Assert
             var image = Image.Load(result.Stream);
-            Expect(image).To.Have.Width(expectedWidth);
-            Expect(image).To.Have.Height(expectedHeight);
+            Expect(image)
+                .To.Have.Width(expectedWidth);
+            Expect(image)
+                .To.Have.Height(expectedHeight);
         }
 
         [Test]
@@ -252,8 +257,10 @@ public class TestImageResizer
             }, NoHeaders);
             // Assert
             var image = Image.Load(result.Stream);
-            Expect(image).To.Have.Width(expectedWidth);
-            Expect(image).To.Have.Height(expectedHeight);
+            Expect(image)
+                .To.Have.Width(expectedWidth);
+            Expect(image)
+                .To.Have.Height(expectedHeight);
         }
 
         [Test]
@@ -275,8 +282,10 @@ public class TestImageResizer
             }, NoHeaders);
             // Assert
             var image = Image.Load(result.Stream);
-            Expect(image).To.Have.Width(expectedWidth);
-            Expect(image).To.Have.Height(expectedHeight);
+            Expect(image)
+                .To.Have.Width(expectedWidth);
+            Expect(image)
+                .To.Have.Height(expectedHeight);
         }
 
         [Test]
@@ -301,8 +310,10 @@ public class TestImageResizer
             }, NoHeaders);
             // Assert
             var image = Image.Load(result.Stream);
-            Expect(image).To.Have.Width(expectedWidth, DumpDebugInfo);
-            Expect(image).To.Have.Height(expectedHeight, DumpDebugInfo);
+            Expect(image)
+                .To.Have.Width(expectedWidth, DumpDebugInfo);
+            Expect(image)
+                .To.Have.Height(expectedHeight, DumpDebugInfo);
 
             string DumpDebugInfo()
             {
@@ -342,8 +353,10 @@ public class TestImageResizer
             }, NoHeaders);
             // Assert
             var image = Image.Load(result.Stream);
-            Expect(image).To.Have.Width(expectedWidth, DumpDebugInfo);
-            Expect(image).To.Have.Height(expectedHeight, DumpDebugInfo);
+            Expect(image)
+                .To.Have.Width(expectedWidth, DumpDebugInfo);
+            Expect(image)
+                .To.Have.Height(expectedHeight, DumpDebugInfo);
 
             string DumpDebugInfo()
             {
@@ -376,8 +389,10 @@ public class TestImageResizer
             }, NoHeaders);
             // Assert
             var image = Image.Load(result.Stream);
-            Expect(image).To.Have.Width(expectedWidth);
-            Expect(image).To.Have.Height(expectedHeight);
+            Expect(image)
+                .To.Have.Width(expectedWidth);
+            Expect(image)
+                .To.Have.Height(expectedHeight);
         }
 
         [Test]
@@ -402,8 +417,10 @@ public class TestImageResizer
             }, NoHeaders);
             // Assert
             var image = Image.Load(result.Stream);
-            Expect(image).To.Have.Width(expectedWidth, DumpDebugInfo);
-            Expect(image).To.Have.Height(expectedHeight, DumpDebugInfo);
+            Expect(image)
+                .To.Have.Width(expectedWidth, DumpDebugInfo);
+            Expect(image)
+                .To.Have.Height(expectedHeight, DumpDebugInfo);
 
             string DumpDebugInfo()
             {
@@ -464,7 +481,8 @@ public class TestImageResizer
             // should still be able to load after DetectFormat
             Expect(() => Image.Load(result.Stream))
                 .Not.To.Throw();
-            Expect(format.Name).To.Equal(PngFormat.Instance.Name);
+            Expect(format.Name)
+                .To.Equal(PngFormat.Instance.Name);
         }
 
         [Test]
@@ -568,7 +586,8 @@ public class TestImageResizer
                 var result = await sut.Resize(options, NoHeaders);
                 // Assert
                 var format = Image.DetectFormat(result.Stream);
-                Expect(format.Name).To.Equal(PngFormat.Instance.Name);
+                Expect(format.Name)
+                    .To.Equal(PngFormat.Instance.Name);
                 Expect(() => Image.Load(result.Stream))
                     .Not.To.Throw();
             }
@@ -607,8 +626,10 @@ public class TestImageResizer
         var bytes0 = result0.Stream.ReadAllBytes();
         var bytes1 = result1.Stream.ReadAllBytes();
         var bytes2 = result2.Stream.ReadAllBytes();
-        Expect(bytes0).To.Equal(bytes1, "Should default to bicubic sampler");
-        Expect(bytes1).Not.To.Equal(bytes2, "Should use the provided sampler by name");
+        Expect(bytes0)
+            .To.Equal(bytes1, "Should default to bicubic sampler");
+        Expect(bytes1)
+            .Not.To.Equal(bytes2, "Should use the provided sampler by name");
     }
 
     [Test]
@@ -687,10 +708,13 @@ public class TestImageResizer
                 Format = "PNG"
             }, new Dictionary<string, string>());
             // Assert
-            Expect(result.Headers).To.Contain.Key(TimingHeaders.Fetch);
+            Expect(result.Headers)
+                .To.Contain.Key(TimingHeaders.Fetch);
             var header = result.Headers[TimingHeaders.Fetch];
-            Expect(header).Not.To.Be.Null();
-            Expect(header).To.Be.An.Integer();
+            Expect(header)
+                .Not.To.Be.Null();
+            Expect(header)
+                .To.Be.An.Integer();
             var intValue = int.Parse(header);
             Expect(intValue)
                 .To.Be.Greater.Than.Or.Equal.To(min)
@@ -720,11 +744,13 @@ public class TestImageResizer
                 Url = GetRandomHttpUrlWithPath(),
                 Format = "PNG"
             };
-            Expect(options.Url).Not.To.Be.Null.Or.Empty($"got: {options.Url}");
+            Expect(options.Url)
+                .Not.To.Be.Null.Or.Empty($"got: {options.Url}");
             // Act
             var result = await sut.Resize(options, new Dictionary<string, string>());
             // Assert
-            Expect(result.Headers).To.Contain.Key(header);
+            Expect(result.Headers)
+                .To.Contain.Key(header);
         }
     }
 

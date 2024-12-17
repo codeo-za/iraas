@@ -2,14 +2,11 @@ using System;
 using System.IO;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
-using static PeanutButter.RandomGenerators.RandomValueGen;
-using NExpect;
 using NExpect.Implementations;
 using NExpect.Interfaces;
 using NExpect.MatcherLogic;
 using NSubstitute;
 using PeanutButter.Utils;
-using static NExpect.Expectations;
 
 // ReSharper disable AccessToDisposedClosure
 
@@ -51,7 +48,8 @@ public class TestAppSettingsProvider
         // Act
         var result = AppSettingsProvider.CreateAppSettings();
         // Assert
-        Expect(result).To.Deep.Equal(expected);
+        Expect(result)
+            .To.Deep.Equal(expected);
     }
 
     [TestCase("appsettings.json")]
@@ -154,7 +152,8 @@ public class TestAppSettingsProvider
         // Act
         var result = AppSettingsProvider.CreateAppSettings();
         // Assert
-        Expect(result).To.Deep.Equal(expected);
+        Expect(result)
+            .To.Deep.Equal(expected);
     }
 
     [Test]
@@ -183,8 +182,10 @@ public class TestAppSettingsProvider
             overrideJsonFile,
             overrideJson
         );
-        Expect(defaultJsonFile).To.Exist();
-        Expect(overrideJsonFile).To.Exist();
+        Expect(defaultJsonFile)
+            .To.Exist();
+        Expect(overrideJsonFile)
+            .To.Exist();
         // Act
         var result = AppSettingsProvider.CreateAppSettings();
         // Assert
@@ -231,169 +232,174 @@ public class TestAppSettingsProvider
         IAppSettings settings
     )
     {
-        return $@"
-{{
-  ""Logging"": {{
-        ""LogLevel"": {{
-            ""Default"": ""Warning"",
-            ""IRAAS"": ""{settings.IRAASLogLevel}"",
-        }}
-    }},
-    ""Kestrel"": {{
-    ""Endpoints"": {{
-        ""Http"": {{
-            ""Url"": ""http://0.0.0.0:8008""
-        }}
-    }}
-    }},
-    ""Settings"": {{
-    ""MaxInputImageSize"": ""{settings.MaxInputImageSize}"",
-    ""MaxOutputImageSize"": ""{settings.MaxOutputImageSize}"",
-    ""UseDeveloperExceptionPage"": ""{settings.UseDeveloperExceptionPage}"",
-    ""UseHttps"": ""{settings.UseHttps}"",
-    ""EnableTestPage"": ""{settings.EnableTestPage}"",
-    ""DomainWhitelist"": ""{settings.DomainWhitelist}"",
-    ""MaxConcurrency"": ""{settings.MaxConcurrency}"",
-    ""MaxClients"": ""{settings.MaxClients}"",
-    ""MaxImageFetchTimeInMilliseconds"": ""{settings.MaxImageFetchTimeInMilliseconds}"",
-    ""ShareConcurrentRequests"": ""{settings.ShareConcurrentRequests.ToString().ToLower()}"",
-    ""EnableConnectionKeepAlive"": ""{settings.EnableConnectionKeepAlive}"",
-    ""LogFolder"": ""{settings.LogFolder}"",
-    ""SuppressErrorDiagnostics"": ""{settings.SuppressErrorDiagnostics}"",
-    }},
-    ""DefaultImageParameters"": {{
-        ""ReplaceTransparencyWith"": null,
-        ""Format"": null,
-        ""Quality"": ""85"",
-        ""Width"": null,
-        ""Height"": null,
-        ""ResizeMode"": null,
-        ""JpegColorType"": null,
-        ""JpegEncodingColor"": null,
-        ""Gamma"": null,
-        ""Quantizer"": null,
-        ""TransparencyThreshold"": null,
-        ""BitDepth"": null,
-        ""PngColorType"": null,
-        ""CompressionLevel"": null,
-        ""PngFilterMethod"": null,
-        ""Sampler"": null,
-        ""GifColorTableMode"": null,
-        ""MaxColors"": null,
-        ""Dither"": null,
-        ""DevicePixelRatio"": 1
-    }}
-    ""AllowedHosts"": ""*""
-}}";
+        return
+            $$"""
+              {
+                  "Logging": {
+                      "LogLevel": {
+                          "Default": "Warning",
+                          "IRAAS": "{{settings.IRAASLogLevel}}"
+                      }
+                  },
+                  "Kestrel": {
+                      "Endpoints": {
+                          "Http": {
+                              "Url": "http://0.0.0.0:8008"
+                          }
+                      }
+                  },
+                  "Settings": {
+                      "MaxInputImageSize": "{{settings.MaxInputImageSize}}",
+                      "MaxOutputImageSize": "{{settings.MaxOutputImageSize}}",
+                      "UseDeveloperExceptionPage": "{{settings.UseDeveloperExceptionPage}}",
+                      "UseHttps": "{{settings.UseHttps}}",
+                      "EnableTestPage": "{{settings.EnableTestPage}}",
+                      "DomainWhitelist": "{{settings.DomainWhitelist}}",
+                      "MaxConcurrency": "{{settings.MaxConcurrency}}",
+                      "MaxClients": "{{settings.MaxClients}}",
+                      "MaxImageFetchTimeInMilliseconds": "{{settings.MaxImageFetchTimeInMilliseconds}}",
+                      "ShareConcurrentRequests": "{{settings.ShareConcurrentRequests.ToString().ToLower()}}",
+                      "EnableConnectionKeepAlive": "{{settings.EnableConnectionKeepAlive}}",
+                      "LogFolder": "{{settings.LogFolder}}",
+                      "SuppressErrorDiagnostics": "{{settings.SuppressErrorDiagnostics}}"
+                  },
+                  "DefaultImageParameters": {
+                       "ReplaceTransparencyWith": null,
+                       "Format": null,
+                       "Quality": "85",
+                       "Width": null,
+                       "Height": null,
+                       "ResizeMode": null,
+                       "JpegColorType": null,
+                       "JpegEncodingColor": null,
+                       "Gamma": null,
+                       "Quantizer": null,
+                       "TransparencyThreshold": null,
+                       "BitDepth": null,
+                       "PngColorType": null,
+                       "CompressionLevel": null,
+                       "PngFilterMethod": null,
+                       "Sampler": null,
+                       "GifColorTableMode": null,
+                       "MaxColors": null,
+                       "Dither": null,
+                       "DevicePixelRatio": 1
+                  },
+                  "AllowedHosts": "*"
+              }
+              """;
     }
 
     private string MakeSettingsWithoutConcurrency(
         IAppSettings settings
     )
     {
-        return $@"{{
-  ""Logging"": {{
-        ""LogLevel"": {{
-            ""Default"": ""Warning"",
-            ""IRAAS"": ""{settings.IRAASLogLevel}""
-        }}
-    }},
-    ""Kestrel"": {{
-    ""Endpoints"": {{
-        ""Http"": {{
-            ""Url"": ""http://0.0.0.0:8008""
-        }}
-    }}
-    }},
-    ""Settings"": {{
-    ""MaxInputImageSize"": ""{settings.MaxInputImageSize}"",
-    ""MaxOutputImageSize"": ""{settings.MaxOutputImageSize}"",
-    ""UseDeveloperExceptionPage"": ""{settings.UseDeveloperExceptionPage}"",
-    ""UseHttps"": ""{settings.UseHttps}"",
-    ""EnableTestPage"": ""{settings.EnableTestPage}"",
-    ""DomainWhitelist"": ""{settings.DomainWhitelist}"",
-    ""ShareConcurrentRequests"": ""{settings.ShareConcurrentRequests}"",
-    ""EnableConnectionKeepAlive"": ""{settings.EnableConnectionKeepAlive}"",
-    ""LogFolder"": ""{settings.LogFolder}""
-    }},
-    ""DefaultImageParameters"": {{
-        ""ReplaceTransparencyWith"": null,
-        ""Format"": null,
-        ""Quality"": ""85"",
-        ""Width"": null,
-        ""Height"": null,
-        ""ResizeMode"": null,
-        ""JpegColorType"": null,
-        ""JpegEncodingColor"": null,
-        ""Gamma"": null,
-        ""Quantizer"": null,
-        ""TransparencyThreshold"": null,
-        ""BitDepth"": null,
-        ""PngColorType"": null,
-        ""CompressionLevel"": null,
-        ""PngFilterMethod"": null,
-        ""Sampler"": null,
-        ""GifColorTableMode"": null,
-        ""MaxColors"": null,
-        ""Dither"": null,
-        ""DevicePixelRatio"": 1
-    }}
-    ""AllowedHosts"": ""*""
-}}";
+        return
+            $$$"""
+               {
+                   "LogLevel": {
+                       "Default": "Warning",
+                       "IRAAS": "{{{settings.IRAASLogLevel}}}"
+                   },
+                   "Kestrel": {
+                       "Endpoints": {
+                           "Http": {
+                               "Url": "http://0.0.0.0:8080"
+                           }
+                       }
+                   },
+                   "Settings": {
+                       "MaxInputImageSize": "{{settings.MaxInputImageSize}}",
+                       "MaxOutputImageSize": "{{settings.MaxOutputImageSize}}",
+                       "UseDeveloperExceptionPage": "{{settings.UseDeveloperExceptionPage}}",
+                       "UseHttps": "{{settings.UseHttps}}",
+                       "EnableTestPage": "{{settings.EnableTestPage}}",
+                       "DomainWhitelist": "{{settings.DomainWhitelist}}",
+                       "ShareConcurrentRequests": "{{settings.ShareConcurrentRequests}}",
+                       "EnableConnectionKeepAlive": "{{settings.EnableConnectionKeepAlive}}",
+                       "LogFolder": "{{settings.LogFolder}}"
+                   },
+                   "DefaultImageParameters": {
+                       "ReplaceTransparencyWith": null,
+                       "Format": null,
+                       "Quality": "85",
+                       "Width": null,
+                       "Height": null,
+                       "ResizeMode": null,
+                       "JpegColorType": null,
+                       "JpegEncodingColor": null,
+                       "Gamma": null,
+                       "Quantizer": null,
+                       "TransparencyThreshold": null,
+                       "BitDepth": null,
+                       "PngColorType": null,
+                       "CompressionLevel": null,
+                       "PngFilterMethod": null,
+                       "Sampler": null,
+                       "GifColorTableMode": null,
+                       "MaxColors": null,
+                       "Dither": null,
+                       "DevicePixelRatio": 1
+                   },
+                   "AllowedHosts": "*"
+               }
+               """;
     }
 
     private string MakeSettingsWithoutLogFolder(
         IAppSettings settings
     )
     {
-        return $@"{{
-  ""Logging"": {{
-        ""LogLevel"": {{
-            ""Default"": ""Warning"",
-            ""IRAAS"": ""{settings.IRAASLogLevel}""
-        }}
-    }},
-    ""Kestrel"": {{
-    ""Endpoints"": {{
-        ""Http"": {{
-            ""Url"": ""http://0.0.0.0:8008""
-        }}
-    }}
-    }},
-    ""Settings"": {{
-    ""MaxInputImageSize"": ""{settings.MaxInputImageSize}"",
-    ""MaxOutputImageSize"": ""{settings.MaxOutputImageSize}"",
-    ""UseDeveloperExceptionPage"": ""{settings.UseDeveloperExceptionPage}"",
-    ""UseHttps"": ""{settings.UseHttps}"",
-    ""EnableTestPage"": ""{settings.EnableTestPage}"",
-    ""DomainWhitelist"": ""{settings.DomainWhitelist}"",
-    ""ShareConcurrentRequests"": ""{settings.ShareConcurrentRequests}"",
-    ""EnableConnectionKeepAlive"": ""{settings.EnableConnectionKeepAlive}""
-    }},
-    ""DefaultImageParameters"": {{
-        ""ReplaceTransparencyWith"": null,
-        ""Format"": null,
-        ""Quality"": ""85"",
-        ""Width"": null,
-        ""Height"": null,
-        ""ResizeMode"": null,
-        ""JpegColorType"": null,
-        ""JpegEncodingColor"": null,
-        ""Gamma"": null,
-        ""Quantizer"": null,
-        ""TransparencyThreshold"": null,
-        ""BitDepth"": null,
-        ""PngColorType"": null,
-        ""CompressionLevel"": null,
-        ""PngFilterMethod"": null,
-        ""Sampler"": null,
-        ""GifColorTableMode"": null,
-        ""MaxColors"": null,
-        ""Dither"": null,
-        ""DevicePixelRatio"": 1
-    }}
-    ""AllowedHosts"": ""*""
-}}";
+        return
+            $$"""
+            {
+                "Logging": {
+                    "LogLevel": {
+                        "Default": "Warning",
+                        "IRAAS": "{{settings.IRAASLogLevel}}"
+                    }
+                },
+                "Kestrel": {
+                    "Endpoints": {
+                        "Http": {
+                            "Url": "http://0.0.0.0:8008"
+                        }
+                    }
+                },
+                "Settings": {
+                    "MaxInputImageSize": "{{settings.MaxInputImageSize}}",
+                    "MaxOutputImageSize": "{{settings.MaxOutputImageSize}}",
+                    "UseDeveloperExceptionPage": "{{settings.UseDeveloperExceptionPage}}",
+                    "UseHttps": "{{settings.UseHttps}}",
+                    "EnableTestPage": "{{settings.EnableTestPage}}",
+                    "DomainWhitelist": "{{settings.DomainWhitelist}}",
+                    "ShareConcurrentRequests": "{{settings.ShareConcurrentRequests}}",
+                    "EnableConnectionKeepAlive": "{{settings.EnableConnectionKeepAlive}}"
+                },
+                "DefaultImageParameters": {
+                    "ReplaceTransparencyWith": null,
+                    "Format": null,
+                    "Quality": "85",
+                    "Width": null,
+                    "Height": null,
+                    "ResizeMode": null,
+                    "JpegColorType": null,
+                    "JpegEncodingColor": null,
+                    "Gamma": null,
+                    "Quantizer": null,
+                    "TransparencyThreshold": null,
+                    "BitDepth": null,
+                    "PngColorType": null,
+                    "CompressionLevel": null,
+                    "PngFilterMethod": null,
+                    "Sampler": null,
+                    "GifColorTableMode": null,
+                    "MaxColors": null,
+                    "Dither": null,
+                    "DevicePixelRatio": 1
+                }
+            }
+            """;
     }
 
     private static string ChDir(string target)
@@ -406,7 +412,7 @@ public class TestAppSettingsProvider
 
 public static class PathMatchers
 {
-    public static void Exist(this ITo<string> to)
+    public static void Exist_(this ITo<string> to)
     {
         to.AddMatcher(
             actual =>

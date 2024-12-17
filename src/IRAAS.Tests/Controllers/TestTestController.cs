@@ -4,9 +4,7 @@ using IRAAS.Controllers;
 using IRAAS.ImageProcessing;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
-using NExpect;
 using NSubstitute;
-using static NExpect.Expectations;
 
 namespace IRAAS.Tests.Controllers;
 
@@ -58,8 +56,10 @@ public class TestTestController
             // Act
             var result = sut.Test();
             // Assert
-            Expect(result).Not.To.Be.Null();
-            Expect(result).To.Be.An.Instance.Of<ViewResult>();
+            Expect(result)
+                .Not.To.Be.Null();
+            Expect(result)
+                .To.Be.An.Instance.Of<ViewResult>();
         }
     }
 

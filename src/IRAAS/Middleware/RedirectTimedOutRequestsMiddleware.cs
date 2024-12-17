@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Net;
 using IRAAS.ImageProcessing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;

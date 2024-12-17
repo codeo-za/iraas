@@ -6,12 +6,9 @@ using IRAAS.ImageProcessing;
 using IRAAS.Middleware;
 using IRAAS.Tests.Fakes;
 using Microsoft.Extensions.Logging;
-using NExpect;
 using NSubstitute;
 using NUnit.Framework;
 using PeanutButter.Utils;
-using static NExpect.Expectations;
-using static PeanutButter.RandomGenerators.RandomValueGen;
 
 namespace IRAAS.Tests.Middleware;
 

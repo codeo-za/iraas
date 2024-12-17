@@ -1,13 +1,8 @@
-using System;
 using System.Collections.Generic;
 using IRAAS.ImageProcessing;
-using NExpect;
-using NExpect.Interfaces;
-using NExpect.MatcherLogic;
 using NUnit.Framework;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using static NExpect.Expectations;
 
 [TestFixture]
 public class TestRgba32Extensions

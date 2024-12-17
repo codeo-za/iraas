@@ -3,11 +3,9 @@ using System.Linq;
 using System.Net.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
-using NExpect;
 using NExpect.Interfaces;
 using NExpect.MatcherLogic;
 using PeanutButter.Utils;
-using static NExpect.Expectations;
 
 namespace IRAAS.Tests.Controllers;
 
@@ -56,7 +54,8 @@ public static class ControllerMatchers
             actual =>
             {
                 var method = actual.GetMethod(member);
-                Expect(method).Not.To.Be.Null(() => $"Expected to find method {actual}.{method}");
+                Expect(method)
+                    .Not.To.Be.Null(() => $"Expected to find method {actual}.{method}");
                 var attribs = method.GetCustomAttributes(false).OfType<RouteAttribute>();
                 Expect(attribs).To.Contain.Exactly(1)
                     .Matched.By(

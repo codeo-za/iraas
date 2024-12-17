@@ -8,7 +8,6 @@ using System.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using PeanutButter.Utils;
-using PeanutButter.Utils.Dictionaries;
 
 namespace IRAAS.Middleware;
 

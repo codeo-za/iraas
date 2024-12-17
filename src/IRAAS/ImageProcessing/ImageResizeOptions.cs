@@ -20,6 +20,8 @@ public class ImageResizeOptions
     {
         _defaultParameters = parameters;
     }
+    
+    public static IImageResizeParameters Defaults => _defaultParameters;
 
     public ImageResizeOptions()
     {

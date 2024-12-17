@@ -7,13 +7,10 @@ using System.Threading.Tasks;
 using IRAAS.ImageProcessing;
 using IRAAS.Tests.TestUtils;
 using Microsoft.Extensions.Logging;
-using NExpect;
 using NSubstitute;
 using NUnit.Framework;
 using PeanutButter.SimpleHTTPServer;
 using PeanutButter.Utils;
-using static NExpect.Expectations;
-using static PeanutButter.RandomGenerators.RandomValueGen;
 
 // ReSharper disable RedundantAssignment
 // ReSharper disable AccessToDisposedClosure
@@ -58,8 +55,10 @@ public class TestUrlFetcher
         } while (readCount > 0);
 
         var resultBytes = memStream.ToArray();
-        Expect(resultBytes.Length).To.Equal(Resources.Data.FluffyCatJpeg.Length);
-        Expect(resultBytes).To.Equal(Resources.Data.FluffyCatJpeg);
+        Expect(resultBytes.Length)
+            .To.Equal(Resources.Data.FluffyCatJpeg.Length);
+        Expect(resultBytes)
+            .To.Equal(Resources.Data.FluffyCatJpeg);
     }
 
     [Test]
@@ -321,8 +320,10 @@ public class TestUrlFetcher
         // Act
         var result = await sut.Fetch(url, new Dictionary<string, string>());
         // Assert
-        Expect(result.Headers).Not.To.Be.Null();
-        Expect(result.Headers).Not.To.Be.Empty();
+        Expect(result.Headers)
+            .Not.To.Be.Null();
+        Expect(result.Headers)
+            .Not.To.Be.Empty();
         Expect(result.Headers)
             .To.Contain.Key(expectedHeader)
             .With.Value(expectedHeaderValue);
@@ -385,8 +386,10 @@ public class TestUrlFetcher
         // Act
         using var result = await sut.Fetch(url, new Dictionary<string, string>());
         // Assert
-        Expect(originalCatRequested).To.Be.True("original cat was not requested");
-        Expect(newCatRequested).To.Be.True("new-cat was not requested");
+        Expect(originalCatRequested)
+            .To.Be.True("original cat was not requested");
+        Expect(newCatRequested)
+            .To.Be.True("new-cat was not requested");
         var buffer = new byte[1024];
         await using var memStream = new MemoryStream();
         var readCount = 0;
@@ -397,8 +400,10 @@ public class TestUrlFetcher
         } while (readCount > 0);
 
         var resultBytes = memStream.ToArray();
-        Expect(resultBytes.Length).To.Equal(Resources.Data.FluffyCatBmp.Length);
-        Expect(resultBytes).To.Equal(Resources.Data.FluffyCatBmp);
+        Expect(resultBytes.Length)
+            .To.Equal(Resources.Data.FluffyCatBmp.Length);
+        Expect(resultBytes)
+            .To.Equal(Resources.Data.FluffyCatBmp);
     }
 
     [MaxTime(18000)]

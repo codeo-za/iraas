@@ -10,11 +10,8 @@ using log4net.Repository.Hierarchy;
 using log4net.Util;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
-using static PeanutButter.RandomGenerators.RandomValueGen;
-using NExpect;
 using NSubstitute;
 using PeanutButter.Utils;
-using static NExpect.Expectations;
 
 namespace IRAAS.Tests;
 

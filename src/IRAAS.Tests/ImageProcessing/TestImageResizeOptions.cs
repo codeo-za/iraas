@@ -1,13 +1,10 @@
 using System;
 using IRAAS.ImageProcessing;
-using NExpect;
 using NUnit.Framework;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
-using static NExpect.Expectations;
-using static PeanutButter.RandomGenerators.RandomValueGen;
 
 namespace IRAAS.Tests.ImageProcessing;
 
@@ -41,7 +38,8 @@ public class TestImageResizeOptions
             // Act
             sut.Format = format;
             // Assert
-            Expect(sut.Format).To.Equal(JpegFormat.Instance.Name);
+            Expect(sut.Format)
+                .To.Equal(JpegFormat.Instance.Name);
         }
 
         [TestCase("gif")]
@@ -53,7 +51,8 @@ public class TestImageResizeOptions
             // Act
             sut.Format = format;
             // Assert
-            Expect(sut.Format).To.Equal(GifFormat.Instance.Name);
+            Expect(sut.Format)
+                .To.Equal(GifFormat.Instance.Name);
         }
 
         [TestCase("png")]
@@ -65,7 +64,8 @@ public class TestImageResizeOptions
             // Act
             sut.Format = format;
             // Assert
-            Expect(sut.Format).To.Equal(PngFormat.Instance.Name);
+            Expect(sut.Format)
+                .To.Equal(PngFormat.Instance.Name);
         }
 
         [TestCase("BMP")]
@@ -77,7 +77,8 @@ public class TestImageResizeOptions
             // Act
             sut.Format = format;
             // Assert
-            Expect(sut.Format).To.Equal(BmpFormat.Instance.Name);
+            Expect(sut.Format)
+                .To.Equal(BmpFormat.Instance.Name);
         }
     }
 
@@ -92,8 +93,10 @@ public class TestImageResizeOptions
             // Act
             var result = sut.Quality;
             // Assert
-            Expect(result).To.Equal(85);
-            Expect(result).To.Equal(ImageResizeOptions.DEFAULT_QUALITY);
+            Expect(result)
+                .To.Equal(85);
+            Expect(result)
+                .To.Equal(ImageResizeOptions.DEFAULT_QUALITY);
         }
 
         [Test]
@@ -105,7 +108,8 @@ public class TestImageResizeOptions
             // Act
             sut.Quality = expected;
             // Assert
-            Expect(sut.Quality).To.Equal(expected);
+            Expect(sut.Quality)
+                .To.Equal(expected);
         }
 
         [TestCase(101)]
@@ -119,7 +123,8 @@ public class TestImageResizeOptions
             sut.Quality = valid;
             sut.Quality = invalid;
             // Assert
-            Expect(sut.Quality).To.Equal(85);
+            Expect(sut.Quality)
+                .To.Equal(85);
         }
     }
 
@@ -132,12 +137,14 @@ public class TestImageResizeOptions
             // Arrange
             var expected = GetRandomHttpUrlWithPath();
             var uri = new Uri(expected);
-            Expect(uri.AbsolutePath).Not.To.Be.Null.Or.Whitespace();
+            Expect(uri.AbsolutePath)
+                .Not.To.Be.Null.Or.Whitespace();
             var sut = Create();
             // Act
             sut.Url = expected;
             // Assert
-            Expect(sut.Url).To.Equal(expected);
+            Expect(sut.Url)
+                .To.Equal(expected);
         }
 
         [Test]
@@ -151,7 +158,8 @@ public class TestImageResizeOptions
             sut.Url = valid;
             sut.Url = invalid;
             // Assert
-            Expect(sut.Url).To.Be.Null();
+            Expect(sut.Url)
+                .To.Be.Null();
         }
 
         [Test]
@@ -160,12 +168,14 @@ public class TestImageResizeOptions
             // Arrange
             var url = $"http://{GetRandomHostname()}";
             var uri = new Uri(url);
-            Expect(uri.AbsolutePath).To.Equal("/");
+            Expect(uri.AbsolutePath)
+                .To.Equal("/");
             var sut = Create();
             // Act
             sut.Url = url;
             // Assert
-            Expect(sut.Url).To.Be.Null();
+            Expect(sut.Url)
+                .To.Be.Null();
         }
     }
 
@@ -181,7 +191,8 @@ public class TestImageResizeOptions
             // Arrange
             var sut = Create();
             // Act
-            Expect(sut.JpegEncodingColor).To.Be.Null();
+            Expect(sut.JpegEncodingColor)
+                .To.Be.Null();
             // Assert
         }
 
@@ -194,7 +205,8 @@ public class TestImageResizeOptions
             // Act
             sut.JpegEncodingColor = expected;
             // Assert
-            Expect(sut.JpegEncodingColor).To.Equal(expected);
+            Expect(sut.JpegEncodingColor)
+                .To.Equal(expected);
         }
     }
 
@@ -210,7 +222,8 @@ public class TestImageResizeOptions
             // Act
             sut.Width = expected;
             // Assert
-            Expect(sut.Width).To.Equal(expected);
+            Expect(sut.Width)
+                .To.Equal(expected);
         }
 
         // allows caller to explicitly supply no width, by providing
@@ -224,7 +237,8 @@ public class TestImageResizeOptions
             // Act
             sut.Width = value;
             // Assert
-            Expect(sut.Width).To.Be.Null();
+            Expect(sut.Width)
+                .To.Be.Null();
         }
 
         [Test]
@@ -236,7 +250,8 @@ public class TestImageResizeOptions
             // Act
             sut.Height = expected;
             // Assert
-            Expect(sut.Height).To.Equal(expected);
+            Expect(sut.Height)
+                .To.Equal(expected);
         }
 
         // allows caller to explicitly supply no height, by providing
@@ -250,7 +265,8 @@ public class TestImageResizeOptions
             // Act
             sut.Height = value;
             // Assert
-            Expect(sut.Height).To.Be.Null();
+            Expect(sut.Height)
+                .To.Be.Null();
         }
     }
 
@@ -266,7 +282,8 @@ public class TestImageResizeOptions
             // Act
             var result = sut.DevicePixelRatio;
             // Assert
-            Expect(result).To.Equal(1);
+            Expect(result)
+                .To.Equal(1);
         }
 
         [Test]
@@ -278,7 +295,8 @@ public class TestImageResizeOptions
             sut.DevicePixelRatio = GetRandomDecimal(-1, 0.99M);
             var result = sut.DevicePixelRatio;
             // Assert
-            Expect(result).To.Equal(1);
+            Expect(result)
+                .To.Equal(1);
         }
     }
 

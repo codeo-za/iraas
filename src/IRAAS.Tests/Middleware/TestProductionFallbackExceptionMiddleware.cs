@@ -5,7 +5,6 @@ using IRAAS.Middleware;
 using IRAAS.Tests.Fakes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using NExpect;
 using NSubstitute;
 using NUnit.Framework;
 using PeanutButter.RandomGenerators;

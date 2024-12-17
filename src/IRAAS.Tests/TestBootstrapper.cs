@@ -1,7 +1,6 @@
 using System;
 using DryIoc;
 using DryIoc.Microsoft.DependencyInjection;
-using IRAAS.Controllers;
 using IRAAS.ImageProcessing;
 using IRAAS.Logging;
 using IRAAS.Middleware;
@@ -10,9 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
-using NExpect;
 using NSubstitute;
-using static NExpect.Expectations;
 
 namespace IRAAS.Tests;
 
@@ -37,8 +34,10 @@ public class TestBootstrapper
         var result1 = container.Resolve(serviceType);
         var result2 = container.Resolve(serviceType);
         // Assert
-        Expect(result1).To.Be.An.Instance.Of(implementationType);
-        Expect(result1).To.Be(result2);
+        Expect(result1)
+            .To.Be.An.Instance.Of(implementationType);
+        Expect(result1)
+            .To.Be(result2);
     }
 
     [Test]
@@ -54,8 +53,10 @@ public class TestBootstrapper
             .Not.To.Throw();
         var result1 = container.Resolve<IAppSettings>();
         var result2 = container.Resolve<IAppSettings>();
-        Expect(result1).Not.To.Be.Null();
-        Expect(result1).To.Be(result2);
+        Expect(result1)
+            .Not.To.Be.Null();
+        Expect(result1)
+            .To.Be(result2);
     }
 
     [TestCase(typeof(InvalidProcessingOptionsExceptionMiddleware))]
@@ -71,7 +72,8 @@ public class TestBootstrapper
         sut.Bootstrap(container);
         var result = container.Resolve(middlewareType);
         // Assert
-        Expect(result).Not.To.Be.Null();
+        Expect(result)
+            .Not.To.Be.Null();
     }
 
     [TestCase(typeof(IHttpContextAccessor), typeof(HttpContextAccessor))]
@@ -100,20 +102,47 @@ public class TestBootstrapper
         }
 
         // Assert
-        Expect(first).Not.To.Be.Null();
-        Expect(second).Not.To.Be.Null();
-        Expect(third).Not.To.Be.Null();
-        Expect(fourth).Not.To.Be.Null();
+        Expect(first)
+            .Not.To.Be.Null();
+        Expect(second)
+            .Not.To.Be.Null();
+        Expect(third)
+            .Not.To.Be.Null();
+        Expect(fourth)
+            .Not.To.Be.Null();
 
-        Expect(first).Not.To.Be(second);
-        Expect(third).Not.To.Be(fourth);
-        Expect(first).Not.To.Be(third);
-        Expect(second).Not.To.Be(fourth);
+        Expect(first)
+            .Not.To.Be(second);
+        Expect(third)
+            .Not.To.Be(fourth);
+        Expect(first)
+            .Not.To.Be(third);
+        Expect(second)
+            .Not.To.Be(fourth);
 
-        Expect(first).To.Be.An.Instance.Of(implementationType);
-        Expect(second).To.Be.An.Instance.Of(implementationType);
-        Expect(third).To.Be.An.Instance.Of(implementationType);
-        Expect(fourth).To.Be.An.Instance.Of(implementationType);
+        Expect(first)
+            .To.Be.An.Instance.Of(implementationType);
+        Expect(second)
+            .To.Be.An.Instance.Of(implementationType);
+        Expect(third)
+            .To.Be.An.Instance.Of(implementationType);
+        Expect(fourth)
+            .To.Be.An.Instance.Of(implementationType);
+    }
+
+    [Test]
+    public void ShouldSetImageResizeParameterDefaults()
+    {
+        // Arrange
+        ImageResizeOptions.SetDefaults(null);
+        Expect(ImageResizeOptions.Defaults)
+            .To.Be.Null();
+        var sut = Create();
+        // Act
+        sut.Bootstrap(new Container());
+        // Assert
+        Expect(ImageResizeOptions.Defaults)
+            .Not.To.Be.Null();
     }
 
     private Bootstrapper Create()

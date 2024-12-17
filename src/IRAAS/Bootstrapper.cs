@@ -20,7 +20,10 @@ public class Bootstrapper
             .RegisterSingleton<IWhitelist, Whitelist>()
             .RegisterSingleton<ILogMessageGenerator, LogMessageGenerator>();
         container.RegisterInstance<IAppSettings>(AppSettingsProvider.CreateAppSettings());
-        container.RegisterInstance<IDefaultImageResizeParameters>(AppSettingsProvider.CreateDefaultImageParameters());
+        var defaults = AppSettingsProvider.CreateDefaultImageParameters();
+        container.RegisterInstance<IDefaultImageResizeParameters>(defaults);
+        ImageResizeOptions.SetDefaults(defaults);
+        
 
         container.RegisterAllMiddlewareSingleton();
         container.Register<IHttpContextAccessor, HttpContextAccessor>();

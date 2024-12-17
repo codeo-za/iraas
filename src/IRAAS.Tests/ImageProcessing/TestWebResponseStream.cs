@@ -1,16 +1,11 @@
 using System;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using IRAAS.ImageProcessing;
-using NExpect;
 using NSubstitute;
 using NUnit.Framework;
-using PeanutButter.SimpleHTTPServer;
 using PeanutButter.Utils;
-using static NExpect.Expectations;
-using static PeanutButter.RandomGenerators.RandomValueGen;
 
 namespace IRAAS.Tests.ImageProcessing;
 
@@ -43,9 +38,12 @@ public class TestWebResponseStream
         // Act
         var sut = await Create(server.GetFullUrlFor(path));
         // Assert
-        Expect(sut.CanSeek).To.Be.True("Should be able to seek");
-        Expect(sut.CanWrite).To.Be.False("Should not be able to write");
-        Expect(sut.CanRead).To.Be.True("Should be able to read");
+        Expect(sut.CanSeek)
+            .To.Be.True("Should be able to seek");
+        Expect(sut.CanWrite)
+            .To.Be.False("Should not be able to write");
+        Expect(sut.CanRead)
+            .To.Be.True("Should be able to read");
         var buffer = new byte[bufferSize];
         var read = sut.Read(buffer, 0, bufferSize);
 
@@ -82,7 +80,8 @@ public class TestWebResponseStream
         var sut = await Create(server.GetFullUrlFor(path));
         // Assert
         var result = sut.Length;
-        Expect(result).To.Equal(Resources.Data.FluffyCatBmp.Length);
+        Expect(result)
+            .To.Equal(Resources.Data.FluffyCatBmp.Length);
     }
 
     [Test]

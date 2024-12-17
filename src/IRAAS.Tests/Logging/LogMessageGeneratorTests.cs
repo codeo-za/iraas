@@ -2,9 +2,6 @@
 using IRAAS.Exceptions;
 using IRAAS.Logging;
 using NUnit.Framework;
-using NExpect;
-using static NExpect.Expectations;
-using static PeanutButter.RandomGenerators.RandomValueGen;
 
 namespace IRAAS.Tests.Logging;
 

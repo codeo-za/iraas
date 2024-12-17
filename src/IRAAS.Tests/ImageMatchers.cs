@@ -3,7 +3,6 @@ using NExpect.Implementations;
 using NExpect.Interfaces;
 using NExpect.MatcherLogic;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using static NExpect.Implementations.MessageHelpers;
 
 namespace IRAAS.Tests;

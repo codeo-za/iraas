@@ -20,7 +20,8 @@ public class ImageResizeController
         IImageResizer imageResizer,
         IImageMimeTypeProvider mimeTypeProvider,
         IWhitelist whitelist,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor
+    )
     {
         _imageResizer = imageResizer;
         _mimeTypeProvider = mimeTypeProvider;
@@ -52,6 +53,7 @@ public class ImageResizeController
 
         return new FileStreamResult(
             result.Stream,
-            contentType);
+            contentType
+        );
     }
 }

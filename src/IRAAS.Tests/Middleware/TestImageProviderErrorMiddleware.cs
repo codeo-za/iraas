@@ -1,18 +1,13 @@
 using System;
 using System.Net;
-using System.Net.Http;
-using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using IRAAS.ImageProcessing;
 using IRAAS.Middleware;
 using IRAAS.Tests.Fakes;
 using NUnit.Framework;
-using static PeanutButter.RandomGenerators.RandomValueGen;
-using NExpect;
 using NSubstitute;
 using PeanutButter.Utils;
-using static NExpect.Expectations;
 
 namespace IRAAS.Tests.Middleware;
 

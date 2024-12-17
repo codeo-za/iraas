@@ -2,11 +2,6 @@ using System;
 using System.IO;
 using IRAAS.ImageProcessing;
 using NUnit.Framework;
-using static PeanutButter.RandomGenerators.RandomValueGen;
-using NExpect;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Png;
-using static NExpect.Expectations;
 
 namespace IRAAS.Tests.ImageProcessing;
 
@@ -47,7 +42,8 @@ public class TestImageMimeTypeProvider
             // Act
             var result = sut.DetermineMimeTypeFor(stream);
             // Assert
-            Expect(result).To.Equal(expected);
+            Expect(result)
+                .To.Equal(expected);
         }
             
         [TestCase("image/png")]
@@ -58,7 +54,8 @@ public class TestImageMimeTypeProvider
             // Act
             var result = sut.DetermineMimeTypeFor(Resources.Streams.FluffyCatPng);
             // Assert
-            Expect(result).To.Equal(expected);
+            Expect(result)
+                .To.Equal(expected);
         }
             
         [TestCase("image/jpeg")]
@@ -69,7 +66,8 @@ public class TestImageMimeTypeProvider
             // Act
             var result = sut.DetermineMimeTypeFor(Resources.Streams.FluffyCatJpeg);
             // Assert
-            Expect(result).To.Equal(expected);
+            Expect(result)
+                .To.Equal(expected);
         }
             
         [TestCase("image/gif")]
@@ -80,7 +78,8 @@ public class TestImageMimeTypeProvider
             // Act
             var result = sut.DetermineMimeTypeFor(Resources.Streams.FluffyCatGif);
             // Assert
-            Expect(result).To.Equal(expected);
+            Expect(result)
+                .To.Equal(expected);
         }
 
         [Test]

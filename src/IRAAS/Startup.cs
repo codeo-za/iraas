@@ -2,12 +2,10 @@
 using System.Collections;
 using DryIoc;
 using DryIoc.Microsoft.DependencyInjection;
-using IRAAS.Logging;
 using IRAAS.Middleware;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -24,7 +22,7 @@ public class Startup
     )
     {
         var config = AppSettingsProvider.CreateAppSettings();
-        SetupLog4netWith(loggerFactory, config);
+        SetupLog4NetWith(loggerFactory, config);
         app.Use(
             (context, next) =>
             {
@@ -62,7 +60,7 @@ public class Startup
         DumpEnvironmentVariables();
     }
 
-    private void SetupLog4netWith(
+    private void SetupLog4NetWith(
         ILoggerFactory loggerFactory,
         IAppSettings config
     )

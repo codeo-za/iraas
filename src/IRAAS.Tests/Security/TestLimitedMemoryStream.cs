@@ -2,11 +2,8 @@ using System;
 using System.IO;
 using System.Linq;
 using IRAAS.Security;
-using NExpect;
 using NUnit.Framework;
 using PeanutButter.Utils;
-using static NExpect.Expectations;
-using static PeanutButter.RandomGenerators.RandomValueGen;
 
 namespace IRAAS.Tests.Security;
 
@@ -21,7 +18,8 @@ public class TestLimitedMemoryStream
         // Act
         var result = sut.CanRead;
         // Assert
-        Expect(result).To.Be.True();
+        Expect(result)
+            .To.Be.True();
     }
 
     [Test]
@@ -32,7 +30,8 @@ public class TestLimitedMemoryStream
         // Act
         var result = sut.CanSeek;
         // Assert
-        Expect(result).To.Be.True();
+        Expect(result)
+            .To.Be.True();
     }
 
     [Test]
@@ -43,7 +42,8 @@ public class TestLimitedMemoryStream
         // Act
         var result = sut.CanWrite;
         // Assert
-        Expect(result).To.Be.True();
+        Expect(result)
+            .To.Be.True();
     }
 
     [TestFixture]
@@ -59,7 +59,8 @@ public class TestLimitedMemoryStream
             sut.Write(data, 0, data.Length);
             // Assert
             var result = sut.ToArray();
-            Expect(result).To.Equal(data);
+            Expect(result)
+                .To.Equal(data);
         }
 
         [Test]
@@ -74,7 +75,8 @@ public class TestLimitedMemoryStream
             sut.Rewind();
             sut.Read(result, 0, data.Length);
             // Assert
-            Expect(result).To.Equal(data);
+            Expect(result)
+                .To.Equal(data);
         }
 
         [Test]
@@ -104,7 +106,8 @@ public class TestLimitedMemoryStream
             sut.Seek(toSkip, SeekOrigin.Begin);
             sut.Read(result, 0, result.Length);
             // Assert
-            Expect(result).To.Equal(expected);
+            Expect(result)
+                .To.Equal(expected);
         }
     }
 

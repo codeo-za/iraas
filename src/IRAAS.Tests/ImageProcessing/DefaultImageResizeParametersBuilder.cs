@@ -72,4 +72,8 @@ namespace IRAAS.Tests.ImageProcessing;
 public class DefaultImageResizeParametersBuilder
     : GenericBuilder<DefaultImageResizeParametersBuilder, DefaultImageResizeParameters>
 {
+    public override DefaultImageResizeParameters Build()
+    {
+        return base.Build();
+    }
 }

@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using IRAAS.Exceptions;
-using log4net.Repository.Hierarchy;
 using Microsoft.AspNetCore.Http;
 using PeanutButter.Utils;
 

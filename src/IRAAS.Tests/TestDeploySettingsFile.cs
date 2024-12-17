@@ -5,9 +5,6 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
-using static PeanutButter.RandomGenerators.RandomValueGen;
-using NExpect;
-using static NExpect.Expectations;
 
 namespace IRAAS.Tests;
 
@@ -32,8 +29,10 @@ public class TestDeploySettingsFile
         // Act
         var result = config.Get(jsonPath);
         // Assert
-        Expect(result).Not.To.Be.Null(() => $"Missing setting: {jsonPath}");
-        Expect(result).To.Match(new Regex("#{.+}"));
+        Expect(result)
+            .Not.To.Be.Null(() => $"Missing setting: {jsonPath}");
+        Expect(result)
+            .To.Match(new Regex("#{.+}"));
     }
         
     private string FindDeploymentConfig()

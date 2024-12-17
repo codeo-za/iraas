@@ -4,13 +4,9 @@ using System.Threading.Tasks;
 using IRAAS.Exceptions;
 using IRAAS.Middleware;
 using IRAAS.Tests.Fakes;
-using NExpect;
-using NExpect.Interfaces;
 using NSubstitute;
 using NUnit.Framework;
 using PeanutButter.Utils;
-using static NExpect.Expectations;
-using static PeanutButter.RandomGenerators.RandomValueGen;
 
 namespace IRAAS.Tests.Middleware;
 
@@ -193,8 +189,10 @@ public class TestInvalidProcessingOptionsExceptionMiddleware
             var body = Encoding.UTF8.GetString(
                 context.Response.Body.ReadAllBytes()
             );
-            Expect(body).To.Contain(expectedMessage);
-            Expect(body).To.Contain("Query parameters");
+            Expect(body)
+                .To.Contain(expectedMessage);
+            Expect(body)
+                .To.Contain("Query parameters");
         }
     }
 

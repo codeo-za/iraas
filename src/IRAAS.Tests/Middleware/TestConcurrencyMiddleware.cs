@@ -8,11 +8,8 @@ using IRAAS.Tests.Fakes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
-using static PeanutButter.RandomGenerators.RandomValueGen;
-using NExpect;
 using NSubstitute;
 using PeanutButter.Utils;
-using static NExpect.Expectations;
 
 namespace IRAAS.Tests.Middleware;
 
@@ -41,7 +38,8 @@ public class TestConcurrencyMiddleware
             // Act
             await sut.InvokeAsync(context, new RequestDelegate(next));
             // Assert
-            Expect(invoked).To.Be.True();
+            Expect(invoked)
+                .To.Be.True();
         }
     }
 
@@ -105,7 +103,8 @@ public class TestConcurrencyMiddleware
                 .To.Be.True("Should have started");
             Expect(completed)
                 .To.Be.True("Should have completed");
-            Expect(invoked).To.Equal(1);
+            Expect(invoked)
+                .To.Equal(1);
         }
 
         [Test]
@@ -154,7 +153,8 @@ public class TestConcurrencyMiddleware
                 .To.Be.True(() => "Did not start all tasks within 5 seconds");
             Expect(completed)
                 .To.Be.True(() => "Did not complete all tasks within 5 seconds");
-            Expect(invoked).To.Equal(1);
+            Expect(invoked)
+                .To.Equal(1);
 
             var result1 = context1.Response.Body.ReadAllBytes();
             var result2 = context2.Response.Body.ReadAllBytes();
@@ -204,7 +204,8 @@ public class TestConcurrencyMiddleware
         threads.ForEach(t => t.Join());
 
         // Assert
-        Expect(failed).To.Be.False();
+        Expect(failed)
+            .To.Be.False();
     }
 
     private static HttpContext CreateContext()
