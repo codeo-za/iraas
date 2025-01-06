@@ -38,21 +38,21 @@ jobs:
       - name: 🟠 Install AWS CLI
         uses: unfor19/install-aws-cli-action@v1
 
-      - name: 🔑 Install 1Password CLI
-        uses: 1password/install-cli-action@v1
-
       - name: 🔐 Generate temporary AWS credentials
         run: |
           ./generate-credentials.sh
         env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
 
       - name: 🪪 Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AMAZON_REGION }}
+          aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: 🔖 Get Image Tag
         run: echo "version=$(echo $(git symbolic-ref --short HEAD | sed -e "s/\//-/g")-$(git rev-parse --short HEAD))" >> $GITHUB_OUTPUT
@@ -61,54 +61,8 @@ jobs:
       - name: 🔨 Build and Push
         env:
           IMAGE_TAG: ${{ steps.image_tag.outputs.version }}
-          AMAZON_ACCOUNT_ID: ${{ vars.AMAZON_ACCOUNT_ID }}
-          AMAZON_REGION: ${{ vars.AWS_REGION }}
+          AMAZON_ACCOUNT_ID: ${{ secrets.AMAZON_ACCOUNT_ID }}
+          AMAZON_REGION: ${{ secrets.AWS_REGION }}
           NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          npm run refresh-aws-docker-login
-      
-      - name: 🟠 Install AWS CLI
-        uses: unfor19/install-aws-cli-action@v1
-
-      - name: 🔑 Install 1Password CLI
-        uses: 1password/install-cli-action@v1
-
-      - name: 🔐 Generate temporary AWS credentials
-        run: ./generate-aws-credentials.sh
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-
-      - name: 🎫 Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: 📬 Get Machine IP Address
-        run: echo "ip=$(curl https://api.ipify.org)" >> $GITHUB_OUTPUT
-        id: ip
-
-      - name: 🔑 Get Access to Nomad Cluster
-        run: npm run add-ip-to-security-group
-        env:
-          IP_ADDRESS: ${{ steps.ip.outputs.ip }}
-          SECURITY_GROUP_ID: ${{ env.NOMAD_SECURITY_GROUP }}
-
-      - name: 🚀 Deploy to Nomad
-        run: npm run deploy
-        env:
-          PROJECT_NAME: ${{ github.event.inputs.project_name || inputs.project_name }}
-          IMAGE_TAG: ${{ github.event.inputs.image_tag || inputs.image_tag }}
-          ENVIRONMENT: ${{ github.event.inputs.environment || inputs.environment }}
-          NOMAD_ADDR: ${{ env.NOMAD_ADDR }}
-          NOMAD_TOKEN: ${{ env.NOMAD_TOKEN }}
-
-      - name: 🔒 Revoke Access to Nomad Cluster
-        if: always()
-        run: |
-          npm run remove-ip-from-security-group
-        env:
-          IP_ADDRESS: ${{ steps.ip.outputs.ip }}
-          SECURITY_GROUP_ID: ${{ env.NOMAD_SECURITY_GROUP }}
+          npm run build-and-push-image
