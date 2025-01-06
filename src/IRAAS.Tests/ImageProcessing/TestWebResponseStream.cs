@@ -22,7 +22,7 @@ public class TestWebResponseStream
         // Act
         var sut = await Create(server.GetFullUrlFor(path));
         // Assert
-        var result = sut.ReadAllBytes();
+        var result = await sut.ReadAllBytesAsync();
         Expect(result)
             .To.Equal(Resources.Data.FluffyCatBmp);
     }
