@@ -60,8 +60,7 @@ jobs:
       - name: 🔨 Build and Push
         env:
           IMAGE_TAG: ${{ steps.image_tag.outputs.version }}
-          AMAZON_ACCOUNT_ID: ${{ secrets.AMAZON_ACCOUNT_ID }}
+          AMAZON_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
           AMAZON_REGION: ${{ secrets.AWS_REGION }}
-          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm run build-and-push-image
