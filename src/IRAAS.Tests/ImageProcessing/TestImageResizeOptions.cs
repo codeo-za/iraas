@@ -312,6 +312,7 @@ public class TestImageResizeOptions
 
             // Act
             var result = new ImageResizeOptions();
+
             // Assert
             Expect(result)
                 .To.Intersection.Equal(defaults);

@@ -72,8 +72,21 @@ namespace IRAAS.Tests.ImageProcessing;
 public class DefaultImageResizeParametersBuilder
     : GenericBuilder<DefaultImageResizeParametersBuilder, DefaultImageResizeParameters>
 {
-    public override DefaultImageResizeParameters Build()
+    public override DefaultImageResizeParametersBuilder WithRandomProps()
     {
-        return base.Build();
+        return base.WithRandomProps()
+            .WithRandomValidDevicePixelRatio();
+    }
+
+    public DefaultImageResizeParametersBuilder WithRandomValidDevicePixelRatio()
+    {
+        return WithDevicePixelRatio(GetRandomDecimal(1, 3));
+    }
+
+    public DefaultImageResizeParametersBuilder WithDevicePixelRatio(
+        decimal devicePixelRatio
+    )
+    {
+        return WithProp(o => o.DevicePixelRatio = devicePixelRatio);
     }
 }
