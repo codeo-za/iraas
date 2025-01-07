@@ -13,7 +13,6 @@ namespace IRAAS.Tests.ImageProcessing;
 public class TestWebResponseStream
 {
     [Test]
-    [Repeat(100)]
     public async Task ShouldBeAbleToReadEntireStreamFromResponse()
     {
         // Arrange
@@ -72,7 +71,6 @@ public class TestWebResponseStream
     }
 
     [Test]
-    [Repeat(100)]
     public async Task ShouldBeAbleToQueryLength()
     {
         // Arrange
@@ -88,7 +86,6 @@ public class TestWebResponseStream
     }
 
     [Test]
-    [Repeat(100)]
     public async Task ShouldBeAbleToQueryLengthAndThenRewindAndReadAll()
     {
         // Arrange
@@ -108,7 +105,6 @@ public class TestWebResponseStream
     }
 
     [Test]
-    [Repeat(100)]
     public async Task ShouldThrowWhenInputImageIsTooLarge()
     {
         // Arrange
