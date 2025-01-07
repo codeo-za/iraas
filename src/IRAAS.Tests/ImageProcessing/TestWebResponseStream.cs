@@ -10,13 +10,14 @@ using PeanutButter.Utils;
 namespace IRAAS.Tests.ImageProcessing;
 
 [TestFixture]
-public class TestWebResponseStream
+public class TestWebResponseStream : TestBase
 {
     [Test]
     public async Task ShouldBeAbleToReadEntireStreamFromResponse()
     {
         // Arrange
-        using var server = HttpServerPool.Borrow();
+        using var lease = TestEnvironment.BorrowHttpServer();
+        var server = lease.Instance;
         var path = $"/{GetRandomString()}";
         server.ServeFile(path, () => Resources.Data.FluffyCatBmp);
         // Act
@@ -33,7 +34,8 @@ public class TestWebResponseStream
     {
         // Arrange
         var bufferSize = 100;
-        using var server = HttpServerPool.Borrow();
+        using var lease = TestEnvironment.BorrowHttpServer();
+        var server = lease.Instance;
         var path = $"/{GetRandomString()}";
         server.ServeFile(path, () => Resources.Data.FluffyCatBmp);
         // Act
@@ -57,7 +59,7 @@ public class TestWebResponseStream
         sut.Rewind();
         var result = new byte[Resources.Data.FluffyCatBmp.Length];
         var secondRead = 0;
-        var thisRead = 0;
+        int thisRead;
         do
         {
             thisRead = sut.Read(result, secondRead, result.Length - secondRead);
@@ -74,7 +76,8 @@ public class TestWebResponseStream
     public async Task ShouldBeAbleToQueryLength()
     {
         // Arrange
-        using var server = HttpServerPool.Borrow();
+        using var lease = TestEnvironment.BorrowHttpServer();
+        var server = lease.Instance;
         var path = $"/{GetRandomString()}";
         server.ServeFile(path, () => Resources.Data.FluffyCatBmp);
         // Act
@@ -89,7 +92,8 @@ public class TestWebResponseStream
     public async Task ShouldBeAbleToQueryLengthAndThenRewindAndReadAll()
     {
         // Arrange
-        using var server = HttpServerPool.Borrow();
+        using var lease = TestEnvironment.BorrowHttpServer();
+        var server = lease.Instance;
         var path = $"/{GetRandomString()}";
         server.ServeFile(path, () => Resources.Data.FluffyCatBmp);
         // Act
@@ -113,7 +117,8 @@ public class TestWebResponseStream
         appSettings.MaxInputImageSize.Returns(Resources.Data.FluffyCatBmp.Length - 1);
         appSettings.MaxOutputImageSize.Returns(int.MaxValue);
         var path = $"/{GetRandomString()}";
-        using var server = HttpServerPool.Borrow();
+        using var lease = TestEnvironment.BorrowHttpServer();
+        var server = lease.Instance;
         server.ServeFile(path, () => Resources.Data.FluffyCatBmp);
         // Act
         var sut = await Create(server.GetFullUrlFor(path), appSettings);
@@ -124,7 +129,8 @@ public class TestWebResponseStream
 
     private static async Task<WebResponseStream> Create(
         string url,
-        IAppSettings appSettings = null)
+        IAppSettings appSettings = null
+    )
     {
         var httpClient = new HttpClient();
         var stream = await httpClient.GetStreamAsync(url);

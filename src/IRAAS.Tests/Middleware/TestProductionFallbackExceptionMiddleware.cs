@@ -13,7 +13,7 @@ using PeanutButter.Utils;
 namespace IRAAS.Tests.Middleware;
 
 [TestFixture]
-public class TestProductionFallbackExceptionMiddleware
+public class TestProductionFallbackExceptionMiddleware: TestBase
 {
     [Test]
     public async Task ShouldRunNext()

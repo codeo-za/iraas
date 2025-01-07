@@ -24,7 +24,7 @@ using SixLabors.ImageSharp.Processing;
 namespace IRAAS.Tests.ImageProcessing;
 
 [TestFixture]
-public class TestImageResizer
+public class TestImageResizer: TestBase
 {
     [Test]
     public void ShouldImplement_IImageProcessor()
@@ -47,11 +47,15 @@ public class TestImageResizer
         // Arrange
         var sut = Create(Substitute.For<IUrlFetcher>());
         // Act
-        Expect(() => sut.Resize(
-            new ImageResizeOptions()
-            {
-                Url = url
-            }, NoHeaders)).To.Throw<InvalidProcessingOptionsException>();
+        Expect(
+            () => sut.Resize(
+                new ImageResizeOptions()
+                {
+                    Url = url
+                },
+                NoHeaders
+            )
+        ).To.Throw<InvalidProcessingOptionsException>();
         // Assert
     }
 
@@ -94,7 +98,8 @@ public class TestImageResizer
                 options.Url,
                 Arg.Is<IDictionary<string, string>>(
                     dict => dict.IsEquivalentTo(headers)
-                ));
+                )
+            );
     }
 
     [Test]
@@ -119,7 +124,8 @@ public class TestImageResizer
         };
         var fetcher = CreateFetcherFor(
             Resources.Data.FluffyCatBmp,
-            headers: responseHeaders);
+            headers: responseHeaders
+        );
         var sut = Create(fetcher);
         // Act
         var result = await sut.Resize(options, requestHeaders);
@@ -151,7 +157,7 @@ public class TestImageResizer
     }
 
     [TestFixture]
-    public class BitmapInputJpegOutput
+    public class BitmapInputJpegOutput: TestBase
     {
         // note that bmp source for testing is only 800x600 because
         // bitmaps are large binary blobs I'd rather keep out of the repo
@@ -162,21 +168,25 @@ public class TestImageResizer
             var url = GetRandomHttpUrlWithPath();
             var fetcher = CreateFetcherFor(
                 Resources.Data.FluffyCatBmp,
-                url);
+                url
+            );
             var sut = Create(fetcher);
             var sourceImage = Resources.Images.FluffyCatBmp;
             var expectedWidth = sourceImage.Width;
             var expectedHeight = sourceImage.Height;
             // Act
-            var result = await sut.Resize(new ImageResizeOptions()
-            {
-                Url = url
-            }, NoHeaders);
+            var result = await sut.Resize(
+                new ImageResizeOptions()
+                {
+                    Url = url
+                },
+                NoHeaders
+            );
             // Assert
             Expect(result)
                 .Not.To.Be.Null();
             await Expect(fetcher).To.Have.Received(1).Fetch(url, Arg.Any<IDictionary<string, string>>());
-            var image = Image.Load(result.Stream);
+            var image = await Image.LoadAsync(result.Stream);
             Expect(image.Metadata.GetFormatMetadata(JpegFormat.Instance).Quality)
                 .To.Equal(85);
             Expect(image)
@@ -194,13 +204,16 @@ public class TestImageResizer
             var expected = GetRandomInt(40, 60);
             var sut = Create(fetcher);
             // Act
-            var result = await sut.Resize(new ImageResizeOptions()
-            {
-                Url = url,
-                Quality = expected
-            }, NoHeaders);
+            var result = await sut.Resize(
+                new ImageResizeOptions()
+                {
+                    Url = url,
+                    Quality = expected
+                },
+                NoHeaders
+            );
             // Assert
-            var image = Image.Load(result.Stream);
+            var image = await Image.LoadAsync(result.Stream);
             var quality = image.Metadata
                 .GetFormatMetadata(JpegFormat.Instance)
                 .Quality;
@@ -221,14 +234,17 @@ public class TestImageResizer
             var expectedWidth = 400;
             var expectedHeight = 300;
             // Act
-            var result = await sut.Resize(new ImageResizeOptions()
-            {
-                Width = 400,
-                Height = 400,
-                Url = url
-            }, NoHeaders);
+            var result = await sut.Resize(
+                new ImageResizeOptions()
+                {
+                    Width = 400,
+                    Height = 400,
+                    Url = url
+                },
+                NoHeaders
+            );
             // Assert
-            var image = Image.Load(result.Stream);
+            var image = await Image.LoadAsync(result.Stream);
             Expect(image)
                 .To.Have.Width(expectedWidth);
             Expect(image)
@@ -248,15 +264,18 @@ public class TestImageResizer
             var expectedWidth = 400;
             var expectedHeight = 300;
             // Act
-            var result = await sut.Resize(new ImageResizeOptions()
-            {
-                Width = 300,
-                Height = 300,
-                Url = url,
-                ResizeMode = ResizeMode.Min
-            }, NoHeaders);
+            var result = await sut.Resize(
+                new ImageResizeOptions()
+                {
+                    Width = 300,
+                    Height = 300,
+                    Url = url,
+                    ResizeMode = ResizeMode.Min
+                },
+                NoHeaders
+            );
             // Assert
-            var image = Image.Load(result.Stream);
+            var image = await Image.LoadAsync(result.Stream);
             Expect(image)
                 .To.Have.Width(expectedWidth);
             Expect(image)
@@ -275,13 +294,16 @@ public class TestImageResizer
             var expectedWidth = 400;
             var expectedHeight = 300;
             // Act
-            var result = await sut.Resize(new ImageResizeOptions()
-            {
-                Width = expectedWidth,
-                Url = url,
-            }, NoHeaders);
+            var result = await sut.Resize(
+                new ImageResizeOptions()
+                {
+                    Width = expectedWidth,
+                    Url = url,
+                },
+                NoHeaders
+            );
             // Assert
-            var image = Image.Load(result.Stream);
+            var image = await Image.LoadAsync(result.Stream);
             Expect(image)
                 .To.Have.Width(expectedWidth);
             Expect(image)
@@ -302,14 +324,17 @@ public class TestImageResizer
             var expectedWidth = (int) Math.Ceiling(effectiveWidth * devicePixelRatio);
             var expectedHeight = (int) Math.Ceiling(300 * devicePixelRatio);
             // Act
-            var result = await sut.Resize(new ImageResizeOptions()
-            {
-                Width = effectiveWidth,
-                DevicePixelRatio = devicePixelRatio,
-                Url = url,
-            }, NoHeaders);
+            var result = await sut.Resize(
+                new ImageResizeOptions()
+                {
+                    Width = effectiveWidth,
+                    DevicePixelRatio = devicePixelRatio,
+                    Url = url,
+                },
+                NoHeaders
+            );
             // Assert
-            var image = Image.Load(result.Stream);
+            var image = await Image.LoadAsync(result.Stream);
             Expect(image)
                 .To.Have.Width(expectedWidth, DumpDebugInfo);
             Expect(image)
@@ -345,14 +370,17 @@ public class TestImageResizer
             var expectedWidth = 800;
             var expectedHeight = 600;
             // Act
-            var result = await sut.Resize(new ImageResizeOptions()
-            {
-                Width = effectiveWidth,
-                DevicePixelRatio = devicePixelRatio,
-                Url = url,
-            }, NoHeaders);
+            var result = await sut.Resize(
+                new ImageResizeOptions()
+                {
+                    Width = effectiveWidth,
+                    DevicePixelRatio = devicePixelRatio,
+                    Url = url,
+                },
+                NoHeaders
+            );
             // Assert
-            var image = Image.Load(result.Stream);
+            var image = await Image.LoadAsync(result.Stream);
             Expect(image)
                 .To.Have.Width(expectedWidth, DumpDebugInfo);
             Expect(image)
@@ -382,13 +410,16 @@ public class TestImageResizer
             var expectedWidth = 200;
             var expectedHeight = 150;
             // Act
-            var result = await sut.Resize(new ImageResizeOptions()
-            {
-                Height = expectedHeight,
-                Url = url,
-            }, NoHeaders);
+            var result = await sut.Resize(
+                new ImageResizeOptions()
+                {
+                    Height = expectedHeight,
+                    Url = url,
+                },
+                NoHeaders
+            );
             // Assert
-            var image = Image.Load(result.Stream);
+            var image = await Image.LoadAsync(result.Stream);
             Expect(image)
                 .To.Have.Width(expectedWidth);
             Expect(image)
@@ -409,14 +440,17 @@ public class TestImageResizer
             var expectedWidth = (int) Math.Ceiling(200 * devicePixelRatio);
             var expectedHeight = (int) Math.Ceiling(effectiveHeight * devicePixelRatio);
             // Act
-            var result = await sut.Resize(new ImageResizeOptions()
-            {
-                Height = effectiveHeight,
-                DevicePixelRatio = devicePixelRatio,
-                Url = url,
-            }, NoHeaders);
+            var result = await sut.Resize(
+                new ImageResizeOptions()
+                {
+                    Height = effectiveHeight,
+                    DevicePixelRatio = devicePixelRatio,
+                    Url = url,
+                },
+                NoHeaders
+            );
             // Assert
-            var image = Image.Load(result.Stream);
+            var image = await Image.LoadAsync(result.Stream);
             Expect(image)
                 .To.Have.Width(expectedWidth, DumpDebugInfo);
             Expect(image)
@@ -451,12 +485,13 @@ public class TestImageResizer
                     //  because ResizeMode.Max will not blow images up
                     //  - client should be scaling this anyways, or specifically
                     //    asking for ResizeMode.Stretch
-                });
+                }
+            );
         }
     }
 
     [TestFixture]
-    public class WhenFormatNotSpecified
+    public class WhenFormatNotSpecified: TestBase
     {
         [Test]
         public async Task ShouldResizePngToPng()
@@ -464,20 +499,23 @@ public class TestImageResizer
             // Arrange
             var bmp = Resources.Images.FluffyCatBmp;
             var pngMemStream = new MemoryStream();
-            bmp.Clone().SaveAsPng(pngMemStream);
+            await bmp.Clone().SaveAsPngAsync(pngMemStream);
             pngMemStream.Rewind();
             var url = GetRandomHttpUrlWithPath();
             var fetcher = CreateFetcherFor(pngMemStream, url);
             var sut = Create(fetcher);
             // Act
-            var result = await sut.Resize(new ImageResizeOptions()
-            {
-                Height = 400,
-                Url = url
-            }, NoHeaders);
+            var result = await sut.Resize(
+                new ImageResizeOptions()
+                {
+                    Height = 400,
+                    Url = url
+                },
+                NoHeaders
+            );
 
             // Assert
-            var format = Image.DetectFormat(result.Stream);
+            var format = await Image.DetectFormatAsync(result.Stream);
             // should still be able to load after DetectFormat
             Expect(() => Image.Load(result.Stream))
                 .Not.To.Throw();
@@ -501,8 +539,8 @@ public class TestImageResizer
             // Act
             var result = await sut.Resize(options, NoHeaders);
             // Assert
-            Expect(Image.DetectFormat(result.Stream)).To.Equal(JpegFormat.Instance);
-            Expect(Image.Load(result.Stream)).To.Have.Width(expected);
+            Expect(await Image.DetectFormatAsync(result.Stream)).To.Equal(JpegFormat.Instance);
+            Expect(await Image.LoadAsync(result.Stream)).To.Have.Width(expected);
         }
 
         [Test]
@@ -512,7 +550,7 @@ public class TestImageResizer
             var url = GetRandomHttpUrlWithPath();
             var bmp = Resources.Images.FluffyCatBmp;
             var gifMemStream = new MemoryStream();
-            bmp.Clone().SaveAsGif(gifMemStream);
+            await bmp.Clone().SaveAsGifAsync(gifMemStream);
             var fetcher = CreateFetcherFor(gifMemStream.ToArray(), url);
             var sut = Create(fetcher);
             var expected = GetRandomInt(100, 200);
@@ -524,8 +562,8 @@ public class TestImageResizer
             // Act
             var result = await sut.Resize(options, NoHeaders);
             // Assert
-            Expect(Image.DetectFormat(result.Stream)).To.Equal(GifFormat.Instance);
-            Expect(Image.Load(result.Stream)).To.Have.Width(expected);
+            Expect(await Image.DetectFormatAsync(result.Stream)).To.Equal(GifFormat.Instance);
+            Expect(await Image.LoadAsync(result.Stream)).To.Have.Width(expected);
         }
     }
 
@@ -546,8 +584,8 @@ public class TestImageResizer
         // Act
         var result = await sut.Resize(options, NoHeaders);
         // Assert
-        Expect(Image.DetectFormat(result.Stream)).To.Be(BmpFormat.Instance);
-        Expect(Image.Load(result.Stream)).To.Have.Width(expected);
+        Expect(await Image.DetectFormatAsync(result.Stream)).To.Be(BmpFormat.Instance);
+        Expect(await Image.LoadAsync(result.Stream)).To.Have.Width(expected);
     }
 
     [TestFixture]
@@ -566,7 +604,7 @@ public class TestImageResizer
             appSettings.MaxImageFetchTimeInMilliseconds.Returns(10000);
             var bmp = Image.Load(Resources.Data.FluffyCatBmp);
             var pngStream = new MemoryStream();
-            bmp.SaveAsPng(pngStream);
+            await bmp.SaveAsPngAsync(pngStream);
             var png = pngStream.ToArray();
             // Arrange
             using (var server = new HttpServer())
@@ -575,7 +613,8 @@ public class TestImageResizer
                 server.ServeFile(servedPath, () => png);
                 var fetcher = new UrlFetcher(
                     appSettings,
-                    Substitute.For<ILogger<UrlFetcher>>());
+                    Substitute.For<ILogger<UrlFetcher>>()
+                );
                 var sut = Create(fetcher);
                 var options = new ImageResizeOptions()
                 {
@@ -585,7 +624,7 @@ public class TestImageResizer
                 // Act
                 var result = await sut.Resize(options, NoHeaders);
                 // Assert
-                var format = Image.DetectFormat(result.Stream);
+                var format = await Image.DetectFormatAsync(result.Stream);
                 Expect(format.Name)
                     .To.Equal(PngFormat.Instance.Name);
                 Expect(() => Image.Load(result.Stream))
@@ -623,9 +662,9 @@ public class TestImageResizer
         var result1 = await sut.Resize(opts1, NoHeaders);
         var result2 = await sut.Resize(opts2, NoHeaders);
         // Assert
-        var bytes0 = result0.Stream.ReadAllBytes();
-        var bytes1 = result1.Stream.ReadAllBytes();
-        var bytes2 = result2.Stream.ReadAllBytes();
+        var bytes0 = await result0.Stream.ReadAllBytesAsync();
+        var bytes1 = await result1.Stream.ReadAllBytesAsync();
+        var bytes2 = await result2.Stream.ReadAllBytesAsync();
         Expect(bytes0)
             .To.Equal(bytes1, "Should default to bicubic sampler");
         Expect(bytes1)
@@ -665,9 +704,9 @@ public class TestImageResizer
         var result0 = await sut.Resize(opts0, NoHeaders);
         var result1 = await sut.Resize(opts1, NoHeaders);
         var result2 = await sut.Resize(opts2, NoHeaders);
-        Expect(Image.DetectFormat(result0.Stream)).To.Equal(PngFormat.Instance);
-        Expect(Image.DetectFormat(result1.Stream)).To.Equal(PngFormat.Instance);
-        Expect(Image.DetectFormat(result2.Stream)).To.Equal(PngFormat.Instance);
+        Expect(await Image.DetectFormatAsync(result0.Stream)).To.Equal(PngFormat.Instance);
+        Expect(await Image.DetectFormatAsync(result1.Stream)).To.Equal(PngFormat.Instance);
+        Expect(await Image.DetectFormatAsync(result2.Stream)).To.Equal(PngFormat.Instance);
 
         // Assert
         // Note: quantizers can produce different results on images with an indexed
@@ -698,15 +737,19 @@ public class TestImageResizer
                 {
                     Thread.Sleep(toSleep);
                     return fetchResult;
-                });
+                }
+            );
             var sut = Create(fetcher);
             // Act
-            var result = await sut.Resize(new ImageResizeOptions()
-            {
-                Width = Resources.Images.FluffyCatBmp.Width,
-                Url = GetRandomHttpUrlWithPath(),
-                Format = "PNG"
-            }, new Dictionary<string, string>());
+            var result = await sut.Resize(
+                new ImageResizeOptions()
+                {
+                    Width = Resources.Images.FluffyCatBmp.Width,
+                    Url = GetRandomHttpUrlWithPath(),
+                    Format = "PNG"
+                },
+                new Dictionary<string, string>()
+            );
             // Assert
             Expect(result.Headers)
                 .To.Contain.Key(TimingHeaders.Fetch);
@@ -736,7 +779,8 @@ public class TestImageResizer
         {
             // Arrange
             var fetcher = CreateFetcherFor(
-                Resources.Data.FluffyCatBmp);
+                Resources.Data.FluffyCatBmp
+            );
             var sut = Create(fetcher);
             var options = new ImageResizeOptions()
             {
@@ -777,18 +821,21 @@ public class TestImageResizer
     private static IUrlFetcher CreateFetcherFor(
         byte[] data,
         string url = null,
-        IDictionary<string, string> headers = null)
+        IDictionary<string, string> headers = null
+    )
     {
         return CreateFetcherFor(
             () => new MemoryStream(data),
             url,
-            headers);
+            headers
+        );
     }
 
     private static IUrlFetcher CreateFetcherFor(
         Stream data,
         string url = null,
-        IDictionary<string, string> headers = null)
+        IDictionary<string, string> headers = null
+    )
     {
         return CreateFetcherFor(() => data, url, headers);
     }
@@ -796,14 +843,17 @@ public class TestImageResizer
     private static IUrlFetcher CreateFetcherFor(
         Func<Stream> dataProvider,
         string url = null,
-        IDictionary<string, string> responseHeaders = null)
+        IDictionary<string, string> responseHeaders = null
+    )
     {
         var result = Substitute.For<IUrlFetcher>();
         result.Fetch(url ?? Arg.Any<string>(), Arg.Any<IDictionary<string, string>>())
-            .ReturnsForAnyArgs(ci => new StreamAndHeaders(
-                dataProvider(),
-                responseHeaders ?? new Dictionary<string, string>()
-            ));
+            .ReturnsForAnyArgs(
+                ci => new StreamAndHeaders(
+                    dataProvider(),
+                    responseHeaders ?? new Dictionary<string, string>()
+                )
+            );
         return result;
     }
 
@@ -833,7 +883,8 @@ public static class DictionaryExtensions
 {
     public static bool IsEquivalentTo<T1, T2>(
         this IDictionary<T1, T2> src,
-        IDictionary<T1, T2> other)
+        IDictionary<T1, T2> other
+    )
     {
         // TODO: replace with PB.DeepEquals when that's fixed for netstandard
         var srcKeys = src.Keys.ToArray();
@@ -859,11 +910,13 @@ public static class DictionaryExtensions
 public static class Matchers
 {
     public static IMore<string> Integer(
-        this IAn<string> an)
+        this IAn<string> an
+    )
     {
-        return an.Compose(actual =>
-            Expect(int.TryParse(actual, out var _))
-                .To.Be.True($"Could not parse '{actual}' as an integer")
+        return an.Compose(
+            actual =>
+                Expect(int.TryParse(actual, out var _))
+                    .To.Be.True($"Could not parse '{actual}' as an integer")
         );
     }
 }

@@ -14,7 +14,7 @@ using NSubstitute;
 namespace IRAAS.Tests;
 
 [TestFixture]
-public class TestBootstrapper
+public class TestBootstrapper: TestBase
 {
     [TestCase(typeof(IImageResizer), typeof(ImageResizer))]
     [TestCase(typeof(IImageMimeTypeProvider), typeof(ImageMimeTypeProvider))]

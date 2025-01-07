@@ -8,10 +8,10 @@ using NUnit.Framework;
 namespace IRAAS.Tests.Middleware;
 
 [TestFixture]
-public class TestNotImplementedExceptionMiddleware
+public class TestNotImplementedExceptionMiddleware: TestBase
 {
     [TestFixture]
-    public class WhenNoExceptionThrown
+    public class WhenNoExceptionThrown: TestBase
     {
         [Test]
         public async Task ShouldNotInterfereWithTheResponse()
@@ -37,7 +37,7 @@ public class TestNotImplementedExceptionMiddleware
     }
 
     [TestFixture]
-    public class WhenAnotherExceptionIsThrown
+    public class WhenAnotherExceptionIsThrown: TestBase
     {
         [Test]
         public void ShouldNotInterfere()
@@ -67,7 +67,7 @@ public class TestNotImplementedExceptionMiddleware
     }
 
     [TestFixture]
-    public class WhenNotImplementedExceptionThrown
+    public class WhenNotImplementedExceptionThrown: TestBase
     {
         [Test]
         public async Task ShouldSetResultStatusCodeTo_404()

@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace IRAAS.Tests.ImageProcessing;
 
 [TestFixture]
-public class TestImageMimeTypeProvider
+public class TestImageMimeTypeProvider: TestBase
 {
     [Test]
     public void ShouldImplement_IImageMimeTypeProvider()
@@ -20,7 +20,7 @@ public class TestImageMimeTypeProvider
 
     [TestFixture]
     [Parallelizable(ParallelScope.None)]
-    public class DetermineMimeTypeFor
+    public class DetermineMimeTypeFor: TestBase
     {
         [Test]
         public void GivenNullStream_ShouldThrow()

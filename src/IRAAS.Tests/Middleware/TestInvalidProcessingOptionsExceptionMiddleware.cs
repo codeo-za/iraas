@@ -1,11 +1,9 @@
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Text;
 using System.Threading.Tasks;
-using IRAAS.ImageProcessing;
+using IRAAS.Exceptions;
 using IRAAS.Middleware;
 using IRAAS.Tests.Fakes;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NUnit.Framework;
 using PeanutButter.Utils;
@@ -13,7 +11,7 @@ using PeanutButter.Utils;
 namespace IRAAS.Tests.Middleware;
 
 [TestFixture]
-public class TestRedirectTimedOutRequestsMiddleware: TestBase
+public class TestInvalidProcessingOptionsExceptionMiddleware: TestBase
 {
     [TestFixture]
     public class WhenNoExceptionThrown: TestBase
@@ -72,51 +70,39 @@ public class TestRedirectTimedOutRequestsMiddleware: TestBase
     }
 
     [TestFixture]
-    public class WhenRequestTimedOutExceptionThrown: TestBase
+    public class WhenImageSourceNotAllowedExceptionThrown: TestBase
     {
         [Test]
-        public async Task ShouldSetResultStatusCodeTo_301()
+        public async Task ShouldSetResultStatusCodeTo_403()
         {
             // Arrange
-            var logger = Substitute.For<ILogger<RedirectTimedOutRequestsMiddleware>>();
-            var sut = Create(logger);
+            var sut = Create();
             var context = new FakeHttpContext();
-            var expected = 301;
-            var url = GetRandomHttpUrl();
+            var expectedCode = 400;
+            var expectedMessage = GetRandomString(32);
             Expect(context.Response.StatusCode)
-                .Not.To.Equal(expected);
+                .Not.To.Equal(expectedCode);
             // Act
             await sut.InvokeAsync(
                 context,
-                ctx => Task.FromException(
-                    new RequestTimedOutException(
-                        url,
-                        new Dictionary<string, string>()
-                    )
-                )
+                ctx => Task.FromException(new InvalidProcessingOptionsException(expectedMessage))
             );
             // Assert
             Expect(context.Response.StatusCode)
-                .To.Equal(expected);
+                .To.Equal(expectedCode);
             context.Response.Body.Rewind();
             var body = Encoding.UTF8.GetString(
                 context.Response.Body.ReadAllBytes()
             );
             Expect(body)
-                .To.Contain("Moved");
-            Expect(context.Response.Headers.ToDictionary())
-                .To.Contain.Key("Location")
-                .With.Value(url);
+                .To.Contain(expectedMessage);
+            Expect(body)
+                .To.Contain("Query parameters");
         }
     }
 
-    private static RedirectTimedOutRequestsMiddleware Create(
-        ILogger<RedirectTimedOutRequestsMiddleware> logger = null
-    )
+    private static InvalidProcessingOptionsExceptionMiddleware Create()
     {
-        return new RedirectTimedOutRequestsMiddleware(
-            logger ?? Substitute.For<ILogger<RedirectTimedOutRequestsMiddleware>>(),
-            Substitute.For<IAppSettings>()
-        );
+        return new InvalidProcessingOptionsExceptionMiddleware(Substitute.For<IAppSettings>());
     }
 }

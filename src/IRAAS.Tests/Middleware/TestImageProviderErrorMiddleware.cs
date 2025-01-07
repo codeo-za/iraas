@@ -12,10 +12,10 @@ using PeanutButter.Utils;
 namespace IRAAS.Tests.Middleware;
 
 [TestFixture]
-public class TestImageProviderErrorMiddleware
+public class TestImageProviderErrorMiddleware: TestBase
 {
     [TestFixture]
-    public class WhenNoExceptionThrown
+    public class WhenNoExceptionThrown: TestBase
     {
         [Test]
         public async Task ShouldNotInterfereWithTheResponse()
@@ -41,7 +41,7 @@ public class TestImageProviderErrorMiddleware
     }
 
     [TestFixture]
-    public class WhenAnotherExceptionIsThrown
+    public class WhenAnotherExceptionIsThrown: TestBase
     {
         [Test]
         public void ShouldNotInterfere()
@@ -71,7 +71,7 @@ public class TestImageProviderErrorMiddleware
     }
 
     [TestFixture]
-    public class WhenImageProviderErrorExceptionThrown
+    public class WhenImageProviderErrorExceptionThrown: TestBase
     {
         [Test]
         public async Task ShouldSetResultStatusCodeToUpstreamCodeWhenAvailable()

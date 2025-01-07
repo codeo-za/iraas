@@ -8,7 +8,7 @@ using PeanutButter.Utils;
 namespace IRAAS.Tests.Security;
 
 [TestFixture]
-public class TestLimitedMemoryStream
+public class TestLimitedMemoryStream: TestBase
 {
     [Test]
     public void ShouldBeAbleToRead()
@@ -47,7 +47,7 @@ public class TestLimitedMemoryStream
     }
 
     [TestFixture]
-    public class WhenWithinLimit
+    public class WhenWithinLimit: TestBase
     {
         [Test]
         public void ShouldBeAbleToWrite()
@@ -112,7 +112,7 @@ public class TestLimitedMemoryStream
     }
 
     [TestFixture]
-    public class WhenExceedingLimit
+    public class WhenExceedingLimit: TestBase
     {
         [Test]
         public void WriteFromStartShouldThrow()

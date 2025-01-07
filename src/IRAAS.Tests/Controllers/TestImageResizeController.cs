@@ -16,7 +16,7 @@ using PeanutButter.Utils;
 namespace IRAAS.Tests.Controllers;
 
 [TestFixture]
-public class TestImageResizeController
+public class TestImageResizeController : TestBase
 {
     [Test]
     public void Controller_ShouldHaveEmptyRoute()
@@ -29,7 +29,7 @@ public class TestImageResizeController
     }
 
     [TestFixture]
-    public class Resize
+    public class Resize : TestBase
     {
         [Test]
         public void ShouldHaveEmptyRoute()
@@ -215,7 +215,8 @@ public class TestImageResizeController
                         "image/bpm"
                     ]
                 );
-                using var server = HttpServerPool.Borrow();
+                using var lease = TestEnvironment.BorrowHttpServer();
+                var server = lease.Instance;
                 server.ServeFile($"/{imageName}", imageData, "image/png");
                 var defaults = GetRandom<DefaultImageResizeParameters>();
                 ImageResizeOptions.SetDefaults(defaults);
@@ -274,12 +275,6 @@ public class TestImageResizeController
             }
         }
 
-        [TearDown]
-        public void Teardown()
-        {
-            ImageResizeOptions.SetDefaults(null);
-        }
-
         private static ImageResizeController Create(
             IImageResizer resizer = null,
             IImageMimeTypeProvider mimeTypeProvider = null,
@@ -287,6 +282,7 @@ public class TestImageResizeController
             IHttpContextAccessor httpContextAccessor = null
         )
         {
+            ImageResizeOptions.SetDefaults(null);
             return new ImageResizeController(
                 resizer ?? Substitute.For<IImageResizer>(),
                 mimeTypeProvider ?? CreateFakeMimeTypeProvider(),

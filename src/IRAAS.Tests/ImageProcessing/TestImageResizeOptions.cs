@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Formats.Png;
 namespace IRAAS.Tests.ImageProcessing;
 
 [TestFixture]
-public class TestImageResizeOptions
+public class TestImageResizeOptions: TestBase
 {
     [Test]
     public void ShouldBeAbleToConstructWithNoParameters()
@@ -24,7 +24,7 @@ public class TestImageResizeOptions
     }
 
     [TestFixture]
-    public class Format
+    public class Format: TestBase
     {
         [TestCase("jpg")]
         [TestCase("jpeg")]
@@ -83,7 +83,7 @@ public class TestImageResizeOptions
     }
 
     [TestFixture]
-    public class Quality
+    public class Quality: TestBase
     {
         [Test]
         public void ShouldDefaultTo85()
@@ -129,7 +129,7 @@ public class TestImageResizeOptions
     }
 
     [TestFixture]
-    public class Url
+    public class Url: TestBase
     {
         [Test]
         public void ShouldBeAbleToSetAndGetValidUriWithPath()
@@ -180,7 +180,7 @@ public class TestImageResizeOptions
     }
 
     [TestFixture]
-    public class Subsampling
+    public class Subsampling: TestBase
     {
         [Test]
         public void ShouldDefaultNull()
@@ -211,7 +211,7 @@ public class TestImageResizeOptions
     }
 
     [TestFixture]
-    public class Dimensions
+    public class Dimensions: TestBase
     {
         [Test]
         public void ShouldBeAbleToSetWidthGreaterThanZero()
@@ -272,7 +272,7 @@ public class TestImageResizeOptions
 
     [TestFixture]
     // ReSharper disable once InconsistentNaming
-    public class DevicePixelRatio
+    public class DevicePixelRatio: TestBase
     {
         [Test]
         public void ShouldDefaultTo1()
@@ -301,7 +301,7 @@ public class TestImageResizeOptions
     }
 
     [TestFixture]
-    public class WhenDefaultsSet
+    public class WhenDefaultsSet: TestBase
     {
         [Test]
         public void ShouldPopulateFromDefaultsWhenConstructing()
@@ -316,12 +316,6 @@ public class TestImageResizeOptions
             // Assert
             Expect(result)
                 .To.Intersection.Equal(defaults);
-        }
-
-        [TearDown]
-        public void TearDown()
-        {
-            ImageResizeOptions.SetDefaults(null);
         }
     }
 

@@ -14,6 +14,11 @@ namespace IRAAS.ImageProcessing;
 public class ImageResizeOptions
     : IImageResizeParameters
 {
+    public static void ClearDefaults()
+    {
+        SetDefaults(null);
+    }
+    
     public static void SetDefaults(
         IImageResizeParameters parameters
     )

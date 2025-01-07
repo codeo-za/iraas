@@ -64,7 +64,7 @@ public static class ControllerMatchers
             });
     }
 
-    public class SupportingExtension
+    public class SupportingExtension: TestBase
     {
         public string Member { get; set; }
         public IHave<Type> Continuation { get; set; }

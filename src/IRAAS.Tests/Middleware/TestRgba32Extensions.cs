@@ -4,8 +4,10 @@ using NUnit.Framework;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
+namespace IRAAS.Tests.Middleware;
+
 [TestFixture]
-public class TestRgba32Extensions
+public class TestRgba32Extensions: TestBase
 {
     [TestCase("")]
     [TestCase(" ")]
@@ -92,4 +94,3 @@ public class TestRgba32Extensions
     
     private static Rgba32 White = Rgba32.ParseHex("fff");
 }
-

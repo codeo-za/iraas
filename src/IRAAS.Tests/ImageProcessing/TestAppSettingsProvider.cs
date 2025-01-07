@@ -14,7 +14,7 @@ namespace IRAAS.Tests.ImageProcessing;
 
 [TestFixture]
 [Parallelizable(ParallelScope.None)]
-public class TestAppSettingsProvider
+public class TestAppSettingsProvider: TestBase
 {
     [SetUp]
     public void Setup()
@@ -196,7 +196,7 @@ public class TestAppSettingsProvider
     }
 
     [TestFixture]
-    public class WhenMaxUrlRetriesLessThanZero
+    public class WhenMaxUrlRetriesLessThanZero: TestBase
     {
         [Test]
         public void ShouldSetToZero()

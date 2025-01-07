@@ -14,10 +14,10 @@ using NUnit.Framework;
 namespace IRAAS.Tests.Middleware;
 
 [TestFixture]
-public class TestMaxClientsMiddleWare
+public class TestMaxClientsMiddleWare: TestBase
 {
     [TestFixture]
-    public class WhenOnlyOneClientAllowed
+    public class WhenOnlyOneClientAllowed: TestBase
     {
         [Test]
         public async Task ShouldCallNextForOneClient()

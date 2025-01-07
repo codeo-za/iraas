@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace IRAAS.Tests.Security;
 
 [TestFixture]
-public class TestWhitelist
+public class TestWhitelist: TestBase
 {
     [Test]
     public void ShouldImplement_IWhitelist()
@@ -18,7 +18,7 @@ public class TestWhitelist
     }
 
     [TestFixture]
-    public class Behavior
+    public class Behavior: TestBase
     {
         [TestCase("")]
         [TestCase(" ")]
@@ -160,7 +160,7 @@ public class TestWhitelist
         }
 
         [TestFixture]
-        public class WildBugs
+        public class WildBugs: TestBase
         {
             [TestCase("*.moodemo.com, *.moo.com", "static-test.moo.com")]
             public void ShouldMatch_(string regex, string hostname)

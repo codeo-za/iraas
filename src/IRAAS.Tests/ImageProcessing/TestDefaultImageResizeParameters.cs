@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Processing;
 namespace IRAAS.Tests.ImageProcessing;
 
 [TestFixture]
-public class TestDefaultImageResizeParameters
+public class TestDefaultImageResizeParameters: TestBase
 {
     [Test]
     public void ShouldDuckDefaults()

@@ -18,7 +18,7 @@ namespace IRAAS.Tests;
 [TestFixture]
 [Explicit("Discovery tests")]
 [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility")]
-public class DiscoveryTests
+public class DiscoveryTests: TestBase
 {
     [Test]
     public async Task ResizingAnImageFromUrl()

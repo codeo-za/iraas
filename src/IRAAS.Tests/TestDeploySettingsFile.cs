@@ -9,7 +9,7 @@ using NUnit.Framework;
 namespace IRAAS.Tests;
 
 [TestFixture]
-public class TestDeploySettingsFile
+public class TestDeploySettingsFile: TestBase
 {
     [TestCase("Logging.LogLevel.Default")]
     [TestCase("Settings.MaxInputImageSize")]

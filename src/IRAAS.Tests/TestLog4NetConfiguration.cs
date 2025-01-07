@@ -17,11 +17,11 @@ namespace IRAAS.Tests;
 
 [TestFixture]
 [Parallelizable(ParallelScope.None)]
-public class TestLog4NetConfiguration
+public class TestLog4NetConfiguration: TestBase
 {
     [TestFixture]
     [Parallelizable(ParallelScope.None)]
-    public class WhenLogLevelIsOctopusVariable
+    public class WhenLogLevelIsOctopusVariable: TestBase
     {
         public static IEnumerable<(LogLevel aspNetLevel, Level log4NetLevel)> TestCases()
         {
@@ -94,7 +94,7 @@ public class TestLog4NetConfiguration
 
     [TestFixture]
     [Parallelizable(ParallelScope.None)]
-    public class WhenLogLevelHasBeenSet
+    public class WhenLogLevelHasBeenSet: TestBase
     {
         [Test]
         public void ShouldConfigureThatLevel()
@@ -140,7 +140,7 @@ public class TestLog4NetConfiguration
 
         [TestFixture]
         [Parallelizable(ParallelScope.None)]
-        public class WhenLogDirNotSpecified
+        public class WhenLogDirNotSpecified: TestBase
         {
             [Test]
             public void ShouldConfigureLogFileToBeInLogsFolderOffAssemblyDir()
@@ -182,7 +182,7 @@ public class TestLog4NetConfiguration
 
         [TestFixture]
         [Parallelizable(ParallelScope.None)]
-        public class WhenLogDirSpecified
+        public class WhenLogDirSpecified: TestBase
         {
             [Test]
             public void ShouldUseThatDir()

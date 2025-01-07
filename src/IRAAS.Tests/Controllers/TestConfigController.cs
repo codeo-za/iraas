@@ -9,7 +9,7 @@ using PeanutButter.JObjectExtensions;
 namespace IRAAS.Tests.Controllers;
 
 [TestFixture]
-public class TestConfigController
+public class TestConfigController: TestBase
 {
     [TestCase("config")]
     public void ControllerShouldHaveRoute_(string expected)
@@ -22,7 +22,7 @@ public class TestConfigController
     }
 
     [TestFixture]
-    public class Config
+    public class Config: TestBase
     {
         [Test]
         public void ShouldHaveEmptyRouteForGet()

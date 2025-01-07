@@ -14,11 +14,11 @@ using PeanutButter.Utils;
 namespace IRAAS.Tests.Middleware;
 
 [TestFixture]
-public class TestConcurrencyMiddleware
+public class TestConcurrencyMiddleware: TestBase
 {
     [TestFixture]
     [Parallelizable(ParallelScope.None)]
-    public class WhenNoConcurrentRequestMatchingQueryString
+    public class WhenNoConcurrentRequestMatchingQueryString: TestBase
     {
         [Test]
         public async Task ShouldRunNext()
@@ -45,7 +45,7 @@ public class TestConcurrencyMiddleware
 
     [TestFixture]
     [Parallelizable(ParallelScope.None)]
-    public class WhenMatchingRequestAlreadyInProgress
+    public class WhenMatchingRequestAlreadyInProgress: TestBase
     {
         public static IEnumerable<int> TestRange()
         {

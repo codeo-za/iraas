@@ -9,7 +9,7 @@ using NSubstitute;
 namespace IRAAS.Tests.Controllers;
 
 [TestFixture]
-public class TestTestController
+public class TestTestController: TestBase
 {
     [TestCase("test")]
     public void ControllerShouldHaveRoute_(string expected)
@@ -33,7 +33,7 @@ public class TestTestController
     }
 
     [TestFixture]
-    public class Test
+    public class Test: TestBase
     {
         [Test]
         public void ShouldHaveEmptyRouteForGET()
@@ -64,7 +64,7 @@ public class TestTestController
     }
 
     [TestFixture]
-    public class FileSize
+    public class FileSize: TestBase
     {
         [Test]
         [Ignore("TODO")]
