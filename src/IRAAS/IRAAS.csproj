@@ -27,8 +27,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.ApiExplorer" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
     <PackageReference Include="Microsoft.Extensions.Logging.Log4Net.AspNetCore" Version="8.0.0" />
-    <PackageReference Include="PeanutButter.DuckTyping" Version="3.0.337" />
-    <PackageReference Include="PeanutButter.Utils" Version="3.0.337" />
+    <PackageReference Include="PeanutButter.DuckTyping" Version="3.0.338" />
+    <PackageReference Include="PeanutButter.Utils" Version="3.0.338" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
     <PackageReference Include="System.Drawing.Common" Version="8.0.2" />
   </ItemGroup>

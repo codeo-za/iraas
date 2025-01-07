@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="PeanutButter.EasyArgs" Version="3.0.337" />
+    <PackageReference Include="PeanutButter.EasyArgs" Version="3.0.338" />
   </ItemGroup>
 
   <ItemGroup>
