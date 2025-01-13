@@ -9,7 +9,7 @@ public static class TypeExtensions
     {
         var method = GenericGetDefaultValueMethod.MakeGenericMethod(arg);
         var defaultValueForType = method.Invoke(null, new object[] { });
-        return defaultValueForType == null;
+        return defaultValueForType is null;
     }
 
     internal static Type GetUnderlyingType(this Type type)

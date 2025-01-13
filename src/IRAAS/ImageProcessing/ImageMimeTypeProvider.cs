@@ -19,7 +19,7 @@ public class ImageMimeTypeProvider : IImageMimeTypeProvider
 {
     public string DetermineMimeTypeFor(Stream imageStream)
     {
-        if (imageStream == null)
+        if (imageStream is null)
         {
             throw new ArgumentNullException(nameof(imageStream));
         }
@@ -35,7 +35,7 @@ public class ImageMimeTypeProvider : IImageMimeTypeProvider
             // null, now it throws on error
         }
 
-        if (format == null)
+        if (format is null)
         {
             throw new NotSupportedException(
                 "Unsupported image stream"

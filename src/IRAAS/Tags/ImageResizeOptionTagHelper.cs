@@ -162,7 +162,7 @@ public class ImageResizeOptionTagHelper : TagHelper
         var allowedValuesAttrib = prop.GetCustomAttributes<OptionsAttribute>()
             .FirstOrDefault();
         var selected = FindDefaultValueFor(prop, defaults);
-        return allowedValuesAttrib == null
+        return allowedValuesAttrib is null
             ? null
             : CreateDropDownFor(prop, selected, allowedValuesAttrib.Options);
     }

@@ -250,7 +250,7 @@ public static class AppSettingsProvider
         var configKey = config.Keys.FirstOrDefault(
             k => k.Equals(key, StringComparison.OrdinalIgnoreCase)
         );
-        var stringValue = configKey == null
+        var stringValue = configKey is null
             ? defaultValue.ToString()
             : config[configKey];
 

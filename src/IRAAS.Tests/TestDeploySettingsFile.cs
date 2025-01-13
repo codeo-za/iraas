@@ -74,7 +74,7 @@ public static class JObjectExtensions
         {
             var prop = parts.Dequeue();
             var propValue = current[prop];
-            if (parts.Count == 0 || propValue == null)
+            if (parts.Count == 0 || propValue is null)
             {
                 return propValue?.Value<string>();
             }
