@@ -1,9 +1,8 @@
 using System;
 
-namespace IRAAS.ImageProcessing
+namespace IRAAS.ImageProcessing;
+
+public class NotModifiedException
+    : Exception
 {
-    public class NotModifiedException
-        : Exception
-    {
-    }
 }

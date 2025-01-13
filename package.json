@@ -22,7 +22,9 @@
         "build-and-push-image": "zarro @",
         "refresh-aws-docker-login": "zarro @",
         "deploy": "zarro @",
-        "verify-up-to-date": "zarro @"
+        "verify-up-to-date": "zarro @",
+        "upgrade-pb": "cross-env UPGRADE_PACKAGES=/peanutbutter\\.*/ zarro upgrade-packages",
+        "upgrade-nexpect": "cross-env UPGRADE_PACKAGES=nexpect,/nexpect\\.*/ zarro upgrade-packages"
     },
     "author": "",
     "license": "ISC",
@@ -41,6 +43,6 @@
         "semver": "^7.5.4",
         "simple-git": "^3.5.0",
         "yafs": "^1.34.0",
-        "zarro": "^1.178.0"
+        "zarro": "^1.191.0"
     }
 }

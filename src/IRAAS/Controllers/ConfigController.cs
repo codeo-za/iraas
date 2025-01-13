@@ -1,29 +1,28 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
-namespace IRAAS.Controllers
+namespace IRAAS.Controllers;
+
+[Route("config")]
+public class ConfigController : Controller
 {
-    [Route("config")]
-    public class ConfigController : Controller
+    private readonly IAppSettings _config;
+
+    public ConfigController(IAppSettings config)
     {
-        private readonly IAppSettings _config;
+        _config = config;
+    }
 
-        public ConfigController(IAppSettings config)
+    private static readonly JsonSerializerOptions SerializerOptions =
+        new()
         {
-            _config = config;
-        }
+            WriteIndented = true
+        };
 
-        private static readonly JsonSerializerOptions SerializerOptions =
-            new()
-            {
-                WriteIndented = true
-            };
-
-        [HttpGet]
-        [Route("")]
-        public string DumpConfig()
-        {
-            return JsonSerializer.Serialize(_config, SerializerOptions);
-        }
+    [HttpGet]
+    [Route("")]
+    public string DumpConfig()
+    {
+        return JsonSerializer.Serialize(_config, SerializerOptions);
     }
 }

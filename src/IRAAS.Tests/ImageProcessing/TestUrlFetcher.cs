@@ -7,13 +7,10 @@ using System.Threading.Tasks;
 using IRAAS.ImageProcessing;
 using IRAAS.Tests.TestUtils;
 using Microsoft.Extensions.Logging;
-using NExpect;
 using NSubstitute;
 using NUnit.Framework;
 using PeanutButter.SimpleHTTPServer;
 using PeanutButter.Utils;
-using static NExpect.Expectations;
-using static PeanutButter.RandomGenerators.RandomValueGen;
 
 // ReSharper disable RedundantAssignment
 // ReSharper disable AccessToDisposedClosure
@@ -22,7 +19,7 @@ namespace IRAAS.Tests.ImageProcessing;
 
 [TestFixture]
 [Parallelizable(ParallelScope.None)]
-public class TestUrlFetcher
+public class TestUrlFetcher : TestBase
 {
     [Test]
     public void ShouldImplementIImageFetcher()
@@ -38,7 +35,8 @@ public class TestUrlFetcher
     public async Task ShouldBeAbleToFetchExistingImage()
     {
         // Arrange
-        using var server = HttpServerPool.Borrow();
+        using var lease = TestEnvironment.BorrowHttpServer();
+        var server = lease.Instance;
         server.ServeFile(
             "/cat.jpg",
             () => Resources.Data.FluffyCatJpeg
@@ -58,8 +56,10 @@ public class TestUrlFetcher
         } while (readCount > 0);
 
         var resultBytes = memStream.ToArray();
-        Expect(resultBytes.Length).To.Equal(Resources.Data.FluffyCatJpeg.Length);
-        Expect(resultBytes).To.Equal(Resources.Data.FluffyCatJpeg);
+        Expect(resultBytes.Length)
+            .To.Equal(Resources.Data.FluffyCatJpeg.Length);
+        Expect(resultBytes)
+            .To.Equal(Resources.Data.FluffyCatJpeg);
     }
 
     [Test]
@@ -73,7 +73,8 @@ public class TestUrlFetcher
         {
             [expectedHeader] = expectedHeaderValue
         };
-        using var server = HttpServerPool.Borrow();
+        using var lease = TestEnvironment.BorrowHttpServer();
+        var server = lease.Instance;
         server.AddHandler(
             (processor, _) =>
             {
@@ -118,7 +119,8 @@ public class TestUrlFetcher
         {
             [expectedHeader] = GetRandomHostname()
         };
-        using var server = HttpServerPool.Borrow();
+        using var lease = TestEnvironment.BorrowHttpServer();
+        var server = lease.Instance;
         server.AddHandler(
             (processor, _) =>
             {
@@ -163,7 +165,8 @@ public class TestUrlFetcher
         {
             [expectedHeader] = GetRandomHostname()
         };
-        using var server = HttpServerPool.Borrow();
+        using var lease = TestEnvironment.BorrowHttpServer();
+        var server = lease.Instance;
         server.AddHandler(
             (processor, _) =>
             {
@@ -208,7 +211,8 @@ public class TestUrlFetcher
         {
             [expectedHeader] = "keep-alive"
         };
-        using var server = HttpServerPool.Borrow();
+        using var lease = TestEnvironment.BorrowHttpServer();
+        var server = lease.Instance;
         server.AddHandler(
             (processor, _) =>
             {
@@ -253,7 +257,8 @@ public class TestUrlFetcher
         {
             [expectedHeader] = "application/octet-stream"
         };
-        using var server = HttpServerPool.Borrow();
+        using var lease = TestEnvironment.BorrowHttpServer();
+        var server = lease.Instance;
         server.AddHandler(
             (processor, _) =>
             {
@@ -293,7 +298,8 @@ public class TestUrlFetcher
         // Arrange
         var expectedHeader = GetRandomString();
         var expectedHeaderValue = GetRandomString();
-        using var server = HttpServerPool.Borrow();
+        using var lease = TestEnvironment.BorrowHttpServer();
+        var server = lease.Instance;
         server.AddHandler(
             (processor, _) =>
             {
@@ -321,8 +327,10 @@ public class TestUrlFetcher
         // Act
         var result = await sut.Fetch(url, new Dictionary<string, string>());
         // Assert
-        Expect(result.Headers).Not.To.Be.Null();
-        Expect(result.Headers).Not.To.Be.Empty();
+        Expect(result.Headers)
+            .Not.To.Be.Null();
+        Expect(result.Headers)
+            .Not.To.Be.Empty();
         Expect(result.Headers)
             .To.Contain.Key(expectedHeader)
             .With.Value(expectedHeaderValue);
@@ -337,7 +345,8 @@ public class TestUrlFetcher
         var originalCatRequested = false;
         var newCatRequested = false;
 
-        using var server = HttpServerPool.Borrow();
+        using var lease = TestEnvironment.BorrowHttpServer();
+        var server = lease.Instance;
         server.AddHandler(
             (processor, _) =>
             {
@@ -385,8 +394,10 @@ public class TestUrlFetcher
         // Act
         using var result = await sut.Fetch(url, new Dictionary<string, string>());
         // Assert
-        Expect(originalCatRequested).To.Be.True("original cat was not requested");
-        Expect(newCatRequested).To.Be.True("new-cat was not requested");
+        Expect(originalCatRequested)
+            .To.Be.True("original cat was not requested");
+        Expect(newCatRequested)
+            .To.Be.True("new-cat was not requested");
         var buffer = new byte[1024];
         await using var memStream = new MemoryStream();
         var readCount = 0;
@@ -397,8 +408,10 @@ public class TestUrlFetcher
         } while (readCount > 0);
 
         var resultBytes = memStream.ToArray();
-        Expect(resultBytes.Length).To.Equal(Resources.Data.FluffyCatBmp.Length);
-        Expect(resultBytes).To.Equal(Resources.Data.FluffyCatBmp);
+        Expect(resultBytes.Length)
+            .To.Equal(Resources.Data.FluffyCatBmp.Length);
+        Expect(resultBytes)
+            .To.Equal(Resources.Data.FluffyCatBmp);
     }
 
     [MaxTime(18000)]
@@ -407,7 +420,8 @@ public class TestUrlFetcher
     public void ShouldReturn500WhenNoLocationHeaderFor_(HttpStatusCode code)
     {
         // Arrange
-        using var server = HttpServerPool.Borrow();
+        using var lease = TestEnvironment.BorrowHttpServer();
+        var server = lease.Instance;
         server.AddHandler(
             (processor, _) =>
             {
@@ -438,7 +452,8 @@ public class TestUrlFetcher
     public void ShouldThrowImageProviderErrorExceptionWhenWebRequestB0Rks()
     {
         // Arrange
-        using var server = HttpServerPool.Borrow();
+        using var lease = TestEnvironment.BorrowHttpServer();
+        var server = lease.Instance;
         server.AddHandler(
             (processor, _) =>
             {
@@ -461,7 +476,8 @@ public class TestUrlFetcher
 
         var config = CreateDefaultAppSettings();
         config.MaxImageFetchTimeInMilliseconds.Returns(1000);
-        using var server = HttpServerPool.Borrow();
+        using var lease = TestEnvironment.BorrowHttpServer();
+        var server = lease.Instance;
         server.AddHandler(
             (_, _) =>
             {
@@ -483,7 +499,7 @@ public class TestUrlFetcher
     public class KeepAlive
     {
         [TestFixture]
-        public class WhenDisabledInConfig
+        public class WhenDisabledInConfig : TestBase
         {
             [TestFixture]
             public class AndNotSetInProvidedHeaders
@@ -496,7 +512,8 @@ public class TestUrlFetcher
                     appSettings.EnableConnectionKeepAlive.Returns(false);
                     var path = $"/{GetRandomString(2)}.jpg";
                     var connectionHeaderValue = null as string;
-                    using var server = HttpServerPool.Borrow();
+                    using var lease = TestEnvironment.BorrowHttpServer();
+                    var server = lease.Instance;
                     server.Serve(
                         path,
                         Resources.Data.FluffyCatJpeg,
@@ -527,7 +544,8 @@ public class TestUrlFetcher
                     // Arrange
                     var appSettings = CreateDefaultAppSettings();
                     appSettings.EnableConnectionKeepAlive.Returns(false);
-                    using var server = HttpServerPool.Borrow();
+                    using var lease = TestEnvironment.BorrowHttpServer();
+                    var server = lease.Instance;
                     var path = $"/{GetRandomString(2)}.jpg";
                     var connectionHeaderValue = null as string;
                     server.Serve(
@@ -556,7 +574,7 @@ public class TestUrlFetcher
         }
 
         [TestFixture]
-        public class WhenEnabledInConfig
+        public class WhenEnabledInConfig : TestBase
         {
             [TestFixture]
             public class AndNotSetInProvidedHeaders
@@ -569,7 +587,8 @@ public class TestUrlFetcher
                     appSettings.EnableConnectionKeepAlive.Returns(true);
                     var path = $"/{GetRandomString(2)}.jpg";
                     var connectionHeaderValue = null as string;
-                    using var server = HttpServerPool.Borrow();
+                    using var lease = TestEnvironment.BorrowHttpServer();
+                    var server = lease.Instance;
                     server.Serve(
                         path,
                         Resources.Data.FluffyCatJpeg,
@@ -602,7 +621,8 @@ public class TestUrlFetcher
                     appSettings.EnableConnectionKeepAlive.Returns(true);
                     var path = $"/{GetRandomString(2)}.jpg";
                     var connectionHeaderValue = null as string;
-                    using var server = HttpServerPool.Borrow();
+                    using var lease = TestEnvironment.BorrowHttpServer();
+                    var server = lease.Instance;
                     server.Serve(
                         path,
                         Resources.Data.FluffyCatJpeg,
@@ -633,7 +653,7 @@ public class TestUrlFetcher
     public class Retries
     {
         [TestFixture]
-        public class WhenConfiguredRetriesValueIsZero
+        public class WhenConfiguredRetriesValueIsZero : TestBase
         {
             [Test]
             public void ShouldOnlyAttemptOnce()
@@ -644,7 +664,8 @@ public class TestUrlFetcher
                     .To.Equal(0);
                 var attempts = 0;
                 var path = $"/{GetRandomString(2)}.jpg";
-                using var server = HttpServerPool.Borrow();
+                using var lease = TestEnvironment.BorrowHttpServer();
+                var server = lease.Instance;
                 server.Serve(
                     path,
                     Resources.Data.FluffyCatJpeg,
@@ -686,7 +707,7 @@ public class TestUrlFetcher
         }
 
         [TestFixture]
-        public class WhenConfiguredRetriesValueIsNonZero
+        public class WhenConfiguredRetriesValueIsNonZero : TestBase
         {
             [Test]
             public void ShouldAttemptOnceAndRetryUpToLimit()
@@ -697,7 +718,8 @@ public class TestUrlFetcher
                     .With(o => o.MaxUrlFetchRetries.Returns(maxRetries));
                 var attempts = 0;
                 var path = $"/{GetRandomString(2)}.jpg";
-                using var server = HttpServerPool.Borrow();
+                using var lease = TestEnvironment.BorrowHttpServer();
+                var server = lease.Instance;
                 server.Serve(
                     path,
                     Resources.Data.FluffyCatJpeg,

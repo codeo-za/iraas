@@ -2,49 +2,48 @@ using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace IRAAS.Security
+namespace IRAAS.Security;
+
+public interface IWhitelist
 {
-    public interface IWhitelist
+    bool IsAllowed(string source);
+}
+
+public class Whitelist
+    : IWhitelist
+{
+    private readonly Regex[] _expressions;
+
+    public Whitelist(IAppSettings settings)
     {
-        bool IsAllowed(string source);
+        _expressions = (settings.DomainWhitelist ?? "")
+            .Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(rule => rule.Trim())
+            .Where(glob => !string.IsNullOrWhiteSpace(glob))
+            .Select(glob => new Regex(
+                $"{MakeRegexFor(glob)}",
+                RegexOptions.Compiled | RegexOptions.IgnoreCase
+            )).ToArray();
     }
 
-    public class Whitelist
-        : IWhitelist
+    private string MakeRegexFor(string glob)
     {
-        private readonly Regex[] _expressions;
+        return $@"^{
+            Regex.Escape(glob)
+                .Replace(@"\*", ".*")
+                .Replace(@"\?", ".")
+        }$";
+    }
 
-        public Whitelist(IAppSettings settings)
+    public bool IsAllowed(string source)
+    {
+        if (_expressions.Length == 0 ||
+            string.IsNullOrWhiteSpace(source))
         {
-            _expressions = (settings.DomainWhitelist ?? "")
-                .Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(rule => rule.Trim())
-                .Where(glob => !string.IsNullOrWhiteSpace(glob))
-                .Select(glob => new Regex(
-                    $"{MakeRegexFor(glob)}",
-                    RegexOptions.Compiled | RegexOptions.IgnoreCase
-                )).ToArray();
+            return true;
         }
 
-        private string MakeRegexFor(string glob)
-        {
-            return $@"^{
-                    Regex.Escape(glob)
-                        .Replace(@"\*", ".*")
-                        .Replace(@"\?", ".")
-                }$";
-        }
-
-        public bool IsAllowed(string source)
-        {
-            if (_expressions.Length == 0 ||
-                string.IsNullOrWhiteSpace(source))
-            {
-                return true;
-            }
-
-            var uri = new Uri(source);
-            return _expressions.Any(re => re.Match(uri.Host).Success);
-        }
+        var uri = new Uri(source);
+        return _expressions.Any(re => re.Match(uri.Host).Success);
     }
 }

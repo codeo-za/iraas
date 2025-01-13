@@ -1,14 +1,13 @@
 using DryIoc;
 
-namespace IRAAS
+namespace IRAAS;
+
+// ReSharper disable once ClassNeverInstantiated.Global
+public class CompositionRoot
 {
-    // ReSharper disable once ClassNeverInstantiated.Global
-    public class CompositionRoot
+    public CompositionRoot(IContainer container)
     {
-        public CompositionRoot(IContainer container)
-        {
-            var bootstrapper = new Bootstrapper();
-            bootstrapper.Bootstrap(container);
-        }
+        var bootstrapper = new Bootstrapper();
+        bootstrapper.Bootstrap(container);
     }
 }
