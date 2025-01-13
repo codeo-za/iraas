@@ -108,6 +108,7 @@ public class TestConcurrencyMiddleware: TestBase
         }
 
         [Test]
+        [Parallelizable(ParallelScope.None)]
         public void ShouldHaveTheSameResult()
         {
             // Arrange
