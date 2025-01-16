@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Webp;
 
 namespace IRAAS.ImageProcessing;
 
@@ -48,11 +49,12 @@ public class ImageMimeTypeProvider : IImageMimeTypeProvider
     }
 
     private static readonly Dictionary<IImageFormat, string> MimeTypeLookup =
-        new Dictionary<IImageFormat, string>()
+        new()
         {
             [BmpFormat.Instance] = "image/bmp",
             [JpegFormat.Instance] = "image/jpeg",
             [GifFormat.Instance] = "image/gif",
-            [PngFormat.Instance] = "image/png"
+            [PngFormat.Instance] = "image/png",
+            [WebpFormat.Instance] = "image/webp"
         };
 }

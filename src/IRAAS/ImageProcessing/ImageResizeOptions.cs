@@ -8,6 +8,11 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Processing;
 using PeanutButter.Utils;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Pbm;
+using SixLabors.ImageSharp.Formats.Qoi;
+using SixLabors.ImageSharp.Formats.Tga;
+using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Webp;
 
 namespace IRAAS.ImageProcessing;
 
@@ -18,14 +23,14 @@ public class ImageResizeOptions
     {
         SetDefaults(null);
     }
-    
+
     public static void SetDefaults(
         IImageResizeParameters parameters
     )
     {
         _defaultParameters = parameters;
     }
-    
+
     public static IImageResizeParameters Defaults => _defaultParameters;
 
     public ImageResizeOptions()
@@ -34,6 +39,7 @@ public class ImageResizeOptions
         {
             return;
         }
+
         _defaultParameters.CopyPropertiesTo(this);
     }
 
@@ -227,7 +233,8 @@ public class ImageResizeOptions
             BmpFormat.Instance.Name,
             JpegFormat.Instance.Name,
             GifFormat.Instance.Name,
-            PngFormat.Instance.Name
+            PngFormat.Instance.Name,
+            WebpFormat.Instance.Name
         }.ForEach(
             format =>
             {
@@ -242,13 +249,28 @@ public class ImageResizeOptions
 
     public void DetermineOutputFormatIfNotSpecified(IImageFormat sourceFormat)
     {
-        if (Format != null)
-        {
-            return;
-        }
-
         Format = sourceFormat.Equals(BmpFormat.Instance)
             ? JpegFormat.Instance.Name
             : sourceFormat.Name;
+        if (AutoConversionTable.TryGetValue(sourceFormat.Name, out var convertTo))
+        {
+            Format = convertTo;
+        }
     }
+
+    private static readonly Dictionary<string, string> AutoConversionTable = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [BmpFormat.Instance.Name] = JpegFormat.Instance.Name,
+        [QoiFormat.Instance.Name] = JpegFormat.Instance.Name,
+        // unoptimised image format which supports frames
+        // - I've seen icons with this format
+        [PbmFormat.Instance.Name] = PngFormat.Instance.Name,
+        // commonly used in game assets, this is an old format
+        // which often has natural images in it
+        [TgaFormat.Instance.Name] = JpegFormat.Instance.Name,
+        // format used by, eg, scanners - provides for
+        // multiple pages within the format, but not typically
+        // animated
+        [TiffFormat.Instance.Name] = PngFormat.Instance.Name
+    };
 }

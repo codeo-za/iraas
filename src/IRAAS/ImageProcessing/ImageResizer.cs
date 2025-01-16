@@ -13,6 +13,7 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -213,7 +214,7 @@ public class ImageResizer : IImageResizer
             [typeof(WuQuantizer)] = CreateWuQuantizer,
             [typeof(WernerPaletteQuantizer)] = CreateWernerPaletteQuantizer,
             [typeof(OctreeQuantizer)] = CreateOctreeQuantizer,
-            [typeof(WebSafePaletteQuantizer)] = CreateWebSafePaletteQuantizer,
+            [typeof(WebSafePaletteQuantizer)] = CreateWebSafePaletteQuantizer
         };
 
     private static IQuantizer CreateWebSafePaletteQuantizer(ImageResizeOptions arg)
@@ -242,8 +243,8 @@ public class ImageResizer : IImageResizer
         Func<Type, bool> filter = null
     ) where T : class
     {
-        generator ??= (type, options) => Activator.CreateInstance(type) as T;
-        filter ??= type => true;
+        generator ??= (type, _) => Activator.CreateInstance(type) as T;
+        filter ??= _ => true;
 
 
         var interfaceType = typeof(T);
@@ -267,8 +268,27 @@ public class ImageResizer : IImageResizer
                 [PngFormat.Instance.Name] = ReEncodeAsPng,
                 [BmpFormat.Instance.Name] = ReEncodeAsJpeg,
                 [GifFormat.Instance.Name] = ReEncodeAsGif,
-                [BmpFormat.Instance.Name] = ReEncodeAsBmp
+                [BmpFormat.Instance.Name] = ReEncodeAsBmp,
+                [WebpFormat.Instance.Name] = ReEncodeAsWebp
             };
+
+    private static void ReEncodeAsWebp(
+        Image source,
+        Stream target,
+        ImageResizeOptions options
+    )
+    {
+        source.SaveAsWebp(
+            target,
+            new WebpEncoder()
+            {
+                Method = WebpEncodingMethod.Fastest,
+                Quality = options.Quality,
+                SkipMetadata = false,
+                NearLossless = false
+            }
+        );
+    }
 
     private static void ReEncodeAsBmp(
         Image source,
@@ -365,7 +385,7 @@ public class ImageResizer : IImageResizer
 
         return Enum.TryParse<T>(value, out var result)
             ? result
-            : null as T?;
+            : null;
     }
 }
 
