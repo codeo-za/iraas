@@ -247,8 +247,15 @@ public class ImageResizeOptions
 
     private string _format;
 
-    public void DetermineOutputFormatIfNotSpecified(IImageFormat sourceFormat)
+    public void DetermineOutputFormatIfNotSpecified(
+        IImageFormat sourceFormat
+    )
     {
+        if (Format is not null)
+        {
+            return;
+        }
+
         Format = sourceFormat.Equals(BmpFormat.Instance)
             ? JpegFormat.Instance.Name
             : sourceFormat.Name;

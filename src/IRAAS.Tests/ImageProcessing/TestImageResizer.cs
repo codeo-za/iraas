@@ -562,8 +562,10 @@ public class TestImageResizer: TestBase
             // Act
             var result = await sut.Resize(options, NoHeaders);
             // Assert
-            Expect(await Image.DetectFormatAsync(result.Stream)).To.Equal(GifFormat.Instance);
-            Expect(await Image.LoadAsync(result.Stream)).To.Have.Width(expected);
+            Expect(await Image.DetectFormatAsync(result.Stream))
+                .To.Equal(GifFormat.Instance);
+            Expect(await Image.LoadAsync(result.Stream))
+                .To.Have.Width(expected);
         }
     }
 
@@ -584,8 +586,10 @@ public class TestImageResizer: TestBase
         // Act
         var result = await sut.Resize(options, NoHeaders);
         // Assert
-        Expect(await Image.DetectFormatAsync(result.Stream)).To.Be(BmpFormat.Instance);
-        Expect(await Image.LoadAsync(result.Stream)).To.Have.Width(expected);
+        Expect(await Image.DetectFormatAsync(result.Stream))
+            .To.Be(BmpFormat.Instance);
+        Expect(await Image.LoadAsync(result.Stream))
+            .To.Have.Width(expected);
     }
 
     [TestFixture]
