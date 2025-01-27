@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using IRAAS.ImageProcessing;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using NExpect.Implementations;
@@ -14,7 +15,7 @@ namespace IRAAS.Tests.ImageProcessing;
 
 [TestFixture]
 [Parallelizable(ParallelScope.None)]
-public class TestAppSettingsProvider: TestBase
+public class TestAppSettingsProvider : TestBase
 {
     [SetUp]
     public void Setup()
@@ -196,7 +197,7 @@ public class TestAppSettingsProvider: TestBase
     }
 
     [TestFixture]
-    public class WhenMaxUrlRetriesLessThanZero: TestBase
+    public class WhenMaxUrlRetriesLessThanZero : TestBase
     {
         [Test]
         public void ShouldSetToZero()
@@ -229,9 +230,11 @@ public class TestAppSettingsProvider: TestBase
             }";
 
     private static string MakeSettings(
-        IAppSettings settings
+        IAppSettings settings,
+        IImageResizeParameters defaultParameters = null
     )
     {
+        defaultParameters ??= GetRandom<IImageResizeParameters>();
         return
             $$"""
               {
@@ -263,27 +266,32 @@ public class TestAppSettingsProvider: TestBase
                       "LogFolder": "{{settings.LogFolder}}",
                       "SuppressErrorDiagnostics": "{{settings.SuppressErrorDiagnostics}}"
                   },
-                  "DefaultImageParameters": {
-                       "ReplaceTransparencyWith": null,
-                       "Format": null,
-                       "Quality": "85",
-                       "Width": null,
-                       "Height": null,
-                       "ResizeMode": null,
-                       "JpegColorType": null,
-                       "JpegEncodingColor": null,
-                       "Gamma": null,
-                       "Quantizer": null,
-                       "TransparencyThreshold": null,
-                       "BitDepth": null,
-                       "PngColorType": null,
-                       "CompressionLevel": null,
-                       "PngFilterMethod": null,
-                       "Sampler": null,
-                       "GifColorTableMode": null,
-                       "MaxColors": null,
-                       "Dither": null,
-                       "DevicePixelRatio": 1
+                  "DefaultParameters": {
+                    "*": {
+                        "ReplaceTransparencyWith": null,
+                        "Format": null,
+                        "Quality": "85",
+                        "Width": null,
+                        "Height": null,
+                        "ResizeMode": null,
+                        "JpegColorType": null,
+                        "JpegEncodingColor": null,
+                        "Gamma": null,
+                        "Quantizer": null,
+                        "TransparencyThreshold": null,
+                        "BitDepth": null,
+                        "PngColorType": null,
+                        "CompressionLevel": null,
+                        "PngFilterMethod": null,
+                        "Sampler": null,
+                        "GifColorTableMode": null,
+                        "MaxColors": null,
+                        "Dither": null,
+                        "DevicePixelRatio": 1
+                    },
+                    "png": {
+                        "Sampler": "Bicubic"
+                    }
                   },
                   "AllowedHosts": "*"
               }
@@ -319,27 +327,32 @@ public class TestAppSettingsProvider: TestBase
                        "EnableConnectionKeepAlive": "{{settings.EnableConnectionKeepAlive}}",
                        "LogFolder": "{{settings.LogFolder}}"
                    },
-                   "DefaultImageParameters": {
-                       "ReplaceTransparencyWith": null,
-                       "Format": null,
-                       "Quality": "85",
-                       "Width": null,
-                       "Height": null,
-                       "ResizeMode": null,
-                       "JpegColorType": null,
-                       "JpegEncodingColor": null,
-                       "Gamma": null,
-                       "Quantizer": null,
-                       "TransparencyThreshold": null,
-                       "BitDepth": null,
-                       "PngColorType": null,
-                       "CompressionLevel": null,
-                       "PngFilterMethod": null,
-                       "Sampler": null,
-                       "GifColorTableMode": null,
-                       "MaxColors": null,
-                       "Dither": null,
-                       "DevicePixelRatio": 1
+                   "DefaultParameters": {
+                       "*": {
+                           "ReplaceTransparencyWith": null,
+                           "Format": null,
+                           "Quality": "85",
+                           "Width": null,
+                           "Height": null,
+                           "ResizeMode": null,
+                           "JpegColorType": null,
+                           "JpegEncodingColor": null,
+                           "Gamma": null,
+                           "Quantizer": null,
+                           "TransparencyThreshold": null,
+                           "BitDepth": null,
+                           "PngColorType": null,
+                           "CompressionLevel": null,
+                           "PngFilterMethod": null,
+                           "Sampler": null,
+                           "GifColorTableMode": null,
+                           "MaxColors": null,
+                           "Dither": null,
+                           "DevicePixelRatio": 1
+                       },
+                       "png": {
+                           "Sampler": "Bicubic"
+                       }
                    },
                    "AllowedHosts": "*"
                }
@@ -352,54 +365,59 @@ public class TestAppSettingsProvider: TestBase
     {
         return
             $$"""
-            {
-                "Logging": {
-                    "LogLevel": {
-                        "Default": "Warning",
-                        "IRAAS": "{{settings.IRAASLogLevel}}"
-                    }
-                },
-                "Kestrel": {
-                    "Endpoints": {
-                        "Http": {
-                            "Url": "http://0.0.0.0:8008"
-                        }
-                    }
-                },
-                "Settings": {
-                    "MaxInputImageSize": "{{settings.MaxInputImageSize}}",
-                    "MaxOutputImageSize": "{{settings.MaxOutputImageSize}}",
-                    "UseDeveloperExceptionPage": "{{settings.UseDeveloperExceptionPage}}",
-                    "UseHttps": "{{settings.UseHttps}}",
-                    "EnableTestPage": "{{settings.EnableTestPage}}",
-                    "DomainWhitelist": "{{settings.DomainWhitelist}}",
-                    "ShareConcurrentRequests": "{{settings.ShareConcurrentRequests}}",
-                    "EnableConnectionKeepAlive": "{{settings.EnableConnectionKeepAlive}}"
-                },
-                "DefaultImageParameters": {
-                    "ReplaceTransparencyWith": null,
-                    "Format": null,
-                    "Quality": "85",
-                    "Width": null,
-                    "Height": null,
-                    "ResizeMode": null,
-                    "JpegColorType": null,
-                    "JpegEncodingColor": null,
-                    "Gamma": null,
-                    "Quantizer": null,
-                    "TransparencyThreshold": null,
-                    "BitDepth": null,
-                    "PngColorType": null,
-                    "CompressionLevel": null,
-                    "PngFilterMethod": null,
-                    "Sampler": null,
-                    "GifColorTableMode": null,
-                    "MaxColors": null,
-                    "Dither": null,
-                    "DevicePixelRatio": 1
-                }
-            }
-            """;
+              {
+                  "Logging": {
+                      "LogLevel": {
+                          "Default": "Warning",
+                          "IRAAS": "{{settings.IRAASLogLevel}}"
+                      }
+                  },
+                  "Kestrel": {
+                      "Endpoints": {
+                          "Http": {
+                              "Url": "http://0.0.0.0:8008"
+                          }
+                      }
+                  },
+                  "Settings": {
+                      "MaxInputImageSize": "{{settings.MaxInputImageSize}}",
+                      "MaxOutputImageSize": "{{settings.MaxOutputImageSize}}",
+                      "UseDeveloperExceptionPage": "{{settings.UseDeveloperExceptionPage}}",
+                      "UseHttps": "{{settings.UseHttps}}",
+                      "EnableTestPage": "{{settings.EnableTestPage}}",
+                      "DomainWhitelist": "{{settings.DomainWhitelist}}",
+                      "ShareConcurrentRequests": "{{settings.ShareConcurrentRequests}}",
+                      "EnableConnectionKeepAlive": "{{settings.EnableConnectionKeepAlive}}"
+                  },
+                  "DefaultParameters": {
+                      "*": {
+                          "ReplaceTransparencyWith": null,
+                          "Format": null,
+                          "Quality": "85",
+                          "Width": null,
+                          "Height": null,
+                          "ResizeMode": null,
+                          "JpegColorType": null,
+                          "JpegEncodingColor": null,
+                          "Gamma": null,
+                          "Quantizer": null,
+                          "TransparencyThreshold": null,
+                          "BitDepth": null,
+                          "PngColorType": null,
+                          "CompressionLevel": null,
+                          "PngFilterMethod": null,
+                          "Sampler": null,
+                          "GifColorTableMode": null,
+                          "MaxColors": null,
+                          "Dither": null,
+                          "DevicePixelRatio": 1
+                      },
+                      "png": {
+                          "Sampler": "Bicubic"
+                      }
+                  }
+              }
+              """;
     }
 
     private static string ChDir(string target)
@@ -407,23 +425,6 @@ public class TestAppSettingsProvider: TestBase
         var current = Environment.CurrentDirectory;
         Directory.SetCurrentDirectory(target);
         return current;
-    }
-}
-
-public static class PathMatchers
-{
-    public static void Exist_(this ITo<string> to)
-    {
-        to.AddMatcher(
-            actual =>
-            {
-                var passed = Directory.Exists(actual) || File.Exists(actual);
-                return new MatcherResult(
-                    passed,
-                    () => $"Expected {actual} {passed.AsNot()}to exist"
-                );
-            }
-        );
     }
 }
 

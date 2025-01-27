@@ -20,7 +20,7 @@ public class Bootstrapper
             .RegisterSingleton<IWhitelist, Whitelist>()
             .RegisterSingleton<ILogMessageGenerator, LogMessageGenerator>();
         container.RegisterInstance<IAppSettings>(AppSettingsProvider.CreateAppSettings());
-        var defaults = AppSettingsProvider.CreateDefaultImageParameters();
+        var defaults = AppSettingsProvider.CreateDefaultParameters();
         container.RegisterInstance<IDefaultImageResizeParameters>(defaults);
         ImageResizeOptions.SetDefaults(defaults);
         

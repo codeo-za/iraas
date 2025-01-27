@@ -25,7 +25,7 @@ public static class AppSettingsProvider
         );
     }
 
-    public static IDefaultImageResizeParameters CreateDefaultImageParameters()
+    public static IDefaultImageResizeParameters CreateDefaultParameters()
     {
         return _cachedDefaultParameters ??= GenerateParametersFrom(
             _cachedConfig ??= CreateConfig()
@@ -121,13 +121,23 @@ public static class AppSettingsProvider
                 o => o.Key,
                 o => $"{o.Value}"
             );
-        var providedParameters = LoadSection(config, "DefaultParameters");
+        var providedParameters = LoadSection(config, "DefaultParameters:*");
         var merged = new MergeDictionary<string, string>(providedParameters, defaultParameters);
+        var providedOverrideSections = LoadSection(config, "DefaultParameters");
         try
         {
-            return merged.FuzzyDuckAs<IDefaultImageResizeParameters>(
-                throwOnError: true
-            );
+            var result = DefaultImageResizeParameters.From(merged);
+            foreach (var item in providedOverrideSections)
+            {
+                if (item.Key == "*")
+                {
+                    continue;
+                }
+                var sub = LoadSection(config, $"DefaultParameters:{item.Key}");
+                result.RegisterOverridesFor(item.Key, sub);
+            }
+            
+            return result;
         }
         catch (UnDuckableException ex)
         {
