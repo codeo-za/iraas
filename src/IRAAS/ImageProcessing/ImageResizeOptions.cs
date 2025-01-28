@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Text.Json.Serialization;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -25,25 +27,15 @@ public class ImageResizeOptions
     }
 
     public static void SetDefaults(
-        IImageResizeParameters parameters
+        IDefaultImageResizeParameters parameters
     )
     {
         _defaultParameters = parameters;
     }
 
-    public static IImageResizeParameters Defaults => _defaultParameters;
+    public static IDefaultImageResizeParameters Defaults => _defaultParameters;
 
-    public ImageResizeOptions()
-    {
-        if (_defaultParameters is null)
-        {
-            return;
-        }
-
-        _defaultParameters.CopyPropertiesTo(this);
-    }
-
-    private static IImageResizeParameters _defaultParameters;
+    private static IDefaultImageResizeParameters _defaultParameters;
 
     public const int DEFAULT_QUALITY = 85;
 
@@ -280,4 +272,51 @@ public class ImageResizeOptions
         // animated
         [TiffFormat.Instance.Name] = PngFormat.Instance.Name
     };
+
+    public void ApplyDefaultsFor(
+        string sourceFormat
+    )
+    {
+        if (_defaultParameters is null)
+        {
+            DefaultImageResizeParameters.Sanitise(this);
+            return;
+        }
+
+        var source = _defaultParameters.For(sourceFormat);
+        var target = this as IImageResizeParameters;
+        foreach (var kvp in ImageResizeParametersPropertyDefaults)
+        {
+            var (prop, defaultValue) = (kvp.Key, kvp.Value);
+            var current = prop.GetValue(target);
+            if (AreEqual(current, defaultValue))
+            {
+                var sourceValue = prop.GetValue(source);
+                prop.SetValue(target, sourceValue);
+            }
+        }
+    }
+
+    private static bool AreEqual(
+        object left,
+        object right
+    )
+    {
+        if (left is null && right is null)
+        {
+            return true;
+        }
+
+        if (left is null || right is null)
+        {
+            return false;
+        }
+
+        return left.Equals(right);
+    }
+
+    private static readonly Dictionary<PropertyInfo, object> ImageResizeParametersPropertyDefaults =
+        typeof(IImageResizeParameters)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .ToDictionary(o => o, o => o.PropertyType.DefaultValue());
 }

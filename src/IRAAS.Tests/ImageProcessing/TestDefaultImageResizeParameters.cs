@@ -45,7 +45,7 @@ public class TestDefaultImageResizeParameters : TestBase
 
             // Act
             var sut = DefaultImageResizeParameters.From(defaults);
-            sut.RegisterOverridesFor("gif", gifDefaults);
+            sut.RegisterPerFormatDefaultsFor("gif", gifDefaults);
             var result1 = sut.For("jpg");
             var result2 = sut.For("gif");
             // Assert

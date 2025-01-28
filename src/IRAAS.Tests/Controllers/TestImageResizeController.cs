@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -202,7 +203,7 @@ public class TestImageResizeController : TestBase
         public class FallingBackOnConfiguredDefaults
         {
             [Test]
-            public async Task ShouldHaveDefaultsFillesAutomatically()
+            public async Task ShouldHaveDefaultsFilledAutomatically()
             {
                 // Arrange
                 var imageName = $"{GetRandomString()}.png";
@@ -260,9 +261,7 @@ public class TestImageResizeController : TestBase
                 await Expect(resizer)
                     .To.Have.Received(1)
                     .Resize(
-                        Arg.Is<ImageResizeOptions>(
-                            o => o.DeepEquals(expectedOptions)
-                        ),
+                        options,
                         Arg.Is<IDictionary<string, string>>(
                             o => o.IsEquivalentTo(httpContext.Request.Headers.ToDictionary())
                         )

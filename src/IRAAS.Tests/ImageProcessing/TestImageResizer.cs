@@ -24,7 +24,7 @@ using SixLabors.ImageSharp.Processing;
 namespace IRAAS.Tests.ImageProcessing;
 
 [TestFixture]
-public class TestImageResizer: TestBase
+public class TestImageResizer : TestBase
 {
     [Test]
     public void ShouldImplement_IImageProcessor()
@@ -135,8 +135,6 @@ public class TestImageResizer: TestBase
         ).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         Expect(scrubbedOfTimings)
             .To.Be.Equivalent.To(responseHeaders);
-        // Expect(scrubbedOfTimings.IsEquivalentTo(responseHeaders))
-        //     .To.Be.True();
     }
 
     [Test]
@@ -157,7 +155,7 @@ public class TestImageResizer: TestBase
     }
 
     [TestFixture]
-    public class BitmapInputJpegOutput: TestBase
+    public class BitmapInputJpegOutput : TestBase
     {
         // note that bmp source for testing is only 800x600 because
         // bitmaps are large binary blobs I'd rather keep out of the repo
@@ -475,23 +473,22 @@ public class TestImageResizer: TestBase
             //    differently
             // -> so rather select a random from a well-behaved table
             return GetRandomFrom(
-                new[]
-                {
+                [
                     1.0M, // regular clients
                     1.325M, // Nexus 7
                     1.5M, // Nexus S
-                    2M, // HTC One
+                    2M // HTC One
                     // there are larger ones, but they would break tests here
                     //  because ResizeMode.Max will not blow images up
                     //  - client should be scaling this anyways, or specifically
                     //    asking for ResizeMode.Stretch
-                }
+                ]
             );
         }
     }
 
     [TestFixture]
-    public class WhenFormatNotSpecified: TestBase
+    public class WhenFormatNotSpecified : TestBase
     {
         [Test]
         public async Task ShouldResizePngToPng()
@@ -853,7 +850,7 @@ public class TestImageResizer: TestBase
         var result = Substitute.For<IUrlFetcher>();
         result.Fetch(url ?? Arg.Any<string>(), Arg.Any<IDictionary<string, string>>())
             .ReturnsForAnyArgs(
-                ci => new StreamAndHeaders(
+                _ => new StreamAndHeaders(
                     dataProvider(),
                     responseHeaders ?? new Dictionary<string, string>()
                 )

@@ -1,6 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using IRAAS.ImageProcessing;
+using NSubstitute;
 using NUnit.Framework;
+using PeanutButter.Utils;
+using PeanutButter.Utils.Dictionaries;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -9,7 +15,7 @@ using SixLabors.ImageSharp.Formats.Png;
 namespace IRAAS.Tests.ImageProcessing;
 
 [TestFixture]
-public class TestImageResizeOptions: TestBase
+public class TestImageResizeOptions : TestBase
 {
     [Test]
     public void ShouldBeAbleToConstructWithNoParameters()
@@ -24,7 +30,7 @@ public class TestImageResizeOptions: TestBase
     }
 
     [TestFixture]
-    public class Format: TestBase
+    public class Format : TestBase
     {
         [TestCase("jpg")]
         [TestCase("jpeg")]
@@ -83,7 +89,7 @@ public class TestImageResizeOptions: TestBase
     }
 
     [TestFixture]
-    public class Quality: TestBase
+    public class Quality : TestBase
     {
         [Test]
         public void ShouldDefaultTo85()
@@ -129,7 +135,7 @@ public class TestImageResizeOptions: TestBase
     }
 
     [TestFixture]
-    public class Url: TestBase
+    public class Url : TestBase
     {
         [Test]
         public void ShouldBeAbleToSetAndGetValidUriWithPath()
@@ -180,7 +186,7 @@ public class TestImageResizeOptions: TestBase
     }
 
     [TestFixture]
-    public class Subsampling: TestBase
+    public class Subsampling : TestBase
     {
         [Test]
         public void ShouldDefaultNull()
@@ -211,7 +217,7 @@ public class TestImageResizeOptions: TestBase
     }
 
     [TestFixture]
-    public class Dimensions: TestBase
+    public class Dimensions : TestBase
     {
         [Test]
         public void ShouldBeAbleToSetWidthGreaterThanZero()
@@ -272,7 +278,7 @@ public class TestImageResizeOptions: TestBase
 
     [TestFixture]
     // ReSharper disable once InconsistentNaming
-    public class DevicePixelRatio: TestBase
+    public class DevicePixelRatio : TestBase
     {
         [Test]
         public void ShouldDefaultTo1()
@@ -301,21 +307,70 @@ public class TestImageResizeOptions: TestBase
     }
 
     [TestFixture]
-    public class WhenDefaultsSet: TestBase
+    public class ApplyDefaultsFor
     {
-        [Test]
-        public void ShouldPopulateFromDefaultsWhenConstructing()
+        [TestFixture]
+        public class WhenSamplerNotSet
         {
-            // Arrange
-            var defaults = GetRandom<DefaultImageResizeParameters>();
-            ImageResizeOptions.SetDefaults(defaults);
+            [TestFixture]
+            public class AndHaveNoPerFormatDefaults
+            {
+                [Test]
+                public void ShouldSetDefaultSampler()
+                {
+                    // Arrange
+                    var defaults = GetRandom<IDefaultImageResizeParameters>()
+                        .With(o => o.Sampler = GetRandomString());
+                    using var _ = AutoResetter.Create(
+                        () => ImageResizeOptions.SetDefaults(defaults),
+                        ImageResizeOptions.ClearDefaults
+                    );
+                    var options = GetRandom<ImageResizeOptions>()
+                        .With(o => o.Sampler = null);
+                    // Act
+                    options.ApplyDefaultsFor(GetRandomFrom(["jpg", "png", "bmp", "gif"]));
+                    // Assert
+                    Expect(options.Sampler)
+                        .To.Equal(defaults.Sampler);
+                }
+            }
 
-            // Act
-            var result = new ImageResizeOptions();
-
-            // Assert
-            Expect(result)
-                .To.Intersection.Equal(defaults);
+            [TestFixture]
+            public class AndHavePerFormatDefaults
+            {
+                [Test]
+                public void ShouldSetDefaultForFormat()
+                {
+                    // Arrange
+                    var defaults = GetRandom<IDefaultImageResizeParameters>()
+                        .With(o => o.Sampler = "default sampler");
+                    var formatDefaults = GetRandom<IDefaultImageResizeParameters>()
+                        .With(o => o.Sampler = "format sampler");
+                    var inputFormat = GetRandomFrom(["jpg", "png", "bmp", "gif"]);
+                    var formatDefaultProps = new DictionaryWrappingObject(formatDefaults)
+                        .ToArray()
+                        .ToDictionary(kvp => kvp.Key, kvp => $"{kvp.Value}");
+                    defaults.RegisterPerFormatDefaultsFor(
+                        inputFormat,
+                        formatDefaultProps
+                    );
+                    using var _ = AutoResetter.Create(
+                        () => ImageResizeOptions.SetDefaults(defaults),
+                        ImageResizeOptions.ClearDefaults
+                    );
+                    var options = GetRandom<ImageResizeOptions>()
+                        .With(o => o.Sampler = null);
+                    Expect(options.Sampler)
+                        .To.Be.Null();
+                    // Act
+                    options.ApplyDefaultsFor(inputFormat);
+                    // Assert
+                    Expect(options.Sampler)
+                        .Not.To.Equal(defaults.Sampler);
+                    Expect(options.Sampler)
+                        .To.Equal(formatDefaults.Sampler);
+                }
+            }
         }
     }
 

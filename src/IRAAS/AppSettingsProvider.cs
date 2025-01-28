@@ -134,7 +134,7 @@ public static class AppSettingsProvider
                     continue;
                 }
                 var sub = LoadSection(config, $"DefaultParameters:{item.Key}");
-                result.RegisterOverridesFor(item.Key, sub);
+                result.RegisterPerFormatDefaultsFor(item.Key, sub);
             }
             
             return result;

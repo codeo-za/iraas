@@ -82,6 +82,8 @@ public class ImageResizer : IImageResizer
                 $"Data source at {options.Url} is not a supported image format"
             );
         }
+        
+        options.ApplyDefaultsFor(sourceFormat.Name);
 
         timer.Time(
             TimingHeaders.OutputAutoFormatDetection,
@@ -157,11 +159,6 @@ public class ImageResizer : IImageResizer
             : CreateDefaultResampler();
     }
 
-    private static IResampler CreateDefaultResampler()
-    {
-        return new BicubicResampler();
-    }
-
     private static readonly Dictionary<string, Func<ImageResizeOptions, IResampler>> Resamplers
         = GenerateResamplerLookup();
 
@@ -185,11 +182,6 @@ public class ImageResizer : IImageResizer
             ? generator(options)
             : CreateDefaultQuantizer();
         return result;
-    }
-
-    private static IQuantizer CreateDefaultQuantizer()
-    {
-        return new WuQuantizer();
     }
 
     private static readonly Dictionary<string, Func<ImageResizeOptions, IQuantizer>> Quantizers
@@ -386,6 +378,21 @@ public class ImageResizer : IImageResizer
         return Enum.TryParse<T>(value, out var result)
             ? result
             : null;
+    }
+
+    // these are here as failsafes - the image resize
+    // parameters should have already set defaults
+    // but if the defaults are invalid, we can
+    // fall back on valid values rather than
+    // simply refusing to do anything
+    private static IResampler CreateDefaultResampler()
+    {
+        return new BicubicResampler();
+    }
+
+    private static IQuantizer CreateDefaultQuantizer()
+    {
+        return new WuQuantizer();
     }
 }
 
