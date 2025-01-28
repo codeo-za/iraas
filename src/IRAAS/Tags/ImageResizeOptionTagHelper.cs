@@ -70,7 +70,8 @@ public class ImageResizeOptionTagHelper : TagHelper
         IDefaultImageResizeParameters defaults
     )
     {
-        if (prop.PropertyType != typeof(bool))
+        if (prop.PropertyType != typeof(bool) && 
+            prop.PropertyType != typeof(bool?))
         {
             return null;
         }
@@ -81,7 +82,8 @@ public class ImageResizeOptionTagHelper : TagHelper
             Name(prop),
             new XAttribute("type", "checkbox")
         );
-        if (defaults.Echo ?? false)
+        var defaultValue = defaults.Get<bool?>(prop.Name);
+        if (defaultValue ?? false)
         {
             result.SetAttributeValue("checked", "");
         }
