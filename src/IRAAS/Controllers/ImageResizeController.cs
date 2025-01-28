@@ -32,16 +32,16 @@ public class ImageResizeController
     [Route("")]
     [HttpGet]
     public async Task<FileStreamResult> Resize(
-        [FromQuery] ImageResizeOptions options = null
+        [FromQuery] ImageResizeParameters resizeParameters = null
     )
     {
-        if (!_whitelist.IsAllowed(options?.Url))
+        if (!_whitelist.IsAllowed(resizeParameters?.Url))
         {
-            throw new ImageSourceNotAllowedException(options?.Url);
+            throw new ImageSourceNotAllowedException(resizeParameters?.Url);
         }
 
         var result = await _imageResizer.Resize(
-            options,
+            resizeParameters,
             _httpContextAccessor.HttpContext!.Request.Headers.ToDictionary()
         );
         var contentType = _mimeTypeProvider.DetermineMimeTypeFor(result.Stream);

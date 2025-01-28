@@ -18,7 +18,7 @@ using SixLabors.ImageSharp.Formats.Webp;
 
 namespace IRAAS.ImageProcessing;
 
-public class ImageResizeOptions
+public class ImageResizeParameters
     : IImageResizeParameters
 {
     public static void ClearDefaults()
@@ -208,6 +208,11 @@ public class ImageResizeOptions
         ? (int?) Math.Ceiling(Height.Value * DevicePixelRatio)
         : null;
 
+    /// <summary>
+    /// when set to true, the final resize parameters
+    /// are echoed back as headers
+    /// </summary>
+    public bool? Echo { get; set; }
 
     private decimal? _devicePixelRatio;
 
@@ -285,7 +290,7 @@ public class ImageResizeOptions
 
         var source = _defaultParameters.For(sourceFormat);
         var target = this as IImageResizeParameters;
-        foreach (var kvp in ImageResizeParametersPropertyDefaults)
+        foreach (var kvp in ImageResizeParametersProperties)
         {
             var (prop, defaultValue) = (kvp.Key, kvp.Value);
             var current = prop.GetValue(target);
@@ -315,8 +320,30 @@ public class ImageResizeOptions
         return left.Equals(right);
     }
 
-    private static readonly Dictionary<PropertyInfo, object> ImageResizeParametersPropertyDefaults =
+    private static readonly Dictionary<PropertyInfo, object> ImageResizeParametersProperties =
         typeof(IImageResizeParameters)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .ToDictionary(o => o, o => o.PropertyType.DefaultValue());
+    
+    private static readonly Dictionary<string, string> Empty = new();
+    
+    private static readonly Dictionary<PropertyInfo, object> DumpProperties =
+        ImageResizeParametersProperties
+            .Where(kvp => kvp.Key.Name != nameof(Echo))
+            .ToDictionary(prop => prop.Key, prop => prop.Value);
+    public Dictionary<string, string> DumpIf(bool enabledGlobally)
+    {
+        var enabled = enabledGlobally || (Echo ?? false);
+        if (!enabled)
+        {
+            return Empty;
+        }
+
+        var result = new Dictionary<string, string>();
+        foreach (var kvp in DumpProperties)
+        {
+            result[$"IRAAS-Resize-Parameter-{kvp.Key.Name}"] = $"{kvp.Key.GetValue(this)}";
+        }
+        return result;
+    }
 }

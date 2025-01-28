@@ -49,7 +49,7 @@ public class TestImageResizeController : TestBase
             var whiteList = Substitute.For<IWhitelist>();
             whiteList.IsAllowed(Arg.Any<string>()).Returns(false);
             var sut = Create(whiteList: whiteList);
-            var options = new ImageResizeOptions()
+            var options = new ImageResizeParameters()
             {
                 Url = GetRandomHttpUrl()
             };
@@ -66,10 +66,10 @@ public class TestImageResizeController : TestBase
         {
             // Arrange
             var resizer = Substitute.For<IImageResizer>();
-            resizer.Resize(Arg.Any<ImageResizeOptions>(), Arg.Any<IDictionary<string, string>>())
+            resizer.Resize(Arg.Any<ImageResizeParameters>(), Arg.Any<IDictionary<string, string>>())
                 .Returns(new StreamAndHeaders(new MemoryStream(), new Dictionary<string, string>()));
             var sut = Create(resizer);
-            var options = GetRandom<ImageResizeOptions>();
+            var options = GetRandom<ImageResizeParameters>();
             // Act
             await sut.Resize(options);
             // Assert
@@ -86,7 +86,7 @@ public class TestImageResizeController : TestBase
             // Arrange
             var resizer = Substitute.For<IImageResizer>();
             resizer.Resize(
-                Arg.Any<ImageResizeOptions>(),
+                Arg.Any<ImageResizeParameters>(),
                 Arg.Any<IDictionary<string, string>>()
             ).Returns(new StreamAndHeaders(new MemoryStream(), new Dictionary<string, string>()));
             var headers = new Dictionary<string, string>()
@@ -96,7 +96,7 @@ public class TestImageResizeController : TestBase
             var httpContext = new FakeHttpContext(headers);
             var accessor = Substitute.For<IHttpContextAccessor>();
             accessor.HttpContext.Returns(httpContext);
-            var options = GetRandom<ImageResizeOptions>();
+            var options = GetRandom<ImageResizeParameters>();
             var sut = Create(resizer, httpContextAccessor: accessor);
             // Act
             await sut.Resize(options);
@@ -118,7 +118,7 @@ public class TestImageResizeController : TestBase
             var resizer = Substitute.For<IImageResizer>();
             var expected = GetRandomBytes(1024);
             var processStream = new MemoryStream(expected);
-            var options = GetRandom<ImageResizeOptions>();
+            var options = GetRandom<ImageResizeParameters>();
             resizer.Resize(
                 options,
                 Arg.Any<IDictionary<string, string>>()
@@ -148,7 +148,7 @@ public class TestImageResizeController : TestBase
                 ]
             );
             var resizer = Substitute.For<IImageResizer>();
-            var options = GetRandom<ImageResizeOptions>();
+            var options = GetRandom<ImageResizeParameters>();
             var imageStream = new MemoryStream();
             resizer.Resize(options, Arg.Any<IDictionary<string, string>>()).Returns(
                 new StreamAndHeaders(imageStream, new Dictionary<string, string>())
@@ -175,7 +175,7 @@ public class TestImageResizeController : TestBase
                 [key] = value
             };
             var resizer = Substitute.For<IImageResizer>();
-            var options = GetRandom<ImageResizeOptions>();
+            var options = GetRandom<ImageResizeParameters>();
             var imageStream = new MemoryStream();
             resizer.Resize(
                     options,
@@ -220,15 +220,15 @@ public class TestImageResizeController : TestBase
                 var server = lease.Instance;
                 server.ServeFile($"/{imageName}", imageData, "image/png");
                 var defaults = GetRandom<DefaultImageResizeParameters>();
-                ImageResizeOptions.SetDefaults(defaults);
-                var options = new ImageResizeOptions()
+                ImageResizeParameters.SetDefaults(defaults);
+                var options = new ImageResizeParameters()
                 {
                     Url = server.GetFullUrlFor($"/{imageName}")
                 };
                 var resizer = Substitute.For<IImageResizer>()
                     .With(
                         o => o.Resize(
-                            Arg.Any<ImageResizeOptions>(),
+                            Arg.Any<ImageResizeParameters>(),
                             Arg.Any<IDictionary<string, string>>()
                         ).Returns(_ => expected)
                     );
@@ -240,7 +240,7 @@ public class TestImageResizeController : TestBase
                 var httpContext = HttpContextBuilder.BuildRandom();
                 var accessor = Substitute.For<IHttpContextAccessor>()
                     .For(httpContext);
-                var expectedOptions = new ImageResizeOptions();
+                var expectedOptions = new ImageResizeParameters();
                 options.CopyPropertiesTo(expectedOptions);
                 defaults.CopyPropertiesTo(expectedOptions);
                 var expectedHeaders = httpContext.Response.Headers
@@ -281,7 +281,7 @@ public class TestImageResizeController : TestBase
             IHttpContextAccessor httpContextAccessor = null
         )
         {
-            ImageResizeOptions.SetDefaults(null);
+            ImageResizeParameters.SetDefaults(null);
             return new ImageResizeController(
                 resizer ?? Substitute.For<IImageResizer>(),
                 mimeTypeProvider ?? CreateFakeMimeTypeProvider(),

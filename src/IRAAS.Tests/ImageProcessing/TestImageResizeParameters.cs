@@ -15,7 +15,7 @@ using SixLabors.ImageSharp.Formats.Png;
 namespace IRAAS.Tests.ImageProcessing;
 
 [TestFixture]
-public class TestImageResizeOptions : TestBase
+public class TestImageResizeParameters : TestBase
 {
     [Test]
     public void ShouldBeAbleToConstructWithNoParameters()
@@ -24,7 +24,7 @@ public class TestImageResizeOptions : TestBase
         //    attempt to populate
         // Arrange
         // Act
-        Expect(() => Activator.CreateInstance(typeof(ImageResizeOptions)))
+        Expect(() => Activator.CreateInstance(typeof(ImageResizeParameters)))
             .Not.To.Throw();
         // Assert
     }
@@ -102,7 +102,7 @@ public class TestImageResizeOptions : TestBase
             Expect(result)
                 .To.Equal(85);
             Expect(result)
-                .To.Equal(ImageResizeOptions.DEFAULT_QUALITY);
+                .To.Equal(ImageResizeParameters.DEFAULT_QUALITY);
         }
 
         [Test]
@@ -322,10 +322,10 @@ public class TestImageResizeOptions : TestBase
                     var defaults = GetRandom<IDefaultImageResizeParameters>()
                         .With(o => o.Sampler = GetRandomString());
                     using var _ = AutoResetter.Create(
-                        () => ImageResizeOptions.SetDefaults(defaults),
-                        ImageResizeOptions.ClearDefaults
+                        () => ImageResizeParameters.SetDefaults(defaults),
+                        ImageResizeParameters.ClearDefaults
                     );
-                    var options = GetRandom<ImageResizeOptions>()
+                    var options = GetRandom<ImageResizeParameters>()
                         .With(o => o.Sampler = null);
                     // Act
                     options.ApplyDefaultsFor(GetRandomFrom(["jpg", "png", "bmp", "gif"]));
@@ -355,10 +355,10 @@ public class TestImageResizeOptions : TestBase
                         formatDefaultProps
                     );
                     using var _ = AutoResetter.Create(
-                        () => ImageResizeOptions.SetDefaults(defaults),
-                        ImageResizeOptions.ClearDefaults
+                        () => ImageResizeParameters.SetDefaults(defaults),
+                        ImageResizeParameters.ClearDefaults
                     );
-                    var options = GetRandom<ImageResizeOptions>()
+                    var options = GetRandom<ImageResizeParameters>()
                         .With(o => o.Sampler = null);
                     Expect(options.Sampler)
                         .To.Be.Null();
@@ -374,8 +374,8 @@ public class TestImageResizeOptions : TestBase
         }
     }
 
-    private static ImageResizeOptions Create()
+    private static ImageResizeParameters Create()
     {
-        return new ImageResizeOptions();
+        return new ImageResizeParameters();
     }
 }

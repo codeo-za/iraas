@@ -5,7 +5,7 @@ namespace IRAAS.Tests.ImageProcessing;
 
 // ReSharper disable once UnusedType.Global
 public class ImageResizeOptionsBuilder
-    : GenericBuilder<ImageResizeOptionsBuilder, ImageResizeOptions>
+    : GenericBuilder<ImageResizeOptionsBuilder, ImageResizeParameters>
 {
     public override ImageResizeOptionsBuilder WithRandomProps()
     {

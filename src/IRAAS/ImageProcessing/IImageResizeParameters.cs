@@ -28,4 +28,5 @@ public interface IImageResizeParameters
     int? MaxColors { get; set; }
     bool? Dither { get; set; }
     decimal DevicePixelRatio { get; set; }
+    bool? Echo { get; set; }
 }

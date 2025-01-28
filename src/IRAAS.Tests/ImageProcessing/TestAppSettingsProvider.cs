@@ -3,9 +3,6 @@ using System.IO;
 using IRAAS.ImageProcessing;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
-using NExpect.Implementations;
-using NExpect.Interfaces;
-using NExpect.MatcherLogic;
 using NSubstitute;
 using PeanutButter.Utils;
 
@@ -264,7 +261,8 @@ public class TestAppSettingsProvider : TestBase
                       "ShareConcurrentRequests": "{{settings.ShareConcurrentRequests.ToString().ToLower()}}",
                       "EnableConnectionKeepAlive": "{{settings.EnableConnectionKeepAlive}}",
                       "LogFolder": "{{settings.LogFolder}}",
-                      "SuppressErrorDiagnostics": "{{settings.SuppressErrorDiagnostics}}"
+                      "SuppressErrorDiagnostics": "{{settings.SuppressErrorDiagnostics}}",
+                      "Verbose": "{{settings.Verbose}}"
                   },
                   "DefaultParameters": {
                     "*": {
@@ -445,4 +443,5 @@ public class AppSettings : IAppSettings
     public bool SuppressErrorDiagnostics { get; set; }
     public LogLevel IRAASLogLevel { get; set; }
     public int MaxUrlFetchRetries { get; set; }
+    public bool Verbose { get; set; }
 }

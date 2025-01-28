@@ -87,6 +87,15 @@
         var form = $$("form");
         var inputs = $$("input,select", form);
         var params = inputs.reduce(function (acc, cur) {
+            if (cur.type === "checkbox") {
+                if (cur.checked) {
+                    acc.push({
+                        name: cur.name,
+                        value: true
+                    });
+                }
+                return acc;
+            }
             if (cur.value) {
                 acc.push({
                     name: cur.name,
@@ -95,6 +104,7 @@
             }
             return acc;
         }, []);
+
         var url = [
             window.location.protocol,
             "//",
@@ -203,7 +213,7 @@
 
 <form onsubmit="return false;">
     @{
-        var optionProps = typeof(ImageResizeOptions).GetProperties()
+        var optionProps = typeof(ImageResizeParameters).GetProperties()
             .Where(pi => pi.CanWrite);
         @foreach (var prop in optionProps)
         {

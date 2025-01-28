@@ -8,12 +8,12 @@ public class TestBase
     [SetUp]
     public void SetupBase()
     {
-        ImageResizeOptions.ClearDefaults();
+        ImageResizeParameters.ClearDefaults();
     }
 
     [TearDown]
     public void TearDownBase()
     {
-        ImageResizeOptions.ClearDefaults();
+        ImageResizeParameters.ClearDefaults();
     }
 }

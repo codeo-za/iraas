@@ -58,11 +58,35 @@ public class ImageResizeOptionTagHelper : TagHelper
 
     private static readonly Func<PropertyInfo, IDefaultImageResizeParameters, XElement>[] InputGenerators =
     {
+        CreateCheckbox,
         CreateDropDownByAttribute,
         CreateDropDownForEnum,
         CreateNumericInput,
         CreateTextInput
     };
+
+    private static XElement CreateCheckbox(
+        PropertyInfo prop,
+        IDefaultImageResizeParameters defaults
+    )
+    {
+        if (prop.PropertyType != typeof(bool))
+        {
+            return null;
+        }
+
+        var result = new XElement(
+            "input",
+            Id(prop),
+            Name(prop),
+            new XAttribute("type", "checkbox")
+        );
+        if (defaults.Echo ?? false)
+        {
+            result.SetAttributeValue("checked", "");
+        }
+        return result;
+    }
 
     private static XElement CreateNumericInput(
         PropertyInfo prop,
@@ -76,7 +100,9 @@ public class ImageResizeOptionTagHelper : TagHelper
         var defaultAttrib = prop.GetCustomAttributes<DefaultAttribute>().FirstOrDefault();
         var fallback = FindDefaultValueFor(prop, defaults);
         var defaultValue = defaultAttrib?.Value
-            ?? (double.TryParse(fallback, out var v) ? v : null);
+            ?? (double.TryParse(fallback, out var v)
+                ? v
+                : null);
 
         if (underlyingType == typeof(byte))
         {

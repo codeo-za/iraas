@@ -25,7 +25,7 @@ namespace IRAAS.ImageProcessing;
 public interface IImageResizer
 {
     Task<StreamAndHeaders> Resize(
-        ImageResizeOptions options,
+        ImageResizeParameters resizeParameters,
         IDictionary<string, string> requestHeaders
     );
 }
@@ -45,20 +45,20 @@ public class ImageResizer : IImageResizer
     }
 
     public async Task<StreamAndHeaders> Resize(
-        ImageResizeOptions options,
+        ImageResizeParameters resizeParameters,
         IDictionary<string, string> requestHeaders
     )
     {
-        if (string.IsNullOrWhiteSpace(options.Url))
+        if (string.IsNullOrWhiteSpace(resizeParameters.Url))
         {
-            throw new InvalidProcessingOptionsException($"Url is required (received: {options.Url})");
+            throw new InvalidProcessingOptionsException($"Url is required (received: {resizeParameters.Url})");
         }
 
-        var timer = new Timer();
+        var timer = new Timer(_appSettings);
         using var src = await timer.Time(
             TimingHeaders.Fetch,
             () => _fetcher.Fetch(
-                options.Url,
+                resizeParameters.Url,
                 requestHeaders
             )
         );
@@ -79,20 +79,20 @@ public class ImageResizer : IImageResizer
         if (sourceFormat is null)
         {
             throw new NotSupportedException(
-                $"Data source at {options.Url} is not a supported image format"
+                $"Data source at {resizeParameters.Url} is not a supported image format"
             );
         }
         
-        options.ApplyDefaultsFor(sourceFormat.Name);
+        resizeParameters.ApplyDefaultsFor(sourceFormat.Name);
 
         timer.Time(
             TimingHeaders.OutputAutoFormatDetection,
-            () => options.DetermineOutputFormatIfNotSpecified(sourceFormat)
+            () => resizeParameters.DetermineOutputFormatIfNotSpecified(sourceFormat)
         );
 
-        if (!_reEncoders.TryGetValue(options.Format, out var reEncoder))
+        if (!_reEncoders.TryGetValue(resizeParameters.Format, out var reEncoder))
         {
-            throw new NotSupportedException($"Output format {options.Format} is not supported");
+            throw new NotSupportedException($"Output format {resizeParameters.Format} is not supported");
         }
 
         var source = timer.Time(
@@ -102,14 +102,14 @@ public class ImageResizer : IImageResizer
 
 
         if (sourceFormat is PngFormat &&
-            options.OutputFormatSpecified &&
-            options.ReplaceTransparencyWith is not null &&
-            !options.PngOutputRequested
+            resizeParameters.OutputFormatSpecified &&
+            resizeParameters.ReplaceTransparencyWith is not null &&
+            !resizeParameters.PngOutputRequested
            )
         {
             // when converting from png, we have to choose what to do with transparency
             // -> ImageSharp's default behavior is to paint black pixels.
-            var replacer = options.ReplaceTransparencyWith.AsRgba32();
+            var replacer = resizeParameters.ReplaceTransparencyWith.AsRgba32();
             source.Mutate(o => o.BackgroundColor(replacer));
         }
 
@@ -121,13 +121,13 @@ public class ImageResizer : IImageResizer
                 ctx => ctx.Resize(
                     new ResizeOptions()
                     {
-                        Mode = options.ResizeMode ?? ResizeMode.Max,
+                        Mode = resizeParameters.ResizeMode ?? ResizeMode.Max,
                         Size = new Size(
-                            options.EffectiveWidth ?? source.Width,
-                            options.EffectiveHeight ?? source.Height
+                            resizeParameters.EffectiveWidth ?? source.Width,
+                            resizeParameters.EffectiveHeight ?? source.Height
                         ),
                         Compand = true, // allow pixel color compression / expansion
-                        Sampler = DetermineSamplerFor(options)
+                        Sampler = DetermineSamplerFor(resizeParameters)
                     }
                 )
             )
@@ -135,61 +135,62 @@ public class ImageResizer : IImageResizer
 
         timer.Time(
             TimingHeaders.EncodeOutput,
-            () => reEncoder(clone, targetStream, options)
+            () => reEncoder(clone, targetStream, resizeParameters)
         );
         targetStream.Rewind();
         return new StreamAndHeaders(
             targetStream,
             new MergeDictionary<string, string>(
                 src.Headers,
-                timer.Timings
+                timer.Timings,
+                resizeParameters.DumpIf(_appSettings.Verbose)
             )
         );
     }
 
-    private IResampler DetermineSamplerFor(ImageResizeOptions options)
+    private IResampler DetermineSamplerFor(ImageResizeParameters resizeParameters)
     {
-        if (options.Sampler is null)
+        if (resizeParameters.Sampler is null)
         {
             return CreateDefaultResampler();
         }
 
-        return Resamplers.TryGetValue(options.Sampler, out var generator)
-            ? generator(options)
+        return Resamplers.TryGetValue(resizeParameters.Sampler, out var generator)
+            ? generator(resizeParameters)
             : CreateDefaultResampler();
     }
 
-    private static readonly Dictionary<string, Func<ImageResizeOptions, IResampler>> Resamplers
+    private static readonly Dictionary<string, Func<ImageResizeParameters, IResampler>> Resamplers
         = GenerateResamplerLookup();
 
     public static string[] SamplerNames { get; } = Resamplers.Keys.ToArray();
 
-    private static Dictionary<string, Func<ImageResizeOptions, IResampler>> GenerateResamplerLookup()
+    private static Dictionary<string, Func<ImageResizeParameters, IResampler>> GenerateResamplerLookup()
     {
         return GenerateLookupFor<IResampler>(
             type => type.Name.RegexReplace("Resampler$", "")
         );
     }
 
-    private static IQuantizer DetermineQuantizerFor(ImageResizeOptions options)
+    private static IQuantizer DetermineQuantizerFor(ImageResizeParameters resizeParameters)
     {
-        if (options.Quantizer is null)
+        if (resizeParameters.Quantizer is null)
         {
             return CreateDefaultQuantizer();
         }
 
-        var result = Quantizers.TryGetValue(options.Quantizer, out var generator)
-            ? generator(options)
+        var result = Quantizers.TryGetValue(resizeParameters.Quantizer, out var generator)
+            ? generator(resizeParameters)
             : CreateDefaultQuantizer();
         return result;
     }
 
-    private static readonly Dictionary<string, Func<ImageResizeOptions, IQuantizer>> Quantizers
+    private static readonly Dictionary<string, Func<ImageResizeParameters, IQuantizer>> Quantizers
         = GenerateQuantizerLookup();
 
     public static string[] QuantizerNames { get; } = Quantizers.Keys.ToArray();
 
-    private static Dictionary<string, Func<ImageResizeOptions, IQuantizer>> GenerateQuantizerLookup()
+    private static Dictionary<string, Func<ImageResizeParameters, IQuantizer>> GenerateQuantizerLookup()
     {
         return GenerateLookupFor(
             type => type.Name.RegexReplace("Quantizer$", ""),
@@ -200,7 +201,7 @@ public class ImageResizer : IImageResizer
         );
     }
 
-    private static readonly Dictionary<Type, Func<ImageResizeOptions, IQuantizer>> QuantizerFactories
+    private static readonly Dictionary<Type, Func<ImageResizeParameters, IQuantizer>> QuantizerFactories
         = new()
         {
             [typeof(WuQuantizer)] = CreateWuQuantizer,
@@ -209,29 +210,29 @@ public class ImageResizer : IImageResizer
             [typeof(WebSafePaletteQuantizer)] = CreateWebSafePaletteQuantizer
         };
 
-    private static IQuantizer CreateWebSafePaletteQuantizer(ImageResizeOptions arg)
+    private static IQuantizer CreateWebSafePaletteQuantizer(ImageResizeParameters arg)
     {
         return new WebSafePaletteQuantizer(arg.AsQuantizerOptions());
     }
 
-    private static IQuantizer CreateOctreeQuantizer(ImageResizeOptions arg)
+    private static IQuantizer CreateOctreeQuantizer(ImageResizeParameters arg)
     {
         return new OctreeQuantizer(arg.AsQuantizerOptions());
     }
 
-    private static IQuantizer CreateWernerPaletteQuantizer(ImageResizeOptions arg)
+    private static IQuantizer CreateWernerPaletteQuantizer(ImageResizeParameters arg)
     {
         return new WernerPaletteQuantizer(arg.AsQuantizerOptions());
     }
 
-    private static IQuantizer CreateWuQuantizer(ImageResizeOptions arg)
+    private static IQuantizer CreateWuQuantizer(ImageResizeParameters arg)
     {
         return new WuQuantizer(arg.AsQuantizerOptions());
     }
 
-    private static Dictionary<string, Func<ImageResizeOptions, T>> GenerateLookupFor<T>(
+    private static Dictionary<string, Func<ImageResizeParameters, T>> GenerateLookupFor<T>(
         Func<Type, string> keyGenerator,
-        Func<Type, ImageResizeOptions, T> generator = null,
+        Func<Type, ImageResizeParameters, T> generator = null,
         Func<Type, bool> filter = null
     ) where T : class
     {
@@ -247,12 +248,12 @@ public class ImageResizer : IImageResizer
             .Where(filter)
             .ToDictionary(
                 keyGenerator,
-                type => new Func<ImageResizeOptions, T>(opts => generator(type, opts)),
+                type => new Func<ImageResizeParameters, T>(opts => generator(type, opts)),
                 StringComparer.OrdinalIgnoreCase
             );
     }
 
-    private readonly Dictionary<string, Action<Image, Stream, ImageResizeOptions>>
+    private readonly Dictionary<string, Action<Image, Stream, ImageResizeParameters>>
         _reEncoders =
             new(StringComparer.OrdinalIgnoreCase)
             {
@@ -267,7 +268,7 @@ public class ImageResizer : IImageResizer
     private static void ReEncodeAsWebp(
         Image source,
         Stream target,
-        ImageResizeOptions options
+        ImageResizeParameters resizeParameters
     )
     {
         source.SaveAsWebp(
@@ -275,7 +276,7 @@ public class ImageResizer : IImageResizer
             new WebpEncoder()
             {
                 Method = WebpEncodingMethod.Fastest,
-                Quality = options.Quality,
+                Quality = resizeParameters.Quality,
                 SkipMetadata = false,
                 NearLossless = false
             }
@@ -285,14 +286,14 @@ public class ImageResizer : IImageResizer
     private static void ReEncodeAsBmp(
         Image source,
         Stream target,
-        ImageResizeOptions options
+        ImageResizeParameters resizeParameters
     )
     {
         source.SaveAsBmp(
             target,
             new BmpEncoder()
             {
-                BitsPerPixel = DetermineBmpBitDepthFor(options.BitDepth)
+                BitsPerPixel = DetermineBmpBitDepthFor(resizeParameters.BitDepth)
             }
         );
     }
@@ -300,15 +301,15 @@ public class ImageResizer : IImageResizer
     private static void ReEncodeAsGif(
         Image source,
         Stream target,
-        ImageResizeOptions options
+        ImageResizeParameters resizeParameters
     )
     {
         source.SaveAsGif(
             target,
             new GifEncoder()
             {
-                Quantizer = DetermineQuantizerFor(options),
-                ColorTableMode = options.GifColorTableMode
+                Quantizer = DetermineQuantizerFor(resizeParameters),
+                ColorTableMode = resizeParameters.GifColorTableMode
             }
         );
     }
@@ -316,20 +317,20 @@ public class ImageResizer : IImageResizer
     private static void ReEncodeAsPng(
         Image source,
         Stream target,
-        ImageResizeOptions options
+        ImageResizeParameters resizeParameters
     )
     {
         source.SaveAsPng(
             target,
             new PngEncoder()
             {
-                Gamma = options.Gamma,
-                Quantizer = DetermineQuantizerFor(options),
-                Threshold = options.TransparencyThreshold ?? byte.MaxValue,
-                BitDepth = DeterminePngBitDepthFor(options.BitDepth),
-                ColorType = options.PngColorType,
-                CompressionLevel = options.CompressionLevel.AsPngCompressionLevel(),
-                FilterMethod = options.PngFilterMethod
+                Gamma = resizeParameters.Gamma,
+                Quantizer = DetermineQuantizerFor(resizeParameters),
+                Threshold = resizeParameters.TransparencyThreshold ?? byte.MaxValue,
+                BitDepth = DeterminePngBitDepthFor(resizeParameters.BitDepth),
+                ColorType = resizeParameters.PngColorType,
+                CompressionLevel = resizeParameters.CompressionLevel.AsPngCompressionLevel(),
+                FilterMethod = resizeParameters.PngFilterMethod
             }
         );
     }
@@ -337,15 +338,15 @@ public class ImageResizer : IImageResizer
     private static void ReEncodeAsJpeg(
         Image source,
         Stream target,
-        ImageResizeOptions options
+        ImageResizeParameters resizeParameters
     )
     {
         source.SaveAsJpeg(
             target,
             new JpegEncoder()
             {
-                Quality = options.Quality,
-                ColorType = options.JpegEncodingColor
+                Quality = resizeParameters.Quality,
+                ColorType = resizeParameters.JpegEncodingColor
             }
         );
     }
@@ -418,7 +419,7 @@ public static class ConfigurationExtensions
     }
 
     public static QuantizerOptions AsQuantizerOptions(
-        this ImageResizeOptions arg
+        this ImageResizeParameters arg
     )
     {
         var opts = new QuantizerOptions();

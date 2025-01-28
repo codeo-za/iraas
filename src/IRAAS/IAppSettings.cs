@@ -75,4 +75,7 @@ public interface IAppSettings
 
     [DefaultSetting("0")]
     int MaxUrlFetchRetries { get; }
+
+    [DefaultSetting(FALSE)]
+    bool Verbose { get; }
 }

@@ -134,14 +134,14 @@ public class TestBootstrapper: TestBase
     public void ShouldSetImageResizeParameterDefaults()
     {
         // Arrange
-        ImageResizeOptions.SetDefaults(null);
-        Expect(ImageResizeOptions.Defaults)
+        ImageResizeParameters.SetDefaults(null);
+        Expect(ImageResizeParameters.Defaults)
             .To.Be.Null();
         var sut = Create();
         // Act
         sut.Bootstrap(new Container());
         // Assert
-        Expect(ImageResizeOptions.Defaults)
+        Expect(ImageResizeParameters.Defaults)
             .Not.To.Be.Null();
     }
 

@@ -3,7 +3,6 @@ using IRAAS.ImageProcessing;
 using NUnit.Framework;
 using PeanutButter.DuckTyping.Extensions;
 using PeanutButter.Utils;
-using PeanutButter.Utils.Dictionaries;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
@@ -51,7 +50,7 @@ public class TestDefaultImageResizeParameters : TestBase
             // Assert
             Expect(result1)
                 .To.Deep.Equal(generalDefaults);
-            var withoutSampler = result2.DuckAs<IImageResizeParametersWithoutSampler>();
+            var withoutSampler = result2.FuzzyDuckAs<IImageResizeParametersWithoutSampler>();
             Expect(result2)
                 .To.Intersection.Equal(withoutSampler);
             Expect(result2.Sampler)
@@ -108,7 +107,8 @@ public class TestDefaultImageResizeParameters : TestBase
             ["GifColorTableMode"] = $"{expected.GifColorTableMode}",
             ["MaxColors"] = $"{expected.MaxColors}",
             ["Dither"] = $"{expected.Dither}",
-            ["DevicePixelRatio"] = $"{expected.DevicePixelRatio}"
+            ["DevicePixelRatio"] = $"{expected.DevicePixelRatio}",
+            ["Echo"] = $"{expected.Echo}"
         };
         return defaults;
     }

@@ -42,6 +42,7 @@ public class DefaultImageResizeParameters : IDefaultImageResizeParameters
     public int? MaxColors { get; set; }
     public bool? Dither { get; set; }
     public decimal DevicePixelRatio { get; set; } = 1;
+    public bool? Echo { get; set; }
 
     public static DefaultImageResizeParameters From(
         IDictionary<string, string> rawConfig
@@ -60,6 +61,17 @@ public class DefaultImageResizeParameters : IDefaultImageResizeParameters
             target[kvp.Key] = kvp.Value;
         }
 
+        result.Echo ??= false;
+        if (
+            !target.TryGetValue(nameof(Echo), out var value) ||
+            value is null
+        )
+        {
+            target[nameof(Echo)] = $"{result.Echo}";
+        }
+        
+
+        Sanitise(result);
         return result;
     }
 
@@ -80,12 +92,10 @@ public class DefaultImageResizeParameters : IDefaultImageResizeParameters
     /// </summary>
     /// <param name="result"></param>
     /// <returns></returns>
-    public static IImageResizeParameters Sanitise(
-        IImageResizeParameters result
-    )
+    public static T Sanitise<T>(
+        T result
+    ) where T: IImageResizeParameters
     {
-        // TODO: move the logic of the "create default" items from
-        // image resizer here
         if (result.Quality < 1)
         {
             result.Quality = 85;
@@ -96,10 +106,8 @@ public class DefaultImageResizeParameters : IDefaultImageResizeParameters
             result.Sampler = "Bicubic";
         }
 
-        if (result.Quantizer is null)
-        {
-            result.Quantizer = "Wu";
-        }
+        result.Quantizer ??= "Wu";
+        result.Echo ??= false;
 
         return result;
     }
