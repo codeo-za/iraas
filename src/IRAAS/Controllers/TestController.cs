@@ -25,6 +25,7 @@ public class TestController : Controller
         _fetcher = fetcher;
     }
 
+    [ResponseCache(NoStore = true)]
     [Route("")]
     [HttpGet]
     public ActionResult Test()
