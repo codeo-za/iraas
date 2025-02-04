@@ -13,377 +13,426 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 // ReSharper disable AccessToDisposedClosure
 
-namespace IRAAS.ImageProcessing
+namespace IRAAS.ImageProcessing;
+
+public interface IImageResizer
 {
-    public interface IImageResizer
+    Task<StreamAndHeaders> Resize(
+        ImageResizeParameters resizeParameters,
+        IDictionary<string, string> requestHeaders
+    );
+}
+
+public class ImageResizer : IImageResizer
+{
+    private readonly IUrlFetcher _fetcher;
+    private readonly IAppSettings _appSettings;
+
+    public ImageResizer(
+        IUrlFetcher fetcher,
+        IAppSettings appSettings
+    )
     {
-        Task<StreamAndHeaders> Resize(ImageResizeOptions options,
-            IDictionary<string, string> requestHeaders);
+        _fetcher = fetcher;
+        _appSettings = appSettings;
     }
 
-    public class ImageResizer : IImageResizer
+    public async Task<StreamAndHeaders> Resize(
+        ImageResizeParameters resizeParameters,
+        IDictionary<string, string> requestHeaders
+    )
     {
-        private readonly IUrlFetcher _fetcher;
-        private readonly IAppSettings _appSettings;
-
-        public ImageResizer(
-            IUrlFetcher fetcher,
-            IAppSettings appSettings
-        )
+        if (string.IsNullOrWhiteSpace(resizeParameters.Url))
         {
-            _fetcher = fetcher;
-            _appSettings = appSettings;
+            throw new InvalidProcessingOptionsException($"Url is required (received: {resizeParameters.Url})");
         }
 
-        public async Task<StreamAndHeaders> Resize(
-            ImageResizeOptions options,
-            IDictionary<string, string> requestHeaders)
+        var timer = new Timer(_appSettings);
+        using var src = await timer.Time(
+            TimingHeaders.Fetch,
+            () => _fetcher.Fetch(
+                resizeParameters.Url,
+                requestHeaders
+            )
+        );
+        IImageFormat sourceFormat = null;
+        try
         {
-            if (string.IsNullOrWhiteSpace(options.Url))
-            {
-                throw new InvalidProcessingOptionsException($"Url is required (received: {options.Url})");
-            }
-
-            var timer = new Timer();
-            using var src = await timer.Time(
-                TimingHeaders.Fetch,
-                () => _fetcher.Fetch(options.Url, requestHeaders
-                ));
-            IImageFormat sourceFormat = null;
-            try
-            {
-                sourceFormat = timer.Time(
-                    TimingHeaders.SourceFormatDetection,
-                    () => Image.DetectFormat(src.Stream)
-                );
-            }
-            catch (UnknownImageFormatException)
-            {
-                // suppress - previously, ImageSharp would
-                // simply return null from DetectFormat
-            }
-
-            if (sourceFormat == null)
-            {
-                throw new NotSupportedException(
-                    $"Data source at {options.Url} is not a supported image format"
-                );
-            }
-
-            timer.Time(
-                TimingHeaders.OutputAutoFormatDetection,
-                () => options.DetermineOutputFormatIfNotSpecified(sourceFormat)
+            sourceFormat = timer.Time(
+                TimingHeaders.SourceFormatDetection,
+                () => Image.DetectFormat(src.Stream)
             );
+        }
+        catch (UnknownImageFormatException)
+        {
+            // suppress - previously, ImageSharp would
+            // simply return null from DetectFormat
+        }
 
-            if (!_reEncoders.TryGetValue(options.Format, out var reEncoder))
-            {
-                throw new NotSupportedException($"Output format {options.Format} is not supported");
-            }
-
-            var source = timer.Time(
-                TimingHeaders.LoadSource,
-                () => Image.Load(src.Stream)
+        if (sourceFormat is null)
+        {
+            throw new NotSupportedException(
+                $"Data source at {resizeParameters.Url} is not a supported image format"
             );
+        }
+        
+        resizeParameters.ApplyDefaultsFor(sourceFormat.Name);
+
+        timer.Time(
+            TimingHeaders.OutputAutoFormatDetection,
+            () => resizeParameters.DetermineOutputFormatIfNotSpecified(sourceFormat)
+        );
+
+        if (!_reEncoders.TryGetValue(resizeParameters.Format, out var reEncoder))
+        {
+            throw new NotSupportedException($"Output format {resizeParameters.Format} is not supported");
+        }
+
+        var source = timer.Time(
+            TimingHeaders.LoadSource,
+            () => Image.Load(src.Stream)
+        );
 
 
-            if (sourceFormat is PngFormat &&
-                options.OutputFormatSpecified &&
-                !options.PngOutputRequested)
-            {
-                // when converting from png, we have to choose what to do with transparency
-                // -> ImageSharp's default behavior is to paint black pixels.
-                var replacer = options.ReplaceTransparencyWith.AsRgba32();
-                source.Mutate(o => o.BackgroundColor(replacer));
-            }
+        if (sourceFormat is PngFormat &&
+            resizeParameters.OutputFormatSpecified &&
+            resizeParameters.ReplaceTransparencyWith is not null &&
+            !resizeParameters.PngOutputRequested
+           )
+        {
+            // when converting from png, we have to choose what to do with transparency
+            // -> ImageSharp's default behavior is to paint black pixels.
+            var replacer = resizeParameters.ReplaceTransparencyWith.AsRgba32();
+            source.Mutate(o => o.BackgroundColor(replacer));
+        }
 
-            var targetStream = new LimitedMemoryStream(_appSettings.MaxOutputImageSize);
+        var targetStream = new LimitedMemoryStream(_appSettings.MaxOutputImageSize);
 
-            var clone = timer.Time(
-                TimingHeaders.Resize,
-                () => source.Clone(ctx => ctx.Resize(
+        var clone = timer.Time(
+            TimingHeaders.Resize,
+            () => source.Clone(
+                ctx => ctx.Resize(
                     new ResizeOptions()
                     {
-                        Mode = options.ResizeMode ?? ResizeMode.Max,
+                        Mode = resizeParameters.ResizeMode ?? ResizeMode.Max,
                         Size = new Size(
-                            options.EffectiveWidth ?? source.Width,
-                            options.EffectiveHeight ?? source.Height),
+                            resizeParameters.EffectiveWidth ?? source.Width,
+                            resizeParameters.EffectiveHeight ?? source.Height
+                        ),
                         Compand = true, // allow pixel color compression / expansion
-                        Sampler = DetermineSamplerFor(options)
-                    }))
-            );
-
-            timer.Time(
-                TimingHeaders.EncodeOutput,
-                () => reEncoder(clone, targetStream, options)
-            );
-            targetStream.Rewind();
-            return new StreamAndHeaders(
-                targetStream,
-                new MergeDictionary<string, string>(
-                    src.Headers,
-                    timer.Timings
+                        Sampler = DetermineSamplerFor(resizeParameters)
+                    }
                 )
+            )
+        );
+
+        timer.Time(
+            TimingHeaders.EncodeOutput,
+            () => reEncoder(clone, targetStream, resizeParameters)
+        );
+        targetStream.Rewind();
+        return new StreamAndHeaders(
+            targetStream,
+            new MergeDictionary<string, string>(
+                src.Headers,
+                timer.Timings,
+                resizeParameters.DumpIf(_appSettings.Verbose)
+            )
+        );
+    }
+
+    private IResampler DetermineSamplerFor(ImageResizeParameters resizeParameters)
+    {
+        if (resizeParameters.Sampler is null)
+        {
+            return CreateDefaultResampler();
+        }
+
+        return Resamplers.TryGetValue(resizeParameters.Sampler, out var generator)
+            ? generator(resizeParameters)
+            : CreateDefaultResampler();
+    }
+
+    private static readonly Dictionary<string, Func<ImageResizeParameters, IResampler>> Resamplers
+        = GenerateResamplerLookup();
+
+    public static string[] SamplerNames { get; } = Resamplers.Keys.ToArray();
+
+    private static Dictionary<string, Func<ImageResizeParameters, IResampler>> GenerateResamplerLookup()
+    {
+        return GenerateLookupFor<IResampler>(
+            type => type.Name.RegexReplace("Resampler$", "")
+        );
+    }
+
+    private static IQuantizer DetermineQuantizerFor(ImageResizeParameters resizeParameters)
+    {
+        if (resizeParameters.Quantizer is null)
+        {
+            return CreateDefaultQuantizer();
+        }
+
+        var result = Quantizers.TryGetValue(resizeParameters.Quantizer, out var generator)
+            ? generator(resizeParameters)
+            : CreateDefaultQuantizer();
+        return result;
+    }
+
+    private static readonly Dictionary<string, Func<ImageResizeParameters, IQuantizer>> Quantizers
+        = GenerateQuantizerLookup();
+
+    public static string[] QuantizerNames { get; } = Quantizers.Keys.ToArray();
+
+    private static Dictionary<string, Func<ImageResizeParameters, IQuantizer>> GenerateQuantizerLookup()
+    {
+        return GenerateLookupFor(
+            type => type.Name.RegexReplace("Quantizer$", ""),
+            (type, opts) => QuantizerFactories.TryGetValue(type, out var factory)
+                ? factory(opts)
+                : Activator.CreateInstance(type) as IQuantizer,
+            t => t != typeof(PaletteQuantizer)
+        );
+    }
+
+    private static readonly Dictionary<Type, Func<ImageResizeParameters, IQuantizer>> QuantizerFactories
+        = new()
+        {
+            [typeof(WuQuantizer)] = CreateWuQuantizer,
+            [typeof(WernerPaletteQuantizer)] = CreateWernerPaletteQuantizer,
+            [typeof(OctreeQuantizer)] = CreateOctreeQuantizer,
+            [typeof(WebSafePaletteQuantizer)] = CreateWebSafePaletteQuantizer
+        };
+
+    private static IQuantizer CreateWebSafePaletteQuantizer(ImageResizeParameters arg)
+    {
+        return new WebSafePaletteQuantizer(arg.AsQuantizerOptions());
+    }
+
+    private static IQuantizer CreateOctreeQuantizer(ImageResizeParameters arg)
+    {
+        return new OctreeQuantizer(arg.AsQuantizerOptions());
+    }
+
+    private static IQuantizer CreateWernerPaletteQuantizer(ImageResizeParameters arg)
+    {
+        return new WernerPaletteQuantizer(arg.AsQuantizerOptions());
+    }
+
+    private static IQuantizer CreateWuQuantizer(ImageResizeParameters arg)
+    {
+        return new WuQuantizer(arg.AsQuantizerOptions());
+    }
+
+    private static Dictionary<string, Func<ImageResizeParameters, T>> GenerateLookupFor<T>(
+        Func<Type, string> keyGenerator,
+        Func<Type, ImageResizeParameters, T> generator = null,
+        Func<Type, bool> filter = null
+    ) where T : class
+    {
+        generator ??= (type, _) => Activator.CreateInstance(type) as T;
+        filter ??= _ => true;
+
+
+        var interfaceType = typeof(T);
+        return interfaceType
+            .GetAssembly()
+            .GetTypes()
+            .Where(t => t.GetInterfaces().Contains(interfaceType) && !t.IsInterface)
+            .Where(filter)
+            .ToDictionary(
+                keyGenerator,
+                type => new Func<ImageResizeParameters, T>(opts => generator(type, opts)),
+                StringComparer.OrdinalIgnoreCase
             );
-        }
+    }
 
-        private IResampler DetermineSamplerFor(ImageResizeOptions options)
-        {
-            if (options.Sampler == null)
+    private readonly Dictionary<string, Action<Image, Stream, ImageResizeParameters>>
+        _reEncoders =
+            new(StringComparer.OrdinalIgnoreCase)
             {
-                return CreateDefaultResampler();
-            }
-
-            return Resamplers.TryGetValue(options.Sampler, out var generator)
-                ? generator(options)
-                : CreateDefaultResampler();
-        }
-
-        private static IResampler CreateDefaultResampler()
-        {
-            return new BicubicResampler();
-        }
-
-        private static readonly Dictionary<string, Func<ImageResizeOptions, IResampler>> Resamplers
-            = GenerateResamplerLookup();
-
-        public static string[] SamplerNames { get; } = Resamplers.Keys.ToArray();
-
-        private static Dictionary<string, Func<ImageResizeOptions, IResampler>> GenerateResamplerLookup()
-        {
-            return GenerateLookupFor<IResampler>(
-                type => type.Name.RegexReplace("Resampler$", "")
-            );
-        }
-
-        private static IQuantizer DetermineQuantizerFor(ImageResizeOptions options)
-        {
-            if (options.Quantizer == null)
-            {
-                return CreateDefaultQuantizer();
-            }
-
-            var result = Quantizers.TryGetValue(options.Quantizer, out var generator)
-                ? generator(options)
-                : CreateDefaultQuantizer();
-            return result;
-        }
-
-        private static IQuantizer CreateDefaultQuantizer()
-        {
-            return new OctreeQuantizer();
-        }
-
-        private static readonly Dictionary<string, Func<ImageResizeOptions, IQuantizer>> Quantizers
-            = GenerateQuantizerLookup();
-
-        public static string[] QuantizerNames { get; } = Quantizers.Keys.ToArray();
-
-        private static Dictionary<string, Func<ImageResizeOptions, IQuantizer>> GenerateQuantizerLookup()
-        {
-            return GenerateLookupFor(
-                type => type.Name.RegexReplace("Quantizer$", ""),
-                (type, opts) => QuantizerFactories.TryGetValue(type, out var factory)
-                    ? factory(opts)
-                    : Activator.CreateInstance(type) as IQuantizer,
-                t => t != typeof(PaletteQuantizer)
-            );
-        }
-
-        private static readonly Dictionary<Type, Func<ImageResizeOptions, IQuantizer>> QuantizerFactories
-            = new()
-            {
-                [typeof(WuQuantizer)] = CreateWuQuantizer,
-                [typeof(WernerPaletteQuantizer)] = CreateWernerPaletteQuantizer,
-                [typeof(OctreeQuantizer)] = CreateOctreeQuantizer,
-                [typeof(WebSafePaletteQuantizer)] = CreateWebSafePaletteQuantizer,
+                [JpegFormat.Instance.Name] = ReEncodeAsJpeg,
+                [PngFormat.Instance.Name] = ReEncodeAsPng,
+                [BmpFormat.Instance.Name] = ReEncodeAsJpeg,
+                [GifFormat.Instance.Name] = ReEncodeAsGif,
+                [BmpFormat.Instance.Name] = ReEncodeAsBmp,
+                [WebpFormat.Instance.Name] = ReEncodeAsWebp
             };
 
-        private static IQuantizer CreateWebSafePaletteQuantizer(ImageResizeOptions arg)
-        {
-            return new WebSafePaletteQuantizer(arg.AsQuantizerOptions());
-        }
-
-        private static IQuantizer CreateOctreeQuantizer(ImageResizeOptions arg)
-        {
-            return new OctreeQuantizer(arg.AsQuantizerOptions());
-        }
-
-        private static IQuantizer CreateWernerPaletteQuantizer(ImageResizeOptions arg)
-        {
-            return new WernerPaletteQuantizer(arg.AsQuantizerOptions());
-        }
-
-        private static IQuantizer CreateWuQuantizer(ImageResizeOptions arg)
-        {
-            return new WuQuantizer(arg.AsQuantizerOptions());
-        }
-
-        private static Dictionary<string, Func<ImageResizeOptions, T>> GenerateLookupFor<T>(
-            Func<Type, string> keyGenerator,
-            Func<Type, ImageResizeOptions, T> generator = null,
-            Func<Type, bool> filter = null
-        ) where T : class
-        {
-            generator ??= (type, options) => Activator.CreateInstance(type) as T;
-            filter ??= type => true;
-            
-
-            var interfaceType = typeof(T);
-            return interfaceType
-                .GetAssembly()
-                .GetTypes()
-                .Where(t => t.GetInterfaces().Contains(interfaceType) && !t.IsInterface)
-                .Where(filter)
-                .ToDictionary(
-                    keyGenerator,
-                    type => new Func<ImageResizeOptions, T>(opts => generator(type, opts)),
-                    StringComparer.OrdinalIgnoreCase);
-        }
-
-        private readonly Dictionary<string, Action<Image, Stream, ImageResizeOptions>>
-            _reEncoders =
-                new(StringComparer.OrdinalIgnoreCase)
-                {
-                    [JpegFormat.Instance.Name] = ReEncodeAsJpeg,
-                    [PngFormat.Instance.Name] = ReEncodeAsPng,
-                    [BmpFormat.Instance.Name] = ReEncodeAsJpeg,
-                    [GifFormat.Instance.Name] = ReEncodeAsGif,
-                    [BmpFormat.Instance.Name] = ReEncodeAsBmp
-                };
-
-        private static void ReEncodeAsBmp(
-            Image source,
-            Stream target,
-            ImageResizeOptions options)
-        {
-            source.SaveAsBmp(
-                target,
-                new BmpEncoder()
-                {
-                    BitsPerPixel = DetermineBmpBitDepthFor(options.BitDepth)
-                });
-        }
-
-        private static void ReEncodeAsGif(
-            Image source,
-            Stream target,
-            ImageResizeOptions options)
-        {
-            source.SaveAsGif(
-                target,
-                new GifEncoder()
-                {
-                    Quantizer = DetermineQuantizerFor(options),
-                    ColorTableMode = options.ColorTableMode
-                });
-        }
-
-        private static void ReEncodeAsPng(
-            Image source,
-            Stream target,
-            ImageResizeOptions options)
-        {
-            source.SaveAsPng(
-                target,
-                new PngEncoder()
-                {
-                    Gamma = options.Gamma,
-                    Quantizer = DetermineQuantizerFor(options),
-                    Threshold = options.TransparencyThreshold ?? byte.MaxValue,
-                    BitDepth = DeterminePngBitDepthFor(options.BitDepth),
-                    ColorType = options.ColorType,
-                    CompressionLevel = options.CompressionLevel.AsPngCompressionLevel(),
-                    FilterMethod = options.FilterMethod
-                });
-        }
-
-        private static void ReEncodeAsJpeg(
-            Image source,
-            Stream target,
-            ImageResizeOptions options)
-        {
-            source.SaveAsJpeg(
-                target,
-                new JpegEncoder()
-                {
-                    Quality = options.Quality,
-                    ColorType = options.JpegEncodingColor
-                });
-        }
-
-        private static BmpBitsPerPixel? DetermineBmpBitDepthFor(int? optionsBitDepth)
-        {
-            var name = $"Pixel{optionsBitDepth}";
-            return TryGetEnumValue<BmpBitsPerPixel>(name);
-        }
-
-        private static PngBitDepth? DeterminePngBitDepthFor(int? bitDepth)
-        {
-            if (bitDepth == null)
+    private static void ReEncodeAsWebp(
+        Image source,
+        Stream target,
+        ImageResizeParameters resizeParameters
+    )
+    {
+        source.SaveAsWebp(
+            target,
+            new WebpEncoder()
             {
-                return null;
+                Method = WebpEncodingMethod.Fastest,
+                Quality = resizeParameters.Quality,
+                SkipMetadata = false,
+                NearLossless = false
             }
+        );
+    }
 
-            var name = $"Bit{bitDepth}";
-            return TryGetEnumValue<PngBitDepth>(name);
+    private static void ReEncodeAsBmp(
+        Image source,
+        Stream target,
+        ImageResizeParameters resizeParameters
+    )
+    {
+        source.SaveAsBmp(
+            target,
+            new BmpEncoder()
+            {
+                BitsPerPixel = DetermineBmpBitDepthFor(resizeParameters.BitDepth)
+            }
+        );
+    }
+
+    private static void ReEncodeAsGif(
+        Image source,
+        Stream target,
+        ImageResizeParameters resizeParameters
+    )
+    {
+        source.SaveAsGif(
+            target,
+            new GifEncoder()
+            {
+                Quantizer = DetermineQuantizerFor(resizeParameters),
+                ColorTableMode = resizeParameters.GifColorTableMode
+            }
+        );
+    }
+
+    private static void ReEncodeAsPng(
+        Image source,
+        Stream target,
+        ImageResizeParameters resizeParameters
+    )
+    {
+        source.SaveAsPng(
+            target,
+            new PngEncoder()
+            {
+                Gamma = resizeParameters.Gamma,
+                Quantizer = DetermineQuantizerFor(resizeParameters),
+                Threshold = resizeParameters.TransparencyThreshold ?? byte.MaxValue,
+                BitDepth = DeterminePngBitDepthFor(resizeParameters.BitDepth),
+                ColorType = resizeParameters.PngColorType,
+                CompressionLevel = resizeParameters.CompressionLevel.AsPngCompressionLevel(),
+                FilterMethod = resizeParameters.PngFilterMethod
+            }
+        );
+    }
+
+    private static void ReEncodeAsJpeg(
+        Image source,
+        Stream target,
+        ImageResizeParameters resizeParameters
+    )
+    {
+        source.SaveAsJpeg(
+            target,
+            new JpegEncoder()
+            {
+                Quality = resizeParameters.Quality,
+                ColorType = resizeParameters.JpegEncodingColor
+            }
+        );
+    }
+
+    private static BmpBitsPerPixel? DetermineBmpBitDepthFor(int? optionsBitDepth)
+    {
+        var name = $"Pixel{optionsBitDepth}";
+        return TryGetEnumValue<BmpBitsPerPixel>(name);
+    }
+
+    private static PngBitDepth? DeterminePngBitDepthFor(int? bitDepth)
+    {
+        if (bitDepth is null)
+        {
+            return null;
         }
 
-        private static T? TryGetEnumValue<T>(string value)
-            where T : struct
-        {
-            if (value == null)
-            {
-                return null;
-            }
+        var name = $"Bit{bitDepth}";
+        return TryGetEnumValue<PngBitDepth>(name);
+    }
 
-            return Enum.TryParse<T>(value, out var result)
-                ? result
-                : null as T?;
+    private static T? TryGetEnumValue<T>(string value)
+        where T : struct
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        return Enum.TryParse<T>(value, out var result)
+            ? result
+            : null;
+    }
+
+    // these are here as failsafes - the image resize
+    // parameters should have already set defaults
+    // but if the defaults are invalid, we can
+    // fall back on valid values rather than
+    // simply refusing to do anything
+    private static IResampler CreateDefaultResampler()
+    {
+        return new BicubicResampler();
+    }
+
+    private static IQuantizer CreateDefaultQuantizer()
+    {
+        return new WuQuantizer();
+    }
+}
+
+public static class ConfigurationExtensions
+{
+    public static PngCompressionLevel AsPngCompressionLevel(
+        this int? compressionLevel
+    )
+    {
+        if (!compressionLevel.HasValue)
+        {
+            return PngCompressionLevel.DefaultCompression;
+        }
+
+        try
+        {
+            return (PngCompressionLevel) compressionLevel.Value;
+        }
+        catch
+        {
+            return PngCompressionLevel.DefaultCompression;
         }
     }
 
-    public static class ConfigurationExtensions
+    public static QuantizerOptions AsQuantizerOptions(
+        this ImageResizeParameters arg
+    )
     {
-        public static PngCompressionLevel AsPngCompressionLevel(
-            this int? compressionLevel
-        )
+        var opts = new QuantizerOptions();
+        if (arg.MaxColors.HasValue)
         {
-            if (!compressionLevel.HasValue)
-            {
-                return PngCompressionLevel.DefaultCompression;
-            }
-
-            try
-            {
-                return (PngCompressionLevel) compressionLevel.Value;
-            }
-            catch
-            {
-                return PngCompressionLevel.DefaultCompression;
-            }
+            opts.MaxColors = arg.MaxColors.Value;
         }
 
-        public static QuantizerOptions AsQuantizerOptions(
-            this ImageResizeOptions arg)
+        if (arg.MaxColors.HasValue)
         {
-            var opts = new QuantizerOptions();
-            if (arg.MaxColors.HasValue)
-            {
-                opts.MaxColors = arg.MaxColors.Value;
-            }
-
-            if (arg.MaxColors.HasValue)
-            {
-                opts.MaxColors = arg.MaxColors.Value;
-            }
-
-            return opts;
+            opts.MaxColors = arg.MaxColors.Value;
         }
+
+        return opts;
     }
 }

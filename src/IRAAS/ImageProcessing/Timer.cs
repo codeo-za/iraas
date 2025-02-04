@@ -3,54 +3,70 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
-namespace IRAAS.ImageProcessing
+namespace IRAAS.ImageProcessing;
+
+public class Timer
 {
-    public class Timer
+    private readonly IAppSettings _appSettings;
+    public IDictionary<string, string> Timings => _timings;
+    private readonly Stopwatch _stopwatch;
+    private readonly Dictionary<string, string> _timings;
+
+    public Timer(IAppSettings appSettings)
     {
-        public IDictionary<string, string> Timings => _timings;
-        private readonly Stopwatch _stopwatch;
-        private readonly Dictionary<string, string> _timings;
+        _appSettings = appSettings;
+        _stopwatch = new Stopwatch();
+        _timings = new Dictionary<string, string>();
+    }
 
-        public Timer()
+    public async Task<T> Time<T>(
+        string identifier,
+        Func<Task<T>> exec)
+    {
+        StartStopwatch();
+        var result = await exec();
+        RecordTiming(identifier);
+        return result;
+    }
+
+    public T Time<T>(
+        string identifier,
+        Func<T> exec)
+    {
+        StartStopwatch();
+        var result = exec();
+        RecordTiming(identifier);
+        return result;
+    }
+
+    public void Time(
+        string identifier,
+        Action exec)
+    {
+        StartStopwatch();
+        exec();
+        RecordTiming(identifier);
+    }
+
+    private void StartStopwatch()
+    {
+        if (!_appSettings.Verbose)
         {
-            _stopwatch = new Stopwatch();
-            _timings = new Dictionary<string, string>();
+            return;
         }
 
-        public async Task<T> Time<T>(
-            string identifier,
-            Func<Task<T>> exec)
+        _stopwatch.Start();
+    }
+
+    private void RecordTiming(string identifier)
+    {
+        if (!_appSettings.Verbose)
         {
-            _stopwatch.Start();
-            var result = await exec();
-            RecordTiming(identifier);
-            return result;
+            return;
         }
 
-        public T Time<T>(
-            string identifier,
-            Func<T> exec)
-        {
-            _stopwatch.Start();
-            var result = exec();
-            RecordTiming(identifier);
-            return result;
-        }
-
-        public void Time(
-            string identifier,
-            Action exec)
-        {
-            _stopwatch.Start();
-            exec();
-            RecordTiming(identifier);
-        }
-
-        private void RecordTiming(string identifier)
-        {
-            _stopwatch.Stop();
-            _timings[identifier] = _stopwatch.ElapsedMilliseconds.ToString();
-            _stopwatch.Reset();
-        }
+        _stopwatch.Stop();
+        _timings[identifier] = _stopwatch.ElapsedMilliseconds.ToString();
+        _stopwatch.Reset();
     }
 }

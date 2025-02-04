@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         node-version: [ 20.x ]
-        dotnet-version: [ 7.0.x ]
+        dotnet-version: [ 8.0.x ]
     outputs:
       version: ${{ steps.image_tag.outputs.version }}
     steps:
@@ -34,13 +34,16 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
+          
+      - name: 🟠 Install AWS CLI
+        uses: unfor19/install-aws-cli-action@v1
 
       - name: 🪪 Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AMAZON_REGION }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: 🔖 Get Image Tag
         run: echo "version=$(echo $(git symbolic-ref --short HEAD | sed -e "s/\//-/g")-$(git rev-parse --short HEAD))" >> $GITHUB_OUTPUT
@@ -49,9 +52,7 @@ jobs:
       - name: 🔨 Build and Push
         env:
           IMAGE_TAG: ${{ steps.image_tag.outputs.version }}
-          AMAZON_ACCOUNT_ID: ${{ vars.AMAZON_ACCOUNT_ID }}
-          AMAZON_REGION: ${{ vars.AWS_REGION }}
-          NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AMAZON_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          AMAZON_REGION: ${{ secrets.AWS_REGION }}
         run: |
-          npm run refresh-aws-docker-login
           npm run build-and-push-image

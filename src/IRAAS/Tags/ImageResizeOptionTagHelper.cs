@@ -1,6 +1,6 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Xml.Linq;
@@ -8,202 +8,317 @@ using IRAAS.ImageProcessing;
 using Microsoft.AspNetCore.Razor.TagHelpers;
 using PeanutButter.Utils;
 
-namespace IRAAS.Tags
+namespace IRAAS.Tags;
+
+[HtmlTargetElement("image-resize-option")]
+public class ImageResizeOptionTagHelper : TagHelper
 {
-    [HtmlTargetElement("image-resize-option")]
-    public class ImageResizeOptionTagHelper : TagHelper
+    private readonly IDefaultImageResizeParameters _defaults;
+
+    public ImageResizeOptionTagHelper(
+        IDefaultImageResizeParameters defaults
+    )
     {
-        [HtmlAttributeName("prop")]
-        public PropertyInfo Prop { get; set; }
+        _defaults = defaults;
+    }
 
-        public override void Process(
-            TagHelperContext context,
-            TagHelperOutput output
-        )
-        {
-            output.TagName = "div";
-            output.TagMode = TagMode.StartTagAndEndTag;
+    [HtmlAttributeName("prop")]
+    public PropertyInfo Prop { get; set; }
 
-            var userInput = InputGenerators.Aggregate(
-                null as XElement,
-                (acc, cur) => acc ?? cur(Prop)
-            );
+    public override void Process(
+        TagHelperContext context,
+        TagHelperOutput output
+    )
+    {
+        output.TagName = "div";
+        output.TagMode = TagMode.StartTagAndEndTag;
 
-            var root = new XElement(
+        var userInput = InputGenerators.Aggregate(
+            null as XElement,
+            (acc, cur) => acc ?? cur(Prop, _defaults)
+        );
+
+        var root = new XElement(
+            "div",
+            Class("row"),
+            new XElement(
                 "div",
-                Class("row"),
-                new XElement(
-                    "div",
-                    Class("label"),
-                    CreateLabel()
-                ),
-                new XElement(
-                    "div",
-                    Class("input"),
-                    userInput
-                )
-            );
+                Class("label"),
+                CreateLabel()
+            ),
+            new XElement(
+                "div",
+                Class("input"),
+                userInput
+            )
+        );
 
-            output.Content.AppendHtml(root.ToString());
-        }
+        output.Content.AppendHtml(root.ToString());
+    }
 
-        private static readonly Func<PropertyInfo, XElement>[] InputGenerators =
+    private static readonly Func<PropertyInfo, IDefaultImageResizeParameters, XElement>[] InputGenerators =
+    {
+        CreateCheckbox,
+        CreateDropDownByAttribute,
+        CreateDropDownForEnum,
+        CreateNumericInput,
+        CreateTextInput
+    };
+
+    private static XElement CreateCheckbox(
+        PropertyInfo prop,
+        IDefaultImageResizeParameters defaults
+    )
+    {
+        if (prop.PropertyType != typeof(bool) && 
+            prop.PropertyType != typeof(bool?))
         {
-            CreateDropDownByAttribute,
-            CreateDropDownForEnum,
-            CreateNumericInput,
-            CreateTextInput
-        };
-
-        private static XElement CreateNumericInput(PropertyInfo prop)
-        {
-            var underlyingType = prop.PropertyType.GetUnderlyingType();
-            var minAttrib = prop.GetCustomAttributes<MinAttribute>().FirstOrDefault();
-            var maxAttrib = prop.GetCustomAttributes<MaxAttribute>().FirstOrDefault();
-            var stepAttrib = prop.GetCustomAttributes<StepAttribute>().FirstOrDefault();
-            var defaultAttrib = prop.GetCustomAttributes<DefaultAttribute>().FirstOrDefault();
-
-            if (underlyingType == typeof(byte))
-            {
-                return CreateNumericInputWithAttributes(
-                    prop,
-                    minAttrib?.Value ?? byte.MinValue,
-                    maxAttrib?.Value ?? byte.MaxValue,
-                    stepAttrib?.Value ?? 1,
-                    defaultAttrib?.Value
-                );
-            }
-
-            if (underlyingType == typeof(int) || underlyingType == typeof(float))
-            {
-                return CreateNumericInputWithAttributes(
-                    prop,
-                    minAttrib?.Value ?? int.MinValue,
-                    maxAttrib?.Value ?? int.MaxValue,
-                    stepAttrib?.Value ?? 1,
-                    defaultAttrib?.Value
-                );
-            }
-
             return null;
         }
 
-        private static XElement CreateNumericInputWithAttributes(
-            PropertyInfo prop,
-            double min,
-            double max,
-            double step,
-            double? defaultValue
-        )
+        var result = new XElement(
+            "input",
+            Id(prop),
+            Name(prop),
+            new XAttribute("type", "checkbox")
+        );
+        var defaultValue = defaults.Get<bool?>(prop.Name);
+        if (defaultValue ?? false)
         {
-            var result = new XElement(
-                "input",
-                Id(prop),
-                Name(prop),
-                new XAttribute("type", "number"),
-                new XAttribute("min", min),
-                new XAttribute("max", max),
-                new XAttribute("step", step)
-            );
-            if (defaultValue != null)
-            {
-                result.Add(new XAttribute("value", defaultValue));
-            }
-
-            return result;
+            result.SetAttributeValue("checked", "");
         }
+        return result;
+    }
 
-        private static XElement CreateDropDownForEnum(PropertyInfo prop)
+    private static XElement CreateNumericInput(
+        PropertyInfo prop,
+        IDefaultImageResizeParameters defaults
+    )
+    {
+        var underlyingType = prop.PropertyType.GetUnderlyingType();
+        var minAttrib = prop.GetCustomAttributes<MinAttribute>().FirstOrDefault();
+        var maxAttrib = prop.GetCustomAttributes<MaxAttribute>().FirstOrDefault();
+        var stepAttrib = prop.GetCustomAttributes<StepAttribute>().FirstOrDefault();
+        var defaultAttrib = prop.GetCustomAttributes<DefaultAttribute>().FirstOrDefault();
+        var fallback = FindDefaultValueFor(prop, defaults);
+        var defaultValue = defaultAttrib?.Value
+            ?? (double.TryParse(fallback, out var v)
+                ? v
+                : null);
+
+        if (underlyingType == typeof(byte))
         {
-            var underlyingType = prop.PropertyType.GetUnderlyingType();
-            if (!underlyingType.IsEnum)
-            {
-                return null;
-            }
-
-            var options = Enum.GetNames(underlyingType).ToList();
-            if (prop.PropertyType.IsNullableType())
-            {
-                options.Insert(0, "");
-            }
-
-            return CreateDropDownFor(
+            return CreateNumericInputWithAttributes(
                 prop,
-                options
+                minAttrib?.Value ?? byte.MinValue,
+                maxAttrib?.Value ?? byte.MaxValue,
+                stepAttrib?.Value ?? 1,
+                defaultValue
             );
         }
 
-        private static XElement CreateDropDownByAttribute(PropertyInfo prop)
+        if (underlyingType == typeof(int) || underlyingType == typeof(float))
         {
-            var allowedValuesAttrib = prop.GetCustomAttributes<OptionsAttribute>()
-                .FirstOrDefault();
-            return allowedValuesAttrib == null
-                ? null
-                : CreateDropDownFor(prop, allowedValuesAttrib.Options);
-        }
-
-        private static XAttribute Class(string name)
-        {
-            return new XAttribute("class", name);
-        }
-
-        private static XElement CreateDropDownFor(
-            PropertyInfo prop,
-            IEnumerable<string> values
-        )
-        {
-            var options = values.Select(
-                v =>
-                    new XElement(
-                        "option",
-                        new XAttribute("value", v),
-                        new XText(v)
-                    )
-            );
-            return new XElement(
-                "select",
-                Id(prop),
-                Name(prop),
-                options
+            return CreateNumericInputWithAttributes(
+                prop,
+                minAttrib?.Value ?? int.MinValue,
+                maxAttrib?.Value ?? int.MaxValue,
+                stepAttrib?.Value ?? 1,
+                defaultValue
             );
         }
 
-        private XElement CreateLabel()
+        return null;
+    }
+
+    private static XElement CreateNumericInputWithAttributes(
+        PropertyInfo prop,
+        double min,
+        double max,
+        double step,
+        double? defaultValue
+    )
+    {
+        var result = new XElement(
+            "input",
+            Id(prop),
+            Name(prop),
+            new XAttribute("type", "number"),
+            new XAttribute("min", min),
+            new XAttribute("max", max),
+            new XAttribute("step", step)
+        );
+        if (defaultValue is not null)
         {
-            return new XElement(
-                "label",
-                new XAttribute("for", Prop.Name),
-                new XText(Prop.Name)
-            );
+            result.Add(new XAttribute("value", defaultValue));
         }
 
-        private static XElement CreateTextInput(PropertyInfo prop)
+        return result;
+    }
+
+    private static XElement CreateDropDownForEnum(
+        PropertyInfo prop,
+        IDefaultImageResizeParameters defaults
+    )
+    {
+        var underlyingType = prop.PropertyType.GetUnderlyingType();
+        if (!underlyingType.IsEnum)
         {
-            return new XElement(
-                "input",
-                Name(prop),
-                Id(prop)
-            );
+            return null;
         }
 
-        private static XAttribute Id(PropertyInfo prop)
+        var options = Enum.GetNames(underlyingType).ToList();
+        if (prop.PropertyType.IsNullableType())
         {
-            return Id(prop.Name.ToCamelCase());
+            options.Insert(0, "");
         }
 
-        private static XAttribute Name(PropertyInfo prop)
+        var selected = FindDefaultValueFor(prop, defaults);
+
+        return CreateDropDownFor(
+            prop,
+            $"{selected}",
+            options
+        );
+    }
+
+    private static XElement CreateDropDownByAttribute(
+        PropertyInfo prop,
+        IDefaultImageResizeParameters defaults
+    )
+    {
+        var allowedValuesAttrib = prop.GetCustomAttributes<OptionsAttribute>()
+            .FirstOrDefault();
+        var selected = FindDefaultValueFor(prop, defaults);
+        return allowedValuesAttrib is null
+            ? null
+            : CreateDropDownFor(prop, selected, allowedValuesAttrib.Options);
+    }
+
+    private static string FindDefaultValueFor(
+        PropertyInfo prop,
+        IDefaultImageResizeParameters defaults
+    )
+    {
+        var defaultProp = TryFindDefaultPropertyMatching(prop);
+        if (defaultProp is null)
         {
-            return Name(prop.Name.ToCamelCase());
+            return null;
         }
 
-        private static XAttribute Id(string value)
-        {
-            return new XAttribute("id", value);
-        }
+        return $"{defaultProp.GetValue(defaults)}";
+    }
 
-        private static XAttribute Name(string value)
-        {
-            return new XAttribute("name", value);
-        }
+    private static PropertyInfo TryFindDefaultPropertyMatching(
+        PropertyInfo other
+    )
+    {
+        var all = ReadProperties<IDefaultImageResizeParameters>();
+        return all.TryGetValue(other.Name, out var result)
+            ? result
+            : null;
+    }
+
+    private static Dictionary<string, PropertyInfo> ReadProperties<T>() where T : class
+    {
+        var type = typeof(T);
+        return PropertyCache.FindOrAdd(
+            type,
+            () =>
+            {
+                if (!type.IsInterface)
+                {
+                    return type.GetProperties()
+                        .ToDictionary(
+                            o => o.Name,
+                            o => o
+                        );
+                }
+
+                return new[] { type }.Concat(
+                        type.GetInterfaces()
+                    ).SelectMany(o => o.GetProperties())
+                    .ToDictionary(
+                        o => o.Name,
+                        o => o
+                    );
+            }
+        );
+    }
+
+    private static readonly ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>> PropertyCache = new();
+
+    private static XAttribute Class(string name)
+    {
+        return new XAttribute("class", name);
+    }
+
+    private static XElement CreateDropDownFor(
+        PropertyInfo prop,
+        string selected,
+        IEnumerable<string> values
+    )
+    {
+        var options = values.Select(
+            v => selected == v
+                ? new XElement(
+                    "option",
+                    new XAttribute("value", v),
+                    new XAttribute("selected", ""),
+                    new XText(v)
+                )
+                : new XElement(
+                    "option",
+                    new XAttribute("value", v),
+                    new XText(v)
+                )
+        );
+        return new XElement(
+            "select",
+            Id(prop),
+            Name(prop),
+            options
+        );
+    }
+
+    private XElement CreateLabel()
+    {
+        return new XElement(
+            "label",
+            new XAttribute("for", Prop.Name),
+            new XText(Prop.Name)
+        );
+    }
+
+    private static XElement CreateTextInput(
+        PropertyInfo prop,
+        IDefaultImageResizeParameters defaultImageResizeParameters
+    )
+    {
+        return new XElement(
+            "input",
+            Name(prop),
+            Id(prop)
+        );
+    }
+
+    private static XAttribute Id(PropertyInfo prop)
+    {
+        return Id(prop.Name.ToCamelCase());
+    }
+
+    private static XAttribute Name(PropertyInfo prop)
+    {
+        return Name(prop.Name.ToCamelCase());
+    }
+
+    private static XAttribute Id(string value)
+    {
+        return new XAttribute("id", value);
+    }
+
+    private static XAttribute Name(string value)
+    {
+        return new XAttribute("name", value);
     }
 }

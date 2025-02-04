@@ -2,15 +2,14 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
-namespace IRAAS.Tests.Middleware
+namespace IRAAS.Tests.Middleware;
+
+public static class RequestContextDelegateHelperExtensions
 {
-    public static class RequestContextDelegateHelperExtensions
+    public static RequestDelegate AsRequestDelegate(
+        this Func<HttpContext, Task> func
+    )
     {
-        public static RequestDelegate AsRequestDelegate(
-            this Func<HttpContext, Task> func
-        )
-        {
-            return new RequestDelegate(func);
-        }
+        return new RequestDelegate(func);
     }
 }

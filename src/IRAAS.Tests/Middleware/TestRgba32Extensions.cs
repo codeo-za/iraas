@@ -1,16 +1,13 @@
-using System;
 using System.Collections.Generic;
 using IRAAS.ImageProcessing;
-using NExpect;
-using NExpect.Interfaces;
-using NExpect.MatcherLogic;
 using NUnit.Framework;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using static NExpect.Expectations;
+
+namespace IRAAS.Tests.Middleware;
 
 [TestFixture]
-public class TestRgba32Extensions
+public class TestRgba32Extensions: TestBase
 {
     [TestCase("")]
     [TestCase(" ")]
@@ -97,4 +94,3 @@ public class TestRgba32Extensions
     
     private static Rgba32 White = Rgba32.ParseHex("fff");
 }
-

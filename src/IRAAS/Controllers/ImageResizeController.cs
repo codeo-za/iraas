@@ -1,4 +1,3 @@
-using System.Threading;
 using System.Threading.Tasks;
 using IRAAS.Exceptions;
 using IRAAS.ImageProcessing;
@@ -7,53 +6,54 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using PeanutButter.Utils;
 
-namespace IRAAS.Controllers
+namespace IRAAS.Controllers;
+
+[Route("")]
+public class ImageResizeController
 {
-    [Route("")]
-    public class ImageResizeController
+    private readonly IImageResizer _imageResizer;
+    private readonly IImageMimeTypeProvider _mimeTypeProvider;
+    private readonly IWhitelist _whitelist;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public ImageResizeController(
+        IImageResizer imageResizer,
+        IImageMimeTypeProvider mimeTypeProvider,
+        IWhitelist whitelist,
+        IHttpContextAccessor httpContextAccessor
+    )
     {
-        private readonly IImageResizer _imageResizer;
-        private readonly IImageMimeTypeProvider _mimeTypeProvider;
-        private readonly IWhitelist _whitelist;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        _imageResizer = imageResizer;
+        _mimeTypeProvider = mimeTypeProvider;
+        _whitelist = whitelist;
+        _httpContextAccessor = httpContextAccessor;
+    }
 
-        public ImageResizeController(
-            IImageResizer imageResizer,
-            IImageMimeTypeProvider mimeTypeProvider,
-            IWhitelist whitelist,
-            IHttpContextAccessor httpContextAccessor)
+    [Route("")]
+    [HttpGet]
+    public async Task<FileStreamResult> Resize(
+        [FromQuery] ImageResizeParameters resizeParameters = null
+    )
+    {
+        if (!_whitelist.IsAllowed(resizeParameters?.Url))
         {
-            _imageResizer = imageResizer;
-            _mimeTypeProvider = mimeTypeProvider;
-            _whitelist = whitelist;
-            _httpContextAccessor = httpContextAccessor;
+            throw new ImageSourceNotAllowedException(resizeParameters?.Url);
         }
 
-        [Route("")]
-        [HttpGet]
-        public async Task<FileStreamResult> Resize(
-            [FromQuery] ImageResizeOptions options = null
-        )
-        {
-            if (!_whitelist.IsAllowed(options?.Url))
-            {
-                throw new ImageSourceNotAllowedException(options?.Url);
-            }
+        var result = await _imageResizer.Resize(
+            resizeParameters,
+            _httpContextAccessor.HttpContext!.Request.Headers.ToDictionary()
+        );
+        var contentType = _mimeTypeProvider.DetermineMimeTypeFor(result.Stream);
 
-            var result = await _imageResizer.Resize(
-                options,
-                _httpContextAccessor.HttpContext.Request.Headers.ToDictionary()
-            );
-            var contentType = _mimeTypeProvider.DetermineMimeTypeFor(result.Stream);
+        var headers = _httpContextAccessor.HttpContext.Response.Headers;
+        result.Headers.ForEach(
+            kvp => headers[kvp.Key] = kvp.Value
+        );
 
-            var headers = _httpContextAccessor.HttpContext.Response.Headers;
-            result.Headers.ForEach(
-                kvp => headers[kvp.Key] = kvp.Value
-            );
-
-            return new FileStreamResult(
-                result.Stream,
-                contentType);
-        }
+        return new FileStreamResult(
+            result.Stream,
+            contentType
+        );
     }
 }

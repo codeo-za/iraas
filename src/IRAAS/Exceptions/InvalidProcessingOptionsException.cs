@@ -1,12 +1,11 @@
 using System;
 
-namespace IRAAS.Exceptions
+namespace IRAAS.Exceptions;
+
+public class InvalidProcessingOptionsException : ArgumentException
 {
-    public class InvalidProcessingOptionsException : ArgumentException
+    public InvalidProcessingOptionsException(
+        string message): base(message)
     {
-        public InvalidProcessingOptionsException(
-            string message): base(message)
-        {
-        }
     }
 }
