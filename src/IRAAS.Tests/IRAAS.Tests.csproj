@@ -32,7 +32,7 @@
     <PackageReference Include="PeanutButter.TestUtils.AspNetCore" Version="3.0.339" />
     <PackageReference Include="PeanutButter.Utils" Version="3.0.339" />
     <PackageReference Include="Quackers.TestLogger" Version="1.0.24" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
   </ItemGroup>
 
   <ItemGroup>
