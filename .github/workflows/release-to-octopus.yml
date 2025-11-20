@@ -5,6 +5,11 @@ on:
     branches:
       - 'release-to-octopus'
   workflow_dispatch:
+    inputs:
+      skipRelease:
+        description: 'Specify anything but "No" to skip releasing automatically to selected environment..'
+        required: true
+        default: 'No'
 
 jobs:
   build-and-deploy:
