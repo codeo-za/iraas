@@ -9,6 +9,7 @@
     <ContainerRepository>iraas</ContainerRepository>
     <Configurations>Debug;Release;ReleaseForDocker</Configurations>
     <Platforms>AnyCPU</Platforms>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'ReleaseForDocker'">
