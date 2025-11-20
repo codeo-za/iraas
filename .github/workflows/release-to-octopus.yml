@@ -44,6 +44,8 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           skip-release: ${{ inputs.skipRelease }}
+          octopus-url: ${{ vars.OCTOPUS_SERVER_URL }}
+          octopus-api-key: ${{ secrets.OCTOPUS_SERVER_API_KEY }}
           
       - name: 🐙 Octopus - Package Info
         run: |

@@ -7,8 +7,16 @@ inputs:
     required: true
   skip-release:
     description: 'Whether to skip package release'
-    required: false
+    required: true
     default: 'No'
+  octopus-url:
+    description: 'Octopus Server Url'
+    required: true
+    default: ''  
+  octopus-api-key:
+    description: 'Octopus API Key'
+    required: true
+    default: '' 
 
 outputs:
   package-name:
@@ -30,6 +38,8 @@ runs:
       env:
         GHAUTH_TOKEN: ${{ inputs.github-token }}
         SKIP_RELEASE: ${{ inputs.skip-release }}
+        OCTOPUS_SERVER_URL: ${{ inputs.octopus-url }}
+        OCTOPUS_SERVER_API_KEY: ${{ inputs.octopus-api-key }}
       run: |
         echo "Creating nuget package..."
         chmod +x ./pack.sh
