@@ -1,0 +1,45 @@
+name: Release to Octopus
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 20.x ]
+        dotnet-version: [ 8.0.x ]
+    outputs:
+      version: ${{ steps.image_tag.outputs.version }}
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # we want to checkout other branches (like master), see https://github.com/actions/checkout#Fetch-all-history-for-all-tags-and-branches
+
+      - name: 👷‍♂️Setup NodeJs
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: 👀 Check master is merged in
+        run: |
+          npm ci --no-progress
+          npm run verify-up-to-date
+
+      - name: 👷‍♂️Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+
+      - name: 🐙 Octopus Deploy tasks
+        id: octopus-deploy
+        uses: ./.github/actions/octopus-deploy
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          skip-release: ${{ inputs.skipRelease }}
+          
+      - name: 🐙 Octopus - Package Info
+        run: |
+          echo "Published package with name: ${{ steps.octopus-deploy.outputs.package-name }}"

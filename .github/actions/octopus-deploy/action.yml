@@ -1,0 +1,36 @@
+name: 'Octopus Deploy'
+description: 'Handle Octopus Deploy tasks including CLI installation and package generation'
+
+inputs:
+  github-token:
+    description: 'GitHub token for authentication'
+    required: true
+  skip-release:
+    description: 'Whether to skip package release'
+    required: false
+    default: 'No'
+
+outputs:
+  package-name:
+    description: 'Name of the generated package'
+    value: ${{ steps.nuget-package.outputs.NUGET_PACKAGE_NAME }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Octopus CLI tools
+      uses: OctopusDeploy/install-octopus-cli-action@v1
+      with:
+        version: latest
+    
+    - name: Generate & Publish NuGet Package
+      id: nuget-package
+      if: ${{ inputs.skip-release == 'No' }}
+      shell: bash
+      env:
+        GHAUTH_TOKEN: ${{ inputs.github-token }}
+        SKIP_RELEASE: ${{ inputs.skip-release }}
+      run: |
+        echo "Creating nuget package..."
+        chmod +x ./pack.sh
+        ./pack.sh 
