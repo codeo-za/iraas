@@ -1,10 +1,13 @@
 name: Release to Octopus
 
 on:
+  push:
+    branches:
+      - 'release-to-octopus'
   workflow_dispatch:
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
     strategy:
       matrix:
