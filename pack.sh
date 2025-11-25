@@ -38,6 +38,9 @@ dotnet publish src/IRAAS/IRAAS.csproj \
   --output "./publish" \
   --self-contained true
 
+# copy deploy.sh to publish folder before nuget pack
+cp src/IRAAS/deploy.sh ./publish/deploy.sh
+
 # update version in nuspec file
 cp src/IRAAS/Package.nuspec ./publish/
 sed -i "s/<version>.*<\/version>/<version>$NAME<\/version>/" ./publish/Package.nuspec
