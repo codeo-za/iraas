@@ -17,10 +17,11 @@ runs:
   using: 'composite'
   steps:
     - name: 📦 Cache NuGet packages
+      if: inputs.bust-cache != 'true'
       uses: actions/cache@v4
       with:
         path: ~/.nuget/packages
-        key: nuget-${{ runner.os }}-${{ inputs.bust-cache == 'true' && github.run_id || hashFiles('**/*.csproj') }}
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
         restore-keys: nuget-${{ runner.os }}-
 
     - name: Add NuGet sources
