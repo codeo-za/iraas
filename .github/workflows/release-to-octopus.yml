@@ -19,12 +19,12 @@ jobs:
       version: ${{ steps.image_tag.outputs.version }}
     steps:
       - name: ⬇️ Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0 # we want to checkout other branches (like master), see https://github.com/actions/checkout#Fetch-all-history-for-all-tags-and-branches
 
       - name: 👷‍♂️Setup NodeJs
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
 
@@ -34,7 +34,7 @@ jobs:
           npm run verify-up-to-date
 
       - name: 👷‍♂️Setup .NET
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
 

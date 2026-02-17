@@ -8,10 +8,21 @@ inputs:
   github-username:
     description: 'GitHub username'
     required: true
-  
+  bust-cache:
+    description: 'Set to true to bypass the NuGet cache'
+    required: false
+    default: 'false'
+
 runs:
   using: 'composite'
   steps:
+    - name: 📦 Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: nuget-${{ runner.os }}-${{ inputs.bust-cache == 'true' && github.run_id || hashFiles('**/*.csproj') }}
+        restore-keys: nuget-${{ runner.os }}-
+
     - name: Add NuGet sources
       shell: bash
       env:
@@ -20,3 +31,4 @@ runs:
       run: |
         dotnet nuget add source --name github-codeo --username '${{ inputs.github-username }}' --password '${{ inputs.github-token }}' --store-password-in-clear-text https://nuget.pkg.github.com/codeo-za/index.json
         dotnet nuget add source $GITHUB_WORKSPACE/packages -n LocalPackages 
+    
