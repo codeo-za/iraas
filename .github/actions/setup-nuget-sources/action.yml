@@ -31,4 +31,3 @@ runs:
       run: |
         dotnet nuget add source --name github-codeo --username '${{ inputs.github-username }}' --password '${{ inputs.github-token }}' --store-password-in-clear-text https://nuget.pkg.github.com/codeo-za/index.json
         dotnet nuget add source $GITHUB_WORKSPACE/packages -n LocalPackages 
-    
