@@ -46,6 +46,9 @@ jobs:
           skip-release: ${{ inputs.skipRelease }}
           octopus-url: ${{ vars.OCTOPUS_SERVER_URL }}
           octopus-api-key: ${{ secrets.OCTOPUS_SERVER_API_KEY }}
+        env:
+            OCTOPUS_URL: ${{ vars.OCTOPUS_SERVER_URL }}
+            OCTOPUS_API_KEY: ${{ secrets.OCTOPUS_SERVER_API_KEY }}
           
       - name: 🐙 Octopus - Package Info
         run: |
