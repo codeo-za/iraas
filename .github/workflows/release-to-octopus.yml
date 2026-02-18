@@ -49,6 +49,7 @@ jobs:
         env:
             OCTOPUS_URL: ${{ vars.OCTOPUS_SERVER_URL }}
             OCTOPUS_API_KEY: ${{ secrets.OCTOPUS_SERVER_API_KEY }}
+            OCTOPUS_SPACE: "Default"
           
       - name: 🐙 Octopus - Package Info
         run: |
