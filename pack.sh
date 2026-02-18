@@ -119,7 +119,7 @@ deploy_octopus() {
     # Deploy release (only if environment specified)
     if [ -n "$deploy_to" ]; then
         echo "Deploying Octopus release..."
-        OCTO_DEPLOY="octopus release deploy --project '$project' --release-version '$change_set' --environment '$deploy_to'"
+        OCTO_DEPLOY="octopus release deploy --project '$project' --version '$change_set' --environment '$deploy_to'"
         
         echo "Invoking: $OCTO_DEPLOY"
         eval "$OCTO_DEPLOY"
