@@ -103,22 +103,31 @@ deploy_octopus() {
         exit 1
     fi
     
-    # Configure deploy_to string
-    local deploy_to_str=""
-    if [ -n "$deploy_to" ]; then
-        deploy_to_str="--deployto '$deploy_to'"
-    fi
-    
-    # NB Octopus CLI is required for this script to work
+    # NB: Octopus CLI v2+ now uses env vars OCTOPUS_URL and OCTOPUS_API_KEY for auth    
+    # Create release
     echo "Creating Octopus release..."
-    OCTO_CMD="octopus create-release --server $OCTOPUS_SERVER_URL --apiKey $OCTOPUS_SERVER_API_KEY --project '$project' $deploy_to_str --releaseNotes 'GitHub Actions Automated Release ($change_set)' --version '$change_set' --packageversion '$change_set'"
+    OCTO_CREATE="octopus release create --project '$project' --release-notes 'GitHub Actions Automated Release ($change_set)' --version '$change_set' --package-version '$change_set'"
     
-    echo "Invoking Octopus deploy: $OCTO_CMD"
-    eval "$OCTO_CMD"
+    echo "Invoking: $OCTO_CREATE"
+    eval "$OCTO_CREATE"
     
     if [ $? -ne 0 ]; then
-        echo "Error executing Octo - Creating Release on Server"
-        exit $?
+        echo "Error executing Octopus - Creating Release"
+        exit 1
+    fi
+    
+    # Deploy release (only if environment specified)
+    if [ -n "$deploy_to" ]; then
+        echo "Deploying Octopus release..."
+        OCTO_DEPLOY="octopus release deploy --project '$project' --release-version '$change_set' --environment '$deploy_to'"
+        
+        echo "Invoking: $OCTO_DEPLOY"
+        eval "$OCTO_DEPLOY"
+        
+        if [ $? -ne 0 ]; then
+            echo "Error executing Octopus - Deploying Release"
+            exit 1
+        fi
     fi
 }
 
