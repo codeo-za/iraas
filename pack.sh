@@ -111,7 +111,7 @@ deploy_octopus() {
     
     # NB Octopus CLI is required for this script to work
     echo "Creating Octopus release..."
-    OCTO_CMD="octo create-release --server $OCTOPUS_SERVER_URL --apiKey $OCTOPUS_SERVER_API_KEY --project '$project' $deploy_to_str --releaseNotes 'GitHub Actions Automated Release ($change_set)' --version '$change_set' --packageversion '$change_set'"
+    OCTO_CMD="octopus create-release --server $OCTOPUS_SERVER_URL --apiKey $OCTOPUS_SERVER_API_KEY --project '$project' $deploy_to_str --releaseNotes 'GitHub Actions Automated Release ($change_set)' --version '$change_set' --packageversion '$change_set'"
     
     echo "Invoking Octopus deploy: $OCTO_CMD"
     eval "$OCTO_CMD"
