@@ -23,6 +23,7 @@ public static class DefaultSettingValues
     public const string ONE_SECOND = "1000";
     public const string UNLIMITED_CLIENTS = "0";
     public const string LOG_LEVEL_WARNING = "Warning";
+    public const string ALLOW_INVALID_SSL_CERTIFICATES = "false";
 }
 
 public interface IAppSettings
@@ -78,4 +79,7 @@ public interface IAppSettings
 
     [DefaultSetting(FALSE)]
     bool Verbose { get; }
+    
+    [DefaultSetting(ALLOW_INVALID_SSL_CERTIFICATES)]
+    bool AllowInvalidSslCertificates { get; }
 }

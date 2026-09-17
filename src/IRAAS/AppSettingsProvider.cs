@@ -155,7 +155,8 @@ public static class AppSettingsProvider
             .GetChildren()
             .ToDictionary(
                 o => o.Key,
-                o => o.Value
+                o => o.Value,
+                StringComparer.OrdinalIgnoreCase
             );
     }
 
@@ -168,7 +169,7 @@ public static class AppSettingsProvider
                            .OfType<DefaultSettingAttribute>()
                            .FirstOrDefault()?.Value)
             )
-            .ToDictionary(o => o.Name, o => o.Value);
+            .ToDictionary(o => o.Name, o => o.Value, StringComparer.OrdinalIgnoreCase);
     }
 
     private static string FindLogLevelFor(

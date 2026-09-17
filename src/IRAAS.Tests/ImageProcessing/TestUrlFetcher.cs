@@ -5,7 +5,6 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using IRAAS.ImageProcessing;
-using IRAAS.Tests.TestUtils;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NUnit.Framework;
@@ -14,7 +13,6 @@ using PeanutButter.Utils;
 
 // ReSharper disable RedundantAssignment
 // ReSharper disable AccessToDisposedClosure
-
 namespace IRAAS.Tests.ImageProcessing;
 
 [TestFixture]
@@ -46,13 +44,21 @@ public class TestUrlFetcher : TestBase
         // Act
         using var result = await sut.Fetch(url, new Dictionary<string, string>());
         // Assert
-        var buffer = new byte[1024];
+        var buffer = new byte[ 1024 ];
         using var memStream = new MemoryStream();
         var readCount = 0;
         do
         {
-            readCount = result.Stream.Read(buffer, 0, 1024);
-            memStream.Write(buffer, 0, readCount);
+            readCount = result.Stream.Read(
+                buffer,
+                0,
+                1024
+            );
+            memStream.Write(
+                buffer,
+                0,
+                readCount
+            );
         } while (readCount > 0);
 
         var resultBytes = memStream.ToArray();
@@ -398,13 +404,21 @@ public class TestUrlFetcher : TestBase
             .To.Be.True("original cat was not requested");
         Expect(newCatRequested)
             .To.Be.True("new-cat was not requested");
-        var buffer = new byte[1024];
+        var buffer = new byte[ 1024 ];
         await using var memStream = new MemoryStream();
         var readCount = 0;
         do
         {
-            readCount = result.Stream.Read(buffer, 0, 1024);
-            memStream.Write(buffer, 0, readCount);
+            readCount = result.Stream.Read(
+                buffer,
+                0,
+                1024
+            );
+            memStream.Write(
+                buffer,
+                0,
+                readCount
+            );
         } while (readCount > 0);
 
         var resultBytes = memStream.ToArray();
@@ -474,8 +488,9 @@ public class TestUrlFetcher : TestBase
     {
         // Arrange
 
-        var config = CreateDefaultAppSettings();
-        config.MaxImageFetchTimeInMilliseconds.Returns(1000);
+        var config = Substitute.For<IAppSettings>()
+            .WithDefaultSettings()
+            .WithMaxImageFetchTimeInMilliseconds(1000);
         using var lease = TestEnvironment.BorrowHttpServer();
         var server = lease.Instance;
         server.AddHandler(
@@ -508,8 +523,9 @@ public class TestUrlFetcher : TestBase
                 public async Task ShouldDisableKeepAlive()
                 {
                     // Arrange
-                    var appSettings = CreateDefaultAppSettings();
-                    appSettings.EnableConnectionKeepAlive.Returns(false);
+                    var appSettings = Substitute.For<IAppSettings>()
+                        .WithDefaultSettings()
+                        .WithConnectionKeepAliveDisabled();
                     var path = $"/{GetRandomString(2)}.jpg";
                     var connectionHeaderValue = null as string;
                     using var lease = TestEnvironment.BorrowHttpServer();
@@ -518,10 +534,7 @@ public class TestUrlFetcher : TestBase
                         path,
                         Resources.Data.FluffyCatJpeg,
                         "image/jpeg",
-                        (p, _) =>
-                        {
-                            connectionHeaderValue = p.HttpHeaders["Connection"];
-                        }
+                        (p, _) => { connectionHeaderValue = p.HttpHeaders["Connection"]; }
                     );
                     var sut = Create(appSettings);
                     // Act
@@ -542,8 +555,9 @@ public class TestUrlFetcher : TestBase
                 public async Task ShouldDisableKeepAlive()
                 {
                     // Arrange
-                    var appSettings = CreateDefaultAppSettings();
-                    appSettings.EnableConnectionKeepAlive.Returns(false);
+                    var appSettings = Substitute.For<IAppSettings>()
+                        .WithDefaultSettings()
+                        .WithConnectionKeepAliveDisabled();
                     using var lease = TestEnvironment.BorrowHttpServer();
                     var server = lease.Instance;
                     var path = $"/{GetRandomString(2)}.jpg";
@@ -552,10 +566,7 @@ public class TestUrlFetcher : TestBase
                         path,
                         Resources.Data.FluffyCatJpeg,
                         "image/jpeg",
-                        (p, _) =>
-                        {
-                            connectionHeaderValue = p.HttpHeaders["Connection"];
-                        }
+                        (p, _) => { connectionHeaderValue = p.HttpHeaders["Connection"]; }
                     );
                     var sut = Create(appSettings);
                     // Act
@@ -583,8 +594,9 @@ public class TestUrlFetcher : TestBase
                 public async Task ShouldDisableKeepAlive()
                 {
                     // Arrange
-                    var appSettings = CreateDefaultAppSettings();
-                    appSettings.EnableConnectionKeepAlive.Returns(true);
+                    var appSettings = Substitute.For<IAppSettings>()
+                        .WithDefaultSettings()
+                        .WithConnectionKeepAliveEnabled();
                     var path = $"/{GetRandomString(2)}.jpg";
                     var connectionHeaderValue = null as string;
                     using var lease = TestEnvironment.BorrowHttpServer();
@@ -593,10 +605,7 @@ public class TestUrlFetcher : TestBase
                         path,
                         Resources.Data.FluffyCatJpeg,
                         "image/jpeg",
-                        (p, _) =>
-                        {
-                            connectionHeaderValue = p.HttpHeaders["Connection"];
-                        }
+                        (p, _) => { connectionHeaderValue = p.HttpHeaders["Connection"]; }
                     );
                     var sut = Create(appSettings);
                     // Act
@@ -617,8 +626,9 @@ public class TestUrlFetcher : TestBase
                 public async Task ShouldDisableKeepAlive()
                 {
                     // Arrange
-                    var appSettings = CreateDefaultAppSettings();
-                    appSettings.EnableConnectionKeepAlive.Returns(true);
+                    var appSettings = Substitute.For<IAppSettings>()
+                        .WithDefaultSettings()
+                        .WithConnectionKeepAliveEnabled();
                     var path = $"/{GetRandomString(2)}.jpg";
                     var connectionHeaderValue = null as string;
                     using var lease = TestEnvironment.BorrowHttpServer();
@@ -627,10 +637,7 @@ public class TestUrlFetcher : TestBase
                         path,
                         Resources.Data.FluffyCatJpeg,
                         "image/jpeg",
-                        (p, _) =>
-                        {
-                            connectionHeaderValue = p.HttpHeaders["Connection"];
-                        }
+                        (p, _) => { connectionHeaderValue = p.HttpHeaders["Connection"]; }
                     );
                     var sut = Create(appSettings);
                     // Act
@@ -659,7 +666,8 @@ public class TestUrlFetcher : TestBase
             public void ShouldOnlyAttemptOnce()
             {
                 // Arrange
-                var config = CreateDefaultAppSettings();
+                var config = Substitute.For<IAppSettings>()
+                    .WithDefaultSettings();
                 Expect(config.MaxUrlFetchRetries)
                     .To.Equal(0);
                 var attempts = 0;
@@ -714,8 +722,9 @@ public class TestUrlFetcher : TestBase
             {
                 // Arrange
                 var maxRetries = GetRandomInt(3, 6);
-                var config = CreateDefaultAppSettings()
-                    .With(o => o.MaxUrlFetchRetries.Returns(maxRetries));
+                var config = Substitute.For<IAppSettings>()
+                    .WithDefaultSettings()
+                    .WithMaxUrlFetchRetries(maxRetries);
                 var attempts = 0;
                 var path = $"/{GetRandomString(2)}.jpg";
                 using var lease = TestEnvironment.BorrowHttpServer();
@@ -750,28 +759,162 @@ public class TestUrlFetcher : TestBase
         }
     }
 
+    [TestFixture]
+    public class AllowingInvalidSSLCertificatesForDev
+    {
+        [Test]
+        [Explicit("requires something already running with a self-signed certificate")]
+        public void ShouldDownloadTheFile()
+        {
+            // Arrange
+            var url = "https://localhost:7263/api/resource/?id=43&ts=1444912007000";
+            var appSettings = Substitute.For<IAppSettings>()
+                .WithDefaultSettings()
+                .WithInvalidSslCertificatesAllowed();
+            var sut = Create();
+
+            // Act
+            // Assert
+        }
+    }
+
     private static IUrlFetcher Create(
         IAppSettings appSettings = null,
         ILogger<UrlFetcher> logger = null
     )
     {
         return new UrlFetcher(
-            appSettings ?? CreateDefaultAppSettings(),
+            appSettings ?? Substitute.For<IAppSettings>()
+                .WithDefaultSettings(),
             logger ?? Substitute.For<ILogger<UrlFetcher>>()
         );
     }
+}
 
-    private static IAppSettings CreateDefaultAppSettings()
+public static class AppSettingsExtensions
+{
+    public static IAppSettings WithDefaultSettings(
+        this IAppSettings appSettings
+    )
     {
-        var result = Substitute.For<IAppSettings>();
         var _40mb = 40 * 1024 * 1024;
-        result.MaxInputImageSize.Returns(_40mb);
-        result.MaxOutputImageSize.Returns(_40mb);
-        result.MaxImageFetchTimeInMilliseconds.Returns(10000);
-        result.MaxUrlFetchRetries.Returns(0);
-        result.DomainWhitelist.Returns("*");
-        result.EnableTestPage.Returns(true);
-        result.EnableConnectionKeepAlive.Returns(false);
-        return result;
+        return appSettings
+            .WithMaxInputImageSize(_40mb)
+            .WithMaxOutputImageSize(_40mb)
+            // allow a long fetch time so tests don't time out
+            .WithMaxImageFetchTimeInMilliseconds(10000)
+            .WithMaxUrlFetchRetries(0)
+            // don't block anything by default
+            .WithDomainWhitelist("*")
+            // enable the test page for testing
+            .WithTestPageEnabled()
+            // don't enable keep-alive: let test connections close
+            .WithConnectionKeepAliveDisabled()
+            // allow invalid certs for tests by default
+            .WithInvalidSslCertificatesAllowed();
+    }
+
+    public static IAppSettings WithInvalidSslCertificatesAllowed(
+        this IAppSettings appSettings
+    )
+    {
+        return appSettings.With(
+            o => o.AllowInvalidSslCertificates.Returns(_ => true)
+        );
+    }
+
+    public static IAppSettings WithInvalidSslCertificatesForbidden(
+        this IAppSettings appSettings
+    )
+    {
+        return appSettings.With(
+            o => o.AllowInvalidSslCertificates.Returns(_ => false)
+        );
+    }
+
+    public static IAppSettings WithConnectionKeepAliveEnabled(
+        this IAppSettings appSettings
+    )
+    {
+        return appSettings.With(
+            o => o.EnableConnectionKeepAlive.Returns(_ => true)
+        );
+    }
+
+    public static IAppSettings WithConnectionKeepAliveDisabled(
+        this IAppSettings appSettings
+    )
+    {
+        return appSettings.With(
+            o => o.EnableConnectionKeepAlive.Returns(_ => false)
+        );
+    }
+
+    public static IAppSettings WithMaxInputImageSize(
+        this IAppSettings appSettings,
+        int maxBytes
+    )
+    {
+        return appSettings.With(
+            o => o.MaxInputImageSize.Returns(_ => maxBytes)
+        );
+    }
+
+    public static IAppSettings WithMaxOutputImageSize(
+        this IAppSettings appSettings,
+        int maxBytes
+    )
+    {
+        return appSettings.With(
+            o => o.MaxOutputImageSize.Returns(_ => maxBytes)
+        );
+    }
+
+    public static IAppSettings WithMaxImageFetchTimeInMilliseconds(
+        this IAppSettings appSettings,
+        int milliseconds
+    )
+    {
+        return appSettings.With(
+            o => o.MaxImageFetchTimeInMilliseconds.Returns(_ => milliseconds)
+        );
+    }
+
+    public static IAppSettings WithMaxUrlFetchRetries(
+        this IAppSettings appSettings,
+        int maxRetries
+    )
+    {
+        return appSettings.With(
+            o => o.MaxUrlFetchRetries.Returns(_ => maxRetries)
+        );
+    }
+
+    public static IAppSettings WithDomainWhitelist(
+        this IAppSettings appSettings,
+        string whitelist
+    )
+    {
+        return appSettings.With(
+            o => o.DomainWhitelist.Returns(_ => whitelist)
+        );
+    }
+
+    public static IAppSettings WithTestPageEnabled(
+        this IAppSettings appSettings
+    )
+    {
+        return appSettings.With(
+            o => o.EnableTestPage.Returns(_ => true)
+        );
+    }
+
+    public static IAppSettings WithTestPageDisabled(
+        this IAppSettings appSettings
+    )
+    {
+        return appSettings.With(
+            o => o.EnableTestPage.Returns(_ => false)
+        );
     }
 }
