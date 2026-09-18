@@ -96,13 +96,6 @@ public static class AppSettingsProvider
             var result = merged.FuzzyDuckAs<IAppSettings>(
                 throwOnError: true
             );
-            if (result.MaxUrlFetchRetries < 0)
-            {
-                // alter the underlying dictionary of settings
-                // -> the IAppSettings interface is read-only
-                providedConfig[nameof(result.MaxUrlFetchRetries)] = "0";
-            }
-
             return result;
         }
         catch (UnDuckableException ex)
@@ -196,7 +189,8 @@ public static class AppSettingsProvider
         {
             [SETTING_MAX_CONCURRENCY] = ResolveMaxConcurrency,
             [SETTING_MAX_IMAGE_FETCH_TIME_IN_MILLISECONDS] = ResolveMaxImageFetchTimeInMilliseconds,
-            [SETTING_LOG_FOLDER] = ResolveDefaultLogFolder
+            [SETTING_LOG_FOLDER] = ResolveDefaultLogFolder,
+            [SETTING_MAX_URL_FETCH_RETRIES] = ResolveMaxUrlFetchRetries
         };
 
     private static string ResolveDefaultLogFolder(
@@ -256,6 +250,19 @@ public static class AppSettingsProvider
         );
     }
 
+    private static string ResolveMaxUrlFetchRetries(
+        IDictionary<string, string> config
+    )
+    {
+        return ResolveSetting(
+            config,
+            SETTING_MAX_URL_FETCH_RETRIES,
+            i => i > 0,
+            // when not set or set negative, set to 0
+            0
+        );
+    }
+
     private static string ResolveSetting<T>(
         IDictionary<string, string> config,
         string key,
@@ -293,9 +300,13 @@ public static class AppSettingsProvider
         }
     }
 
-    private const string SETTING_MAX_CONCURRENCY = "MaxConcurrency";
-    private const string SETTING_MAX_IMAGE_FETCH_TIME_IN_MILLISECONDS = "MaxImageFetchTimeInMilliseconds";
-    private const string SETTING_LOG_FOLDER = "LogFolder";
+    private const string SETTING_MAX_CONCURRENCY = nameof(IAppSettings.MaxConcurrency);
+
+    private const string SETTING_MAX_IMAGE_FETCH_TIME_IN_MILLISECONDS =
+        nameof(IAppSettings.MaxImageFetchTimeInMilliseconds);
+
+    private const string SETTING_LOG_FOLDER = nameof(IAppSettings.LogFolder);
+    private const string SETTING_MAX_URL_FETCH_RETRIES = nameof(IAppSettings.MaxUrlFetchRetries);
     private const int DEFAULT_MAX_IMAGE_FETCH_TIME_IN_MILLISECONDS = 1000;
     private static readonly int DEFAULT_MAX_CONCURRENCY = Environment.ProcessorCount;
 }

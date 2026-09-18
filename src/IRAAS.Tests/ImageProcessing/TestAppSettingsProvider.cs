@@ -46,6 +46,35 @@ public class TestAppSettingsProvider : TestBase
         );
         // Arrange
         var json = MakeSettingsWithoutConcurrency(expected);
+        Expect(json)
+            .Not.To.Contain(nameof(IAppSettings.MaxConcurrency));
+        File.WriteAllText(
+            filename,
+            json
+        );
+        // Act
+        var result = AppSettingsProvider.CreateAppSettings();
+        // Assert
+        Expect(result.MaxConcurrency)
+            .To.Equal(Environment.ProcessorCount);
+    }
+
+    [TestCase("appsettings.json")]
+    public void ShouldDefaultMaxConcurrencyToProcessorCountWhenConfiguredLessThan1_(
+        string filename
+    )
+    {
+        var input = GetRandom<IAppSettings>()
+            .With(o => o.MaxConcurrency.Returns(_ => 0));
+        using var tempFolder = new AutoTempFolder();
+        using var _ = new AutoResetter<string>(
+            () => ChDir(tempFolder.Path),
+            prior => ChDir(prior)
+        );
+        // Arrange
+        var json = MakeSettings(input);
+        Expect(json)
+            .To.Contain(nameof(IAppSettings.MaxConcurrency));
         File.WriteAllText(
             filename,
             json
@@ -206,7 +235,7 @@ public class TestAppSettingsProvider : TestBase
     }
 
     [TestFixture]
-    public class AllowingInvalidSslCertificates: TestBase
+    public class AllowingInvalidSslCertificates : TestBase
     {
         [Test]
         public void ShouldDefaultToFalseWhenNotSetInConfig()
