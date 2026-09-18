@@ -14,11 +14,11 @@ using PeanutButter.Utils;
 namespace IRAAS.Tests.Middleware;
 
 [TestFixture]
-public class TestConcurrencyMiddleware: TestBase
+public class TestConcurrencyMiddleware : TestBase
 {
     [TestFixture]
     [Parallelizable(ParallelScope.None)]
-    public class WhenNoConcurrentRequestMatchingQueryString: TestBase
+    public class WhenNoConcurrentRequestMatchingQueryString : TestBase
     {
         [Test]
         public async Task ShouldRunNext()
@@ -28,11 +28,13 @@ public class TestConcurrencyMiddleware: TestBase
             var queryString = "?url=http://foo.bar";
             context.Request.QueryString = new QueryString(queryString);
             var invoked = false;
-            var next = new Func<HttpContext, Task>(ctx =>
-            {
-                invoked = true;
-                return Task.CompletedTask;
-            });
+            var next = new Func<HttpContext, Task>(
+                ctx =>
+                {
+                    invoked = true;
+                    return Task.CompletedTask;
+                }
+            );
 
             var sut = Create();
             // Act
@@ -45,7 +47,7 @@ public class TestConcurrencyMiddleware: TestBase
 
     [TestFixture]
     [Parallelizable(ParallelScope.None)]
-    public class WhenMatchingRequestAlreadyInProgress: TestBase
+    public class WhenMatchingRequestAlreadyInProgress : TestBase
     {
         public static IEnumerable<int> TestRange()
         {
@@ -67,32 +69,38 @@ public class TestConcurrencyMiddleware: TestBase
             var invoked = 0;
             var startBarrier = new Barrier(3);
             var completionBarrier = new Barrier(2);
-            var next1 = new Func<HttpContext, Task>(ctx =>
-            {
-                startBarrier.SignalAndWait();
-                Thread.Sleep(1000);
-                invoked++;
-                completionBarrier.SignalAndWait();
-                return Task.CompletedTask;
-            });
-            var next2 = new Func<HttpContext, Task>(ctx =>
-            {
-                Thread.Sleep(1000);
-                invoked++;
-                completionBarrier.SignalAndWait();
-                return Task.CompletedTask;
-            });
-            var appSettings = CreateAppSettings(1, false);
+            var next1 = new Func<HttpContext, Task>(
+                ctx =>
+                {
+                    startBarrier.SignalAndWait();
+                    Thread.Sleep(1000);
+                    invoked++;
+                    completionBarrier.SignalAndWait();
+                    return Task.CompletedTask;
+                }
+            );
+            var next2 = new Func<HttpContext, Task>(
+                ctx =>
+                {
+                    Thread.Sleep(1000);
+                    invoked++;
+                    completionBarrier.SignalAndWait();
+                    return Task.CompletedTask;
+                }
+            );
+            var appSettings = CreateAppSettings(1, true);
 
             var sut = Create(appSettings);
             // Act
 // #pragma warning disable 4014
             Task.Run(async () => await sut.InvokeAsync(context1, new RequestDelegate(next1)));
-            Task.Run(async () =>
-            {
-                startBarrier.SignalAndWait();
-                await sut.InvokeAsync(context2, new RequestDelegate(next2));
-            });
+            Task.Run(
+                async () =>
+                {
+                    startBarrier.SignalAndWait();
+                    await sut.InvokeAsync(context2, new RequestDelegate(next2));
+                }
+            );
 // #pragma warning restore 4014
 
             var timeout = 10000;
@@ -105,6 +113,72 @@ public class TestConcurrencyMiddleware: TestBase
                 .To.Be.True("Should have completed");
             Expect(invoked)
                 .To.Equal(1);
+        }
+
+        [TestFixture]
+        public class WhenRequestIncludesHeader_CacheControlNoStore
+        {
+            [Test]
+            public void ShouldCallNextForEachRequest()
+            {
+                // Arrange
+                var context1 = new FakeHttpContext();
+                var context2 = new FakeHttpContext();
+                var queryString = "?url=http://foo.bar";
+                context1.Request.QueryString = new QueryString(queryString);
+                context1.Request.Headers.Append("Cache-Control", "no-store");
+                context2.Request.QueryString = new QueryString(queryString);
+                context2.Request.Headers.Append("Cache-Control", "no-store");
+                var invoked = 0;
+                var startBarrier = new Barrier(3);
+                var completionBarrier = new Barrier(3);
+                var next1 = new Func<HttpContext, Task>(
+                    ctx =>
+                    {
+                        startBarrier.SignalAndWait();
+                        Thread.Sleep(1000);
+                        invoked++;
+                        return Task.CompletedTask;
+                    }
+                );
+                var next2 = new Func<HttpContext, Task>(
+                    ctx =>
+                    {
+                        Thread.Sleep(1000);
+                        invoked++;
+                        return Task.CompletedTask;
+                    }
+                );
+                var appSettings = CreateAppSettings(1, true);
+
+                var sut = Create(appSettings);
+                // Act
+// #pragma warning disable 4014
+                Task.Run(async () => { 
+                    await sut.InvokeAsync(context1, new RequestDelegate(next1)); 
+                    completionBarrier.SignalAndWait();
+                });
+                Task.Run(
+                    async () =>
+                    {
+                        startBarrier.SignalAndWait();
+                        await sut.InvokeAsync(context2, new RequestDelegate(next2));
+                        completionBarrier.SignalAndWait();
+                    }
+                );
+// #pragma warning restore 4014
+
+                var timeout = 10000;
+                var started = startBarrier.SignalAndWait(timeout);
+                var completed = completionBarrier.SignalAndWait(timeout);
+                // Assert
+                Expect(started)
+                    .To.Be.True("Should have started");
+                Expect(completed)
+                    .To.Be.True("Should have completed");
+                Expect(invoked)
+                    .To.Equal(2);
+            }
         }
 
         [Test]
@@ -122,30 +196,36 @@ public class TestConcurrencyMiddleware: TestBase
             var invoked = 0;
             var startBarrier = new Barrier(3);
             var completionBarrier = new Barrier(2);
-            var next1 = new Func<HttpContext, Task>(ctx =>
-            {
-                startBarrier.SignalAndWait();
-                Thread.Sleep(1000);
-                invoked++;
-                completionBarrier.SignalAndWait();
-                return Task.CompletedTask;
-            });
-            var next2 = new Func<HttpContext, Task>(ctx =>
-            {
-                Thread.Sleep(1000);
-                invoked++;
-                completionBarrier.SignalAndWait();
-                return Task.CompletedTask;
-            });
+            var next1 = new Func<HttpContext, Task>(
+                ctx =>
+                {
+                    startBarrier.SignalAndWait();
+                    Thread.Sleep(1000);
+                    invoked++;
+                    completionBarrier.SignalAndWait();
+                    return Task.CompletedTask;
+                }
+            );
+            var next2 = new Func<HttpContext, Task>(
+                ctx =>
+                {
+                    Thread.Sleep(1000);
+                    invoked++;
+                    completionBarrier.SignalAndWait();
+                    return Task.CompletedTask;
+                }
+            );
 
             var sut = Create();
             // Act
             Task.Run(() => sut.InvokeAsync(context1, new RequestDelegate(next1)));
-            Task.Run(() =>
-            {
-                startBarrier.SignalAndWait();
-                sut.InvokeAsync(context2, new RequestDelegate(next2));
-            });
+            Task.Run(
+                () =>
+                {
+                    startBarrier.SignalAndWait();
+                    sut.InvokeAsync(context2, new RequestDelegate(next2));
+                }
+            );
 
             var started = startBarrier.SignalAndWait(5000);
             var completed = completionBarrier.SignalAndWait(5000);
@@ -173,31 +253,35 @@ public class TestConcurrencyMiddleware: TestBase
         var requests = GetRandomInt(10, 20);
         var running = false;
         var failed = false;
-        var next = new Func<HttpContext, Task>(ctx =>
-        {
-            Thread.Sleep(GetRandomInt(0, 50));
-            if (running)
+        var next = new Func<HttpContext, Task>(
+            ctx =>
             {
-                failed = true;
-            }
-            else
-            {
-                running = true;
-                Thread.Sleep(GetRandomInt(100, 500));
-                running = false;
-            }
+                Thread.Sleep(GetRandomInt(0, 50));
+                if (running)
+                {
+                    failed = true;
+                }
+                else
+                {
+                    running = true;
+                    Thread.Sleep(GetRandomInt(100, 500));
+                    running = false;
+                }
 
-            return Task.CompletedTask;
-        });
+                return Task.CompletedTask;
+            }
+        );
 
         // Act
         var threads = new List<Thread>();
         for (var i = 0; i < requests; i++)
         {
-            var t = new Thread(() => sut.InvokeAsync(
-                CreateContext(),
-                next.AsRequestDelegate()
-            ));
+            var t = new Thread(
+                () => sut.InvokeAsync(
+                    CreateContext(),
+                    next.AsRequestDelegate()
+                )
+            );
             threads.Add(t);
         }
 
