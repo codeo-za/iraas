@@ -6,7 +6,7 @@
     <!-- don't warn for erronous framework-based "pacckage may not be fully compatible" warnings -->
     <NoWarn>NU1701</NoWarn>
     <IsPublishable>false</IsPublishable>
-    <Configurations>Debug;Release;ReleaseForDocker</Configurations>
+    <Configurations>Debug;Release;ReleaseForDocker;Debug.WebRequest;Release.WebRequest</Configurations>
     <LangVersion>latest</LangVersion>
     <Platforms>AnyCPU</Platforms>
   </PropertyGroup>
@@ -18,21 +18,21 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
-    <PackageReference Include="log4net" Version="2.0.15" />
+    <PackageReference Include="log4net" Version="3.4.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="NExpect" Version="2.0.130" />
     <PackageReference Include="NExpect.Matchers.NSubstitute" Version="2.0.130" />
-    <PackageReference Include="NSubstitute" Version="5.1.0" />
+    <PackageReference Include="NSubstitute" Version="6.2.0" />
     <PackageReference Include="NUnit" Version="4.1.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
-    <PackageReference Include="PeanutButter.JObjectExtensions" Version="3.0.434" />
-    <PackageReference Include="PeanutButter.RandomGenerators" Version="3.0.434" />
-    <PackageReference Include="PeanutButter.SimpleHTTPServer" Version="3.0.434" />
-    <PackageReference Include="PeanutButter.SimpleTcpServer" Version="3.0.434" />
-    <PackageReference Include="PeanutButter.TestUtils.AspNetCore" Version="3.0.434" />
-    <PackageReference Include="PeanutButter.Utils" Version="3.0.434" />
+    <PackageReference Include="PeanutButter.JObjectExtensions" Version="3.0.436" />
+    <PackageReference Include="PeanutButter.RandomGenerators" Version="3.0.436" />
+    <PackageReference Include="PeanutButter.SimpleHTTPServer" Version="3.0.436" />
+    <PackageReference Include="PeanutButter.SimpleTcpServer" Version="3.0.436" />
+    <PackageReference Include="PeanutButter.TestUtils.AspNetCore" Version="3.0.436" />
+    <PackageReference Include="PeanutButter.Utils" Version="3.0.436" />
     <PackageReference Include="Quackers.TestLogger" Version="1.0.24" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
   </ItemGroup>
 
   <ItemGroup>

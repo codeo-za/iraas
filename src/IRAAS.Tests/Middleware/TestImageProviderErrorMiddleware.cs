@@ -12,10 +12,10 @@ using PeanutButter.Utils;
 namespace IRAAS.Tests.Middleware;
 
 [TestFixture]
-public class TestImageProviderErrorMiddleware: TestBase
+public class TestImageProviderErrorMiddleware : TestBase
 {
     [TestFixture]
-    public class WhenNoExceptionThrown: TestBase
+    public class WhenNoExceptionThrown : TestBase
     {
         [Test]
         public async Task ShouldNotInterfereWithTheResponse()
@@ -28,10 +28,7 @@ public class TestImageProviderErrorMiddleware: TestBase
             await sut.InvokeAsync(
                 context,
                 ctx => Task.Run(
-                    () =>
-                    {
-                        ctx.Response.StatusCode = expected;
-                    }
+                    () => { ctx.Response.StatusCode = expected; }
                 )
             );
             // Assert
@@ -41,7 +38,7 @@ public class TestImageProviderErrorMiddleware: TestBase
     }
 
     [TestFixture]
-    public class WhenAnotherExceptionIsThrown: TestBase
+    public class WhenAnotherExceptionIsThrown : TestBase
     {
         [Test]
         public void ShouldNotInterfere()
@@ -71,7 +68,7 @@ public class TestImageProviderErrorMiddleware: TestBase
     }
 
     [TestFixture]
-    public class WhenImageProviderErrorExceptionThrown: TestBase
+    public class WhenImageProviderErrorExceptionThrown : TestBase
     {
         [Test]
         public async Task ShouldSetResultStatusCodeToUpstreamCodeWhenAvailable()
@@ -87,7 +84,7 @@ public class TestImageProviderErrorMiddleware: TestBase
             {
                 { expectedResponseHeader, expectedResponseHeaderValue }
             };
-            var expected = (int) statusCode;
+            var expected = (int)statusCode;
             Expect(context.Response.StatusCode)
                 .Not.To.Equal(expected);
 #pragma warning disable SYSLIB0014
@@ -122,15 +119,14 @@ public class TestImageProviderErrorMiddleware: TestBase
             );
             Expect(body)
                 .To.Contain("Unable to retrieve image")
-                .And.To.Contain(url)
+                .And.To.Contain(new Uri(url).ToString())
                 .And.To.Contain("request headers:")
                 .Then($"{expectedRequestHeader}: {expectedRequestHeaderValue}")
-                .Then($"response status: {(int) statusCode}")
+                .Then($"response status: {(int)statusCode}")
                 .Then("response headers:")
                 .Then($"{expectedResponseHeader}: {expectedResponseHeaderValue}");
         }
     }
-
 
     private static ImageProviderErrorMiddleware Create()
     {

@@ -141,16 +141,18 @@ public class TestImageResizeParameters : TestBase
         public void ShouldBeAbleToSetAndGetValidUriWithPath()
         {
             // Arrange
-            var expected = GetRandomHttpUrlWithPath();
-            var uri = new Uri(expected);
+            var url = GetRandomHttpUrlWithPath();
+            var uri = new Uri(url);
             Expect(uri.AbsolutePath)
                 .Not.To.Be.Null.Or.Whitespace();
             var sut = Create();
+            
             // Act
-            sut.Url = expected;
+            sut.Url = url;
+            
             // Assert
             Expect(sut.Url)
-                .To.Equal(expected);
+                .To.Equal(uri.ToString());
         }
 
         [Test]

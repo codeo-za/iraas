@@ -3,6 +3,7 @@
     "version": "1.0.0",
     "description": "",
     "scripts": {
+        "pretest": "run-s build",
         "test": "zarro test-dotnet",
         "build": "zarro @",
         "build-release": "cross-env BUILD_CONFIGURATION=Release run-s build",
@@ -16,6 +17,7 @@
         "zarro": "cross-env zarro",
         "prestart": "run-s build",
         "start": "cd src/IRAAS/bin/Debug/net8.0 && dotnet IRAAS.dll",
+        "start-dev": "cross-env Settings__AllowInvalidSSLCertificates=true run-s start",
         "start-stress-test-server": "cd src/IRAAS.StressTest.ImageServer/bin/Debug/net7.0 && dotnet IRAAS.StressTest.ImageServer.dll",
         "add-ip-to-security-group": "zarro @",
         "remove-ip-from-security-group": "zarro @",

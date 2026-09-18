@@ -183,7 +183,12 @@ public class TestImageResizer : TestBase
             // Assert
             Expect(result)
                 .Not.To.Be.Null();
-            await Expect(fetcher).To.Have.Received(1).Fetch(url, Arg.Any<IDictionary<string, string>>());
+            await Expect(fetcher)
+                .To.Have.Received(1)
+                .Fetch(
+                    Arg.Is<string>(s => new Uri(s) == new Uri(url)),
+                    Arg.Any<IDictionary<string, string>>()
+                );
             var image = await Image.LoadAsync(result.Stream);
             Expect(image.Metadata.GetFormatMetadata(JpegFormat.Instance).Quality)
                 .To.Equal(85);
@@ -319,8 +324,8 @@ public class TestImageResizer : TestBase
             // -> if width is specified as 400, implies height of 300
             var effectiveWidth = 400;
             var devicePixelRatio = GetRandomDevicePixelRatio();
-            var expectedWidth = (int) Math.Ceiling(effectiveWidth * devicePixelRatio);
-            var expectedHeight = (int) Math.Ceiling(300 * devicePixelRatio);
+            var expectedWidth = (int)Math.Ceiling(effectiveWidth * devicePixelRatio);
+            var expectedHeight = (int)Math.Ceiling(300 * devicePixelRatio);
             // Act
             var result = await sut.Resize(
                 new ImageResizeParameters()
@@ -435,8 +440,8 @@ public class TestImageResizer : TestBase
             // -> if height is specified as 150, implies width of 200
             var effectiveHeight = 150;
             var devicePixelRatio = GetRandomDevicePixelRatio();
-            var expectedWidth = (int) Math.Ceiling(200 * devicePixelRatio);
-            var expectedHeight = (int) Math.Ceiling(effectiveHeight * devicePixelRatio);
+            var expectedWidth = (int)Math.Ceiling(200 * devicePixelRatio);
+            var expectedHeight = (int)Math.Ceiling(effectiveHeight * devicePixelRatio);
             // Act
             var result = await sut.Resize(
                 new ImageResizeParameters()
@@ -838,7 +843,11 @@ public class TestImageResizer : TestBase
         IDictionary<string, string> headers = null
     )
     {
-        return CreateFetcherFor(() => data, url, headers);
+        return CreateFetcherFor(
+            () => data,
+            url,
+            headers
+        );
     }
 
     private static IUrlFetcher CreateFetcherFor(

@@ -7,9 +7,17 @@
     <IsTranformWebConfigDisabled>true</IsTranformWebConfigDisabled>
     <ImplicitUsings>disable</ImplicitUsings>
     <ContainerRepository>iraas</ContainerRepository>
-    <Configurations>Debug;Release;ReleaseForDocker</Configurations>
+    <Configurations>Debug;Release;ReleaseForDocker;Debug.WebRequest;Release.WebRequest</Configurations>
     <Platforms>AnyCPU</Platforms>
     <IsPackable>true</IsPackable>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug.WebRequest'">
+    <DefineConstants>USE_WEBREQUEST;DEBUG</DefineConstants>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)' == 'Release.WebRequest'">
+    <DefineConstants>USE_WEBREQUEST</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'ReleaseForDocker'">
@@ -21,12 +29,12 @@
   <ItemGroup>
     <PackageReference Include="DryIoc.dll" Version="5.4.3" />
     <PackageReference Include="DryIoc.Microsoft.DependencyInjection" Version="6.2.0" />
-    <PackageReference Include="log4net" Version="2.0.15" />
+    <PackageReference Include="log4net" Version="3.4.0" />
     <PackageReference Include="Log4net.Appenders.FluentdAsync" Version="1.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Log4Net.AspNetCore" Version="8.0.0" />
-    <PackageReference Include="PeanutButter.DuckTyping" Version="3.0.434" />
-    <PackageReference Include="PeanutButter.Utils" Version="3.0.434" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
+    <PackageReference Include="PeanutButter.DuckTyping" Version="3.0.436" />
+    <PackageReference Include="PeanutButter.Utils" Version="3.0.436" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
     <PackageReference Include="System.Drawing.Common" Version="8.0.2" />
   </ItemGroup>
 

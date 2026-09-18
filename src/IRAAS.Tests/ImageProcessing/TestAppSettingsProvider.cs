@@ -13,20 +13,6 @@ namespace IRAAS.Tests.ImageProcessing;
 [Parallelizable(ParallelScope.None)]
 public class TestAppSettingsProvider : TestBase
 {
-    [SetUp]
-    public void Setup()
-    {
-        // don't let tests interact
-        AppSettingsProvider.ClearCachedSettings();
-    }
-
-    [OneTimeTearDown]
-    public void Teardown()
-    {
-        // don't poison app settings for anyone else
-        AppSettingsProvider.ClearCachedSettings();
-    }
-
     [TestCase("appsettings.json")]
     public void ShouldLoadFromCWD_(string filename)
     {
@@ -220,7 +206,7 @@ public class TestAppSettingsProvider : TestBase
     }
 
     [TestFixture]
-    public class AllowingInvalidSSLCertificates
+    public class AllowingInvalidSslCertificates: TestBase
     {
         [Test]
         public void ShouldDefaultToFalseWhenNotSetInConfig()
@@ -240,10 +226,10 @@ public class TestAppSettingsProvider : TestBase
                 Path.Combine(tempFolder.Path, "appsettings.json"),
                 json
             );
-            
+
             // Act
             var result = AppSettingsProvider.CreateAppSettings();
-            
+
             // Assert
             Expect(result.AllowInvalidSslCertificates)
                 .To.Be.False();
@@ -268,10 +254,10 @@ public class TestAppSettingsProvider : TestBase
                 Path.Combine(tempFolder.Path, "appsettings.json"),
                 json
             );
-            
+
             // Act
             var result = AppSettingsProvider.CreateAppSettings();
-            
+
             // Assert
             Expect(result.AllowInvalidSslCertificates)
                 .To.Be.True();
@@ -382,7 +368,7 @@ public class TestAppSettingsProvider : TestBase
                       "DomainWhitelist": "{{settings.DomainWhitelist}}",
                       "ShareConcurrentRequests": "{{settings.ShareConcurrentRequests}}",
                       "EnableConnectionKeepAlive": "{{settings.EnableConnectionKeepAlive}}",
-                      "AllowInvalidSSLCertificates": "{{settings.AllowInvalidSslCertificates}}"
+                      "AllowInvalidSSLCertificates": "{{settings.AllowInvalidSslCertificates}}",
                       "LogFolder": "{{settings.LogFolder}}"
                   },
                   "DefaultParameters": {

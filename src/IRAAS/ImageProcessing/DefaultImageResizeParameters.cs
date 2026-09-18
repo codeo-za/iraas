@@ -69,7 +69,7 @@ public class DefaultImageResizeParameters : IDefaultImageResizeParameters
         {
             target[nameof(Echo)] = $"{result.Echo}";
         }
-        
+
 
         Sanitise(result);
         return result;
@@ -94,7 +94,7 @@ public class DefaultImageResizeParameters : IDefaultImageResizeParameters
     /// <returns></returns>
     public static T Sanitise<T>(
         T result
-    ) where T: IImageResizeParameters
+    ) where T : IImageResizeParameters
     {
         if (result.Quality < 1)
         {
@@ -106,7 +106,11 @@ public class DefaultImageResizeParameters : IDefaultImageResizeParameters
             result.Sampler = "Bicubic";
         }
 
-        result.Quantizer ??= "Wu";
+        if (string.IsNullOrWhiteSpace(result.Quantizer))
+        {
+            result.Quantizer = "Wu";
+        }
+
         result.Echo ??= false;
 
         return result;

@@ -760,21 +760,65 @@ public class TestUrlFetcher : TestBase
     }
 
     [TestFixture]
-    public class AllowingInvalidSSLCertificatesForDev
+    public class AllowingInvalidSslCertificatesForDev
     {
-        [Test]
-        [Explicit("requires something already running with a self-signed certificate")]
-        public void ShouldDownloadTheFile()
+        [TestFixture]
+        public class WhenAllowed
         {
-            // Arrange
-            var url = "https://localhost:7263/api/resource/?id=43&ts=1444912007000";
-            var appSettings = Substitute.For<IAppSettings>()
-                .WithDefaultSettings()
-                .WithInvalidSslCertificatesAllowed();
-            var sut = Create();
+            [Test]
+            public async Task ShouldDownloadTheFile()
+            {
+                // Arrange
+                await using var server = await SelfSignedImageServer.Start(
+                    Resources.Data.FluffyCatJpeg
+                );
+                var appSettings = Substitute.For<IAppSettings>()
+                    .WithDefaultSettings()
+                    .WithInvalidSslCertificatesAllowed();
+                var sut = Create(appSettings);
 
-            // Act
-            // Assert
+                // Act
+                var result = await sut.Fetch(
+                    server.ImageUrl,
+                    new Dictionary<string, string>()
+                );
+
+                // Assert
+                Expect(result)
+                    .Not.To.Be.Null();
+                Expect(result.Stream)
+                    .Not.To.Be.Null();
+                var bytes = await result.Stream.ReadAllBytesAsync();
+                Expect(bytes)
+                    .Not.To.Be.Empty();
+            }
+        }
+
+        [TestFixture]
+        public class WhenNotAllowed
+        {
+            [Test]
+            public async Task ShouldThrow()
+            {
+                // Arrange
+                await using var server = await SelfSignedImageServer.Start(
+                    Resources.Data.FluffyCatJpeg
+                );
+                var appSettings = Substitute.For<IAppSettings>()
+                    .WithDefaultSettings()
+                    .WithInvalidSslCertificatesForbidden();
+                var sut = Create(appSettings);
+
+                // Act
+                Expect(
+                    async () => await sut.Fetch(
+                        server.ImageUrl,
+                        new Dictionary<string, string>()
+                    )
+                ).To.Throw();
+
+                // Assert
+            }
         }
     }
 
@@ -811,7 +855,7 @@ public static class AppSettingsExtensions
             // don't enable keep-alive: let test connections close
             .WithConnectionKeepAliveDisabled()
             // allow invalid certs for tests by default
-            .WithInvalidSslCertificatesAllowed();
+            .WithInvalidSslCertificatesForbidden();
     }
 
     public static IAppSettings WithInvalidSslCertificatesAllowed(

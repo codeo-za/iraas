@@ -9,11 +9,13 @@ public class TestBase
     public void SetupBase()
     {
         ImageResizeParameters.ClearDefaults();
+        AppSettingsProvider.ClearCachedSettings();
     }
 
     [TearDown]
     public void TearDownBase()
     {
         ImageResizeParameters.ClearDefaults();
+        AppSettingsProvider.ClearCachedSettings();
     }
 }

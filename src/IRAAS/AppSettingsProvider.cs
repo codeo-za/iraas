@@ -133,10 +133,11 @@ public static class AppSettingsProvider
                 {
                     continue;
                 }
+
                 var sub = LoadSection(config, $"DefaultParameters:{item.Key}");
                 result.RegisterPerFormatDefaultsFor(item.Key, sub);
             }
-            
+
             return result;
         }
         catch (UnDuckableException ex)
@@ -166,10 +167,14 @@ public static class AppSettingsProvider
             .GetProperties()
             .Select(
                 pi => (pi.Name, pi.GetCustomAttributes(true)
-                           .OfType<DefaultSettingAttribute>()
-                           .FirstOrDefault()?.Value)
+                    .OfType<DefaultSettingAttribute>()
+                    .FirstOrDefault()?.Value)
             )
-            .ToDictionary(o => o.Name, o => o.Value, StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(
+                o => o.Name,
+                o => o.Value,
+                StringComparer.OrdinalIgnoreCase
+            );
     }
 
     private static string FindLogLevelFor(
@@ -279,7 +284,7 @@ public static class AppSettingsProvider
         result = default(T);
         try
         {
-            result = (T) Convert.ChangeType(value, typeof(T));
+            result = (T)Convert.ChangeType(value, typeof(T));
             return true;
         }
         catch
@@ -291,7 +296,6 @@ public static class AppSettingsProvider
     private const string SETTING_MAX_CONCURRENCY = "MaxConcurrency";
     private const string SETTING_MAX_IMAGE_FETCH_TIME_IN_MILLISECONDS = "MaxImageFetchTimeInMilliseconds";
     private const string SETTING_LOG_FOLDER = "LogFolder";
-
     private const int DEFAULT_MAX_IMAGE_FETCH_TIME_IN_MILLISECONDS = 1000;
     private static readonly int DEFAULT_MAX_CONCURRENCY = Environment.ProcessorCount;
 }
