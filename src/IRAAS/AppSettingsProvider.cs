@@ -96,6 +96,16 @@ public static class AppSettingsProvider
             var result = merged.FuzzyDuckAs<IAppSettings>(
                 throwOnError: true
             );
+            if (result.AllowInvalidSslCertificates)
+            {
+                Console.WriteLine(
+                    """
+                    ---------------------------------------------------------------
+                    WARNING: invalid ssl certificates allowed for remote image urls
+                    ---------------------------------------------------------------
+                    """);
+            }
+
             return result;
         }
         catch (UnDuckableException ex)

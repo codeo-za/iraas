@@ -854,7 +854,8 @@ public static class AppSettingsExtensions
             .WithTestPageEnabled()
             // don't enable keep-alive: let test connections close
             .WithConnectionKeepAliveDisabled()
-            // allow invalid certs for tests by default
+            // don't allow invalid ssl certs by default
+            // -> mirrors most likely deployed config
             .WithInvalidSslCertificatesForbidden();
     }
 

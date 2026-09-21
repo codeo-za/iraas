@@ -131,7 +131,14 @@ public class ConcurrencyMiddleware : IMiddleware
             return false;
         }
 
-        return cacheControl.ToString() == "no-store";
+        return cacheControl.Any(
+            s => s.Split(',').Any(
+                part => part.Trim().Equals(
+                    "no-store",
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+        );
     }
 
     private async Task PerformFullRequestWith(HttpContext context,
@@ -189,7 +196,11 @@ public class ConcurrencyMiddleware : IMiddleware
         {
             // this request is no longer "current"
             // -> remove from collection
-            CurrentRequests.TryRemove(queryString, out _);
+            if (!cacheProhibited)
+            {
+                CurrentRequests.TryRemove(queryString, out _);
+            }
+
             context.Response.Body = originalBody;
         }
     }

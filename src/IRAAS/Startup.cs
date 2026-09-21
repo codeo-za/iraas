@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using PeanutButter.Utils;
 
 namespace IRAAS;
 
@@ -57,7 +58,10 @@ public class Startup
 
         app.UseRouting();
         app.UseEndpoints(e => e.MapControllers());
-        DumpEnvironmentVariables();
+        if (Environment.GetEnvironmentVariable("DUMP_ENVIRONMENT").AsBoolean())
+        {
+            DumpEnvironmentVariables();
+        }
     }
 
     private void SetupLog4NetWith(

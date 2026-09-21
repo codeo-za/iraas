@@ -581,5 +581,5 @@ public class AppSettings : IAppSettings
     public LogLevel IRAASLogLevel { get; set; }
     public int MaxUrlFetchRetries { get; set; }
     public bool Verbose { get; set; }
-    public bool AllowInvalidSslCertificates { get; }
+    public bool AllowInvalidSslCertificates { get; set; }
 }
