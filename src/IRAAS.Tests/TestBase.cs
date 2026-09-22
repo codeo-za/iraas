@@ -8,14 +8,14 @@ public class TestBase
     [SetUp]
     public void SetupBase()
     {
-        UrlImageResizeParameters.ClearDefaults();
+        ImageUrlResizeParameters.ClearDefaults();
         AppSettingsProvider.ClearCachedSettings();
     }
 
     [TearDown]
     public void TearDownBase()
     {
-        UrlImageResizeParameters.ClearDefaults();
+        ImageUrlResizeParameters.ClearDefaults();
         AppSettingsProvider.ClearCachedSettings();
     }
 }

@@ -90,7 +90,8 @@ public class ConcurrencyMiddleware : IMiddleware
     {
         var queryString = context.Request.QueryString.ToString();
         var completionSource = new TaskCompletionSource<CachedResponse>();
-        var cacheProhibited = HasNoStoreCacheControlHeader(context.Request);
+        var cacheProhibited = HasNoStoreCacheControlHeader(context.Request) ||
+                              context.Request.Method == HttpMethods.Post;
         if (!cacheProhibited)
         {
             // look for an existing current query with the same parameters

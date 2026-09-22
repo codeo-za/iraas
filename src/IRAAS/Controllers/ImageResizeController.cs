@@ -1,3 +1,6 @@
+using System;
+using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using IRAAS.Exceptions;
 using IRAAS.ImageProcessing;
@@ -31,8 +34,8 @@ public class ImageResizeController
 
     [Route("")]
     [HttpGet]
-    public async Task<FileStreamResult> Resize(
-        [FromQuery] UrlImageResizeParameters resizeParameters = null
+    public async Task<FileStreamResult> ResizeByUrl(
+        [FromQuery] ImageUrlResizeParameters resizeParameters = null
     )
     {
         if (!_whitelist.IsAllowed(resizeParameters?.Url))
@@ -51,6 +54,30 @@ public class ImageResizeController
             kvp => headers[kvp.Key] = kvp.Value
         );
 
+        return new FileStreamResult(
+            result.Stream,
+            contentType
+        );
+    }
+
+    // Experimental code ahead!
+    // TODO: add appsetting to enable POST resizing (defaulted false)
+    // TODO: add appsetting to hold a list of tokens which are authorised to POST
+    // TODO: add precursor to block the request if it doesn't contain an auth header
+    //       with a known token
+    [Route("")]
+    [HttpPost]
+    public async Task<FileStreamResult> ResizeByPostData(
+        [FromBody] ImageDataResizeParameters resizeParameters
+    )
+    {
+        ArgumentNullException.ThrowIfNull(resizeParameters);
+        var result = await _imageResizer.Resize(
+            resizeParameters
+        );
+        var contentType = _mimeTypeProvider.DetermineMimeTypeFor(
+            result.Stream
+        );
         return new FileStreamResult(
             result.Stream,
             contentType

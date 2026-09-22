@@ -29,7 +29,7 @@ public interface IImageResizer
     );
 
     Task<StreamAndHeaders> Resize(
-        DataImageResizeParameters resizeParameters
+        ImageDataResizeParameters resizeParameters
     );
 }
 
@@ -57,7 +57,7 @@ public class ImageResizer : IImageResizer
             throw new InvalidProcessingOptionsException($"Url is required (received: {resizeParameters.Url})");
         }
 
-        var timer = new Timer(_appSettings);
+        var timer = CreateTimer();
         using var src = await timer.Time(
             TimingHeaders.Fetch,
             () => _fetcher.Fetch(
@@ -72,7 +72,36 @@ public class ImageResizer : IImageResizer
         );
     }
 
-    private StreamAndHeaders ResizeImage(IActiveImageResizeParameters resizeParameters, Timer timer, StreamAndHeaders src)
+    private Timer CreateTimer()
+    {
+        return new Timer(_appSettings);
+    }
+
+    public Task<StreamAndHeaders> Resize(
+        ImageDataResizeParameters resizeParameters
+    )
+    {
+        var timer = CreateTimer();
+        var src = new StreamAndHeaders(
+            new MemoryStream(
+                resizeParameters.ImageData
+            ),
+            new Dictionary<string, string>()
+        );
+        return Task.FromResult(
+            ResizeImage(
+                resizeParameters,
+                timer,
+                src
+            )
+        );
+    }
+
+    private StreamAndHeaders ResizeImage(
+        IActiveImageResizeParameters resizeParameters,
+        Timer timer,
+        StreamAndHeaders src
+    )
     {
         IImageFormat sourceFormat = null;
         try
@@ -171,11 +200,6 @@ public class ImageResizer : IImageResizer
                 resizeParameters.DumpIf(_appSettings.Verbose)
             )
         );
-    }
-
-    public Task<StreamAndHeaders> Resize(DataImageResizeParameters resizeParameters)
-    {
-        throw new NotImplementedException();
     }
 
     private IResampler DetermineSamplerFor(

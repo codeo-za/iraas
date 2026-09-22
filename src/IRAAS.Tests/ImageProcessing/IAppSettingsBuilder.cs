@@ -17,7 +17,15 @@ public class IAppSettingsBuilder
     {
         return base.WithRandomProps()
             .WithNonZeroConcurrency()
-            .WithValidMaxImageFetchTime();
+            .WithValidMaxImageFetchTime()
+            .WithEmptyPostAuthTokens();
+    }
+
+    public IAppSettingsBuilder WithEmptyPostAuthTokens()
+    {
+        return WithProp(
+            o => o.PostAuthTokens.Returns("")
+        );
     }
 
     public IAppSettingsBuilder WithValidMaxImageFetchTime()

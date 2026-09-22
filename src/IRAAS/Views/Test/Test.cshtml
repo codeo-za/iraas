@@ -213,7 +213,7 @@
 
 <form onsubmit="return false;">
     @{
-        var optionProps = typeof(UrlImageResizeParameters).GetProperties()
+        var optionProps = typeof(ImageUrlResizeParameters).GetProperties()
             .Where(pi => pi.CanWrite);
         @foreach (var prop in optionProps)
         {

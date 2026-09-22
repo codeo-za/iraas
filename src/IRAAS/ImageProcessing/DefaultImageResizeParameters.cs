@@ -110,7 +110,7 @@ public class DefaultImageResizeParameters : IDefaultImageResizeParameters
         {
             result.Quantizer = "Wu";
         }
-
+        
         result.Echo ??= false;
 
         return result;

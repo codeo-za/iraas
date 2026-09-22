@@ -103,7 +103,8 @@ public static class AppSettingsProvider
                     ---------------------------------------------------------------
                     WARNING: invalid ssl certificates allowed for remote image urls
                     ---------------------------------------------------------------
-                    """);
+                    """
+                );
             }
 
             return result;
@@ -200,8 +201,21 @@ public static class AppSettingsProvider
             [SETTING_MAX_CONCURRENCY] = ResolveMaxConcurrency,
             [SETTING_MAX_IMAGE_FETCH_TIME_IN_MILLISECONDS] = ResolveMaxImageFetchTimeInMilliseconds,
             [SETTING_LOG_FOLDER] = ResolveDefaultLogFolder,
-            [SETTING_MAX_URL_FETCH_RETRIES] = ResolveMaxUrlFetchRetries
+            [SETTING_MAX_URL_FETCH_RETRIES] = ResolveMaxUrlFetchRetries,
+            [SETTING_POST_AUTH_TOKENS] = ResolvePostAuthTokens
         };
+
+    private static string ResolvePostAuthTokens(
+        IDictionary<string, string> arg
+    )
+    {
+        return arg.TryGetValue(
+            SETTING_POST_AUTH_TOKENS,
+            out var value
+        )
+            ? value ?? ""
+            : "";
+    }
 
     private static string ResolveDefaultLogFolder(
         IDictionary<string, string> arg
@@ -212,8 +226,8 @@ public static class AppSettingsProvider
         // - we just need to set a value so that duck-typing won't
         //    throw
 
-        return arg.ContainsKey(SETTING_LOG_FOLDER)
-            ? arg[SETTING_LOG_FOLDER]
+        return arg.TryGetValue(SETTING_LOG_FOLDER, out var value)
+            ? value
             : "";
     }
 
@@ -311,6 +325,7 @@ public static class AppSettingsProvider
     }
 
     private const string SETTING_MAX_CONCURRENCY = nameof(IAppSettings.MaxConcurrency);
+    private const string SETTING_POST_AUTH_TOKENS = nameof(IAppSettings.PostAuthTokens);
 
     private const string SETTING_MAX_IMAGE_FETCH_TIME_IN_MILLISECONDS =
         nameof(IAppSettings.MaxImageFetchTimeInMilliseconds);

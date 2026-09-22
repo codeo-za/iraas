@@ -38,7 +38,7 @@ public class TestImageResizeController : TestBase
             // Arrange
             // Act
             Expect(typeof(ImageResizeController))
-                .To.Have.Route(nameof(ImageResizeController.Resize), "");
+                .To.Have.Route(nameof(ImageResizeController.ResizeByUrl), "");
             // Assert
         }
 
@@ -49,12 +49,12 @@ public class TestImageResizeController : TestBase
             var whiteList = Substitute.For<IWhitelist>();
             whiteList.IsAllowed(Arg.Any<string>()).Returns(false);
             var sut = Create(whiteList: whiteList);
-            var options = new UrlImageResizeParameters()
+            var options = new ImageUrlResizeParameters()
             {
                 Url = GetRandomHttpUrl()
             };
             // Act
-            Expect(() => sut.Resize(options))
+            Expect(() => sut.ResizeByUrl(options))
                 .To.Throw<ImageSourceNotAllowedException>()
                 .With.Property(e => e.Url)
                 .Equal.To(options.Url);
@@ -66,12 +66,12 @@ public class TestImageResizeController : TestBase
         {
             // Arrange
             var resizer = Substitute.For<IImageResizer>();
-            resizer.Resize(Arg.Any<UrlImageResizeParameters>(), Arg.Any<IDictionary<string, string>>())
+            resizer.Resize(Arg.Any<ImageUrlResizeParameters>(), Arg.Any<IDictionary<string, string>>())
                 .Returns(new StreamAndHeaders(new MemoryStream(), new Dictionary<string, string>()));
             var sut = Create(resizer);
-            var options = GetRandom<UrlImageResizeParameters>();
+            var options = GetRandom<ImageUrlResizeParameters>();
             // Act
-            await sut.Resize(options);
+            await sut.ResizeByUrl(options);
             // Assert
             await Expect(resizer).To.Have.Received(1)
                 .Resize(
@@ -86,7 +86,7 @@ public class TestImageResizeController : TestBase
             // Arrange
             var resizer = Substitute.For<IImageResizer>();
             resizer.Resize(
-                Arg.Any<UrlImageResizeParameters>(),
+                Arg.Any<ImageUrlResizeParameters>(),
                 Arg.Any<IDictionary<string, string>>()
             ).Returns(new StreamAndHeaders(new MemoryStream(), new Dictionary<string, string>()));
             var headers = new Dictionary<string, string>()
@@ -96,10 +96,10 @@ public class TestImageResizeController : TestBase
             var httpContext = new FakeHttpContext(headers);
             var accessor = Substitute.For<IHttpContextAccessor>();
             accessor.HttpContext.Returns(httpContext);
-            var options = GetRandom<UrlImageResizeParameters>();
+            var options = GetRandom<ImageUrlResizeParameters>();
             var sut = Create(resizer, httpContextAccessor: accessor);
             // Act
-            await sut.Resize(options);
+            await sut.ResizeByUrl(options);
             // Assert
             await Expect(resizer)
                 .To.Have.Received(1)
@@ -118,7 +118,7 @@ public class TestImageResizeController : TestBase
             var resizer = Substitute.For<IImageResizer>();
             var expected = GetRandomBytes(1024);
             var processStream = new MemoryStream(expected);
-            var options = GetRandom<UrlImageResizeParameters>();
+            var options = GetRandom<ImageUrlResizeParameters>();
             resizer.Resize(
                 options,
                 Arg.Any<IDictionary<string, string>>()
@@ -127,7 +127,7 @@ public class TestImageResizeController : TestBase
             );
             var sut = Create(resizer);
             // Act
-            var result = await sut.Resize(options);
+            var result = await sut.ResizeByUrl(options);
             // Assert
             var resultStream = new MemoryStream();
             await result.FileStream.CopyToAsync(resultStream);
@@ -148,7 +148,7 @@ public class TestImageResizeController : TestBase
                 ]
             );
             var resizer = Substitute.For<IImageResizer>();
-            var options = GetRandom<UrlImageResizeParameters>();
+            var options = GetRandom<ImageUrlResizeParameters>();
             var imageStream = new MemoryStream();
             resizer.Resize(options, Arg.Any<IDictionary<string, string>>()).Returns(
                 new StreamAndHeaders(imageStream, new Dictionary<string, string>())
@@ -158,7 +158,7 @@ public class TestImageResizeController : TestBase
                 .Returns(expected);
             var sut = Create(resizer, mimeTypeProvider);
             // Act
-            var result = await sut.Resize(options);
+            var result = await sut.ResizeByUrl(options);
             // Assert
             Expect(result.ContentType)
                 .To.Equal(expected);
@@ -175,7 +175,7 @@ public class TestImageResizeController : TestBase
                 [key] = value
             };
             var resizer = Substitute.For<IImageResizer>();
-            var options = GetRandom<UrlImageResizeParameters>();
+            var options = GetRandom<ImageUrlResizeParameters>();
             var imageStream = new MemoryStream();
             resizer.Resize(
                     options,
@@ -192,7 +192,7 @@ public class TestImageResizeController : TestBase
             accessor.HttpContext.Returns(httpContext);
             var sut = Create(resizer, httpContextAccessor: accessor);
             // Act
-            await sut.Resize(options);
+            await sut.ResizeByUrl(options);
             // Assert
             var responseHeaders = accessor.HttpContext!.Response.Headers.ToDictionary();
             Expect(responseHeaders[key])
@@ -220,15 +220,15 @@ public class TestImageResizeController : TestBase
                 var server = lease.Instance;
                 server.ServeFile($"/{imageName}", imageData, "image/png");
                 var defaults = GetRandom<DefaultImageResizeParameters>();
-                UrlImageResizeParameters.SetDefaults(defaults);
-                var options = new UrlImageResizeParameters()
+                ImageUrlResizeParameters.SetDefaults(defaults);
+                var options = new ImageUrlResizeParameters()
                 {
                     Url = server.GetFullUrlFor($"/{imageName}")
                 };
                 var resizer = Substitute.For<IImageResizer>()
                     .With(
                         o => o.Resize(
-                            Arg.Any<UrlImageResizeParameters>(),
+                            Arg.Any<ImageUrlResizeParameters>(),
                             Arg.Any<IDictionary<string, string>>()
                         ).Returns(_ => expected)
                     );
@@ -240,7 +240,7 @@ public class TestImageResizeController : TestBase
                 var httpContext = HttpContextBuilder.BuildRandom();
                 var accessor = Substitute.For<IHttpContextAccessor>()
                     .For(httpContext);
-                var expectedOptions = new UrlImageResizeParameters();
+                var expectedOptions = new ImageUrlResizeParameters();
                 options.CopyPropertiesTo(expectedOptions);
                 defaults.CopyPropertiesTo(expectedOptions);
                 var expectedHeaders = httpContext.Response.Headers
@@ -256,7 +256,7 @@ public class TestImageResizeController : TestBase
                     httpContextAccessor: accessor
                 );
                 // Act
-                var result = await sut.Resize(options);
+                var result = await sut.ResizeByUrl(options);
                 // Assert
                 await Expect(resizer)
                     .To.Have.Received(1)
@@ -281,7 +281,7 @@ public class TestImageResizeController : TestBase
             IHttpContextAccessor httpContextAccessor = null
         )
         {
-            UrlImageResizeParameters.SetDefaults(null);
+            ImageUrlResizeParameters.SetDefaults(null);
             return new ImageResizeController(
                 resizer ?? Substitute.For<IImageResizer>(),
                 mimeTypeProvider ?? CreateFakeMimeTypeProvider(),

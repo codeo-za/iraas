@@ -336,6 +336,8 @@ public class TestAppSettingsProvider : TestBase
                       "LogFolder": "{{settings.LogFolder}}",
                       "SuppressErrorDiagnostics": "{{settings.SuppressErrorDiagnostics}}",
                       "AllowInvalidSSLCertificates": "{{settings.AllowInvalidSslCertificates}}",
+                      "AllowPostRequests": "{{settings.AllowPostRequests}}",
+                      "PostAuthTokens": "{{settings.PostAuthTokens}}",
                       "Verbose": "{{settings.Verbose}}"
                   },
                   "DefaultParameters": {
@@ -582,4 +584,6 @@ public class AppSettings : IAppSettings
     public int MaxUrlFetchRetries { get; set; }
     public bool Verbose { get; set; }
     public bool AllowInvalidSslCertificates { get; set; }
+    public bool AllowPostRequests { get; set; }
+    public string PostAuthTokens { get; set; }
 }

@@ -52,7 +52,7 @@ public class TestImageResizer : TestBase
             // Act
             Expect(
                 () => sut.Resize(
-                    new UrlImageResizeParameters()
+                    new ImageUrlResizeParameters()
                     {
                         Url = url
                     },
@@ -68,7 +68,7 @@ public class TestImageResizer : TestBase
             // Arrange
             var fetcher = CreateFetcherFor(Resources.Data.FluffyCatJpeg);
             var sut = Create(fetcher);
-            var options = new UrlImageResizeParameters()
+            var options = new ImageUrlResizeParameters()
             {
                 Url = GetRandomHttpUrlWithPath()
             };
@@ -90,7 +90,7 @@ public class TestImageResizer : TestBase
             headers[GetRandomString(10)] = GetRandomString(10);
             headers[GetRandomString(10)] = GetRandomString(10);
             headers[GetRandomString(10)] = GetRandomString(10);
-            var options = new UrlImageResizeParameters()
+            var options = new ImageUrlResizeParameters()
             {
                 Url = GetRandomHttpUrlWithPath()
             };
@@ -122,7 +122,7 @@ public class TestImageResizer : TestBase
                 [GetRandomString(10)] = GetRandomString(10),
                 [GetRandomString(10)] = GetRandomString(10)
             };
-            var options = new UrlImageResizeParameters()
+            var options = new ImageUrlResizeParameters()
             {
                 Url = GetRandomHttpUrlWithPath()
             };
@@ -147,7 +147,7 @@ public class TestImageResizer : TestBase
             // Arrange
             var data = GetRandomBytes(1024, 2048);
             var fetcher = CreateFetcherFor(data);
-            var options = new UrlImageResizeParameters()
+            var options = new ImageUrlResizeParameters()
             {
                 Url = GetRandomHttpUrlWithPath()
             };
@@ -178,7 +178,7 @@ public class TestImageResizer : TestBase
                 var expectedHeight = sourceImage.Height;
                 // Act
                 var result = await sut.Resize(
-                    new UrlImageResizeParameters()
+                    new ImageUrlResizeParameters()
                     {
                         Url = url
                     },
@@ -212,7 +212,7 @@ public class TestImageResizer : TestBase
                 var sut = Create(fetcher);
                 // Act
                 var result = await sut.Resize(
-                    new UrlImageResizeParameters()
+                    new ImageUrlResizeParameters()
                     {
                         Url = url,
                         Quality = expected
@@ -242,7 +242,7 @@ public class TestImageResizer : TestBase
                 var expectedHeight = 300;
                 // Act
                 var result = await sut.Resize(
-                    new UrlImageResizeParameters()
+                    new ImageUrlResizeParameters()
                     {
                         Width = 400,
                         Height = 400,
@@ -272,7 +272,7 @@ public class TestImageResizer : TestBase
                 var expectedHeight = 300;
                 // Act
                 var result = await sut.Resize(
-                    new UrlImageResizeParameters()
+                    new ImageUrlResizeParameters()
                     {
                         Width = 300,
                         Height = 300,
@@ -302,7 +302,7 @@ public class TestImageResizer : TestBase
                 var expectedHeight = 300;
                 // Act
                 var result = await sut.Resize(
-                    new UrlImageResizeParameters()
+                    new ImageUrlResizeParameters()
                     {
                         Width = expectedWidth,
                         Url = url,
@@ -332,7 +332,7 @@ public class TestImageResizer : TestBase
                 var expectedHeight = (int)Math.Ceiling(300 * devicePixelRatio);
                 // Act
                 var result = await sut.Resize(
-                    new UrlImageResizeParameters()
+                    new ImageUrlResizeParameters()
                     {
                         Width = effectiveWidth,
                         DevicePixelRatio = devicePixelRatio,
@@ -378,7 +378,7 @@ public class TestImageResizer : TestBase
                 var expectedHeight = 600;
                 // Act
                 var result = await sut.Resize(
-                    new UrlImageResizeParameters()
+                    new ImageUrlResizeParameters()
                     {
                         Width = effectiveWidth,
                         DevicePixelRatio = devicePixelRatio,
@@ -418,7 +418,7 @@ public class TestImageResizer : TestBase
                 var expectedHeight = 150;
                 // Act
                 var result = await sut.Resize(
-                    new UrlImageResizeParameters()
+                    new ImageUrlResizeParameters()
                     {
                         Height = expectedHeight,
                         Url = url,
@@ -448,7 +448,7 @@ public class TestImageResizer : TestBase
                 var expectedHeight = (int)Math.Ceiling(effectiveHeight * devicePixelRatio);
                 // Act
                 var result = await sut.Resize(
-                    new UrlImageResizeParameters()
+                    new ImageUrlResizeParameters()
                     {
                         Height = effectiveHeight,
                         DevicePixelRatio = devicePixelRatio,
@@ -512,7 +512,7 @@ public class TestImageResizer : TestBase
                 var sut = Create(fetcher);
                 // Act
                 var result = await sut.Resize(
-                    new UrlImageResizeParameters()
+                    new ImageUrlResizeParameters()
                     {
                         Height = 400,
                         Url = url
@@ -537,7 +537,7 @@ public class TestImageResizer : TestBase
                 var fetcher = CreateFetcherFor(Resources.Data.FluffyCatBmp, url);
                 var sut = Create(fetcher);
                 var expected = GetRandomInt(100, 200);
-                var options = new UrlImageResizeParameters()
+                var options = new ImageUrlResizeParameters()
                 {
                     Url = url,
                     Width = expected
@@ -560,7 +560,7 @@ public class TestImageResizer : TestBase
                 var fetcher = CreateFetcherFor(gifMemStream.ToArray(), url);
                 var sut = Create(fetcher);
                 var expected = GetRandomInt(100, 200);
-                var options = new UrlImageResizeParameters()
+                var options = new ImageUrlResizeParameters()
                 {
                     Url = url,
                     Width = expected
@@ -582,7 +582,7 @@ public class TestImageResizer : TestBase
             var url = GetRandomHttpUrlWithPath();
             var fetcher = CreateFetcherFor(Resources.Data.FluffyCatBmp, url);
             var expected = GetRandomInt(100, 200);
-            var options = new UrlImageResizeParameters()
+            var options = new ImageUrlResizeParameters()
             {
                 Width = expected,
                 Format = "BMP",
@@ -626,7 +626,7 @@ public class TestImageResizer : TestBase
                         Substitute.For<ILogger<UrlFetcher>>()
                     );
                     var sut = Create(fetcher);
-                    var options = new UrlImageResizeParameters()
+                    var options = new ImageUrlResizeParameters()
                     {
                         Url = server.GetFullUrlFor(servedPath),
                         Width = 200
@@ -649,18 +649,18 @@ public class TestImageResizer : TestBase
             // Arrange
             var url = GetRandomHttpUrlWithPath();
             var fetcher = CreateFetcherFor(Resources.Data.FluffyCatBmp, url);
-            var opts0 = new UrlImageResizeParameters()
+            var opts0 = new ImageUrlResizeParameters()
             {
                 Width = 200,
                 Url = url
             };
-            var opts1 = new UrlImageResizeParameters()
+            var opts1 = new ImageUrlResizeParameters()
             {
                 Width = 200,
                 Sampler = "bicubic",
                 Url = url
             };
-            var opts2 = new UrlImageResizeParameters()
+            var opts2 = new ImageUrlResizeParameters()
             {
                 Width = 200,
                 Sampler = "box",
@@ -688,20 +688,20 @@ public class TestImageResizer : TestBase
             var url = GetRandomHttpUrlWithPath();
             var fetcher = CreateFetcherFor(Resources.Data.FluffyCatBmp, url);
             var width = 800;
-            var opts0 = new UrlImageResizeParameters()
+            var opts0 = new ImageUrlResizeParameters()
             {
                 Width = width,
                 Url = url,
                 Format = "PNG"
             };
-            var opts1 = new UrlImageResizeParameters()
+            var opts1 = new ImageUrlResizeParameters()
             {
                 Width = width,
                 Quantizer = "wu",
                 Url = url,
                 Format = "PNG"
             };
-            var opts2 = new UrlImageResizeParameters()
+            var opts2 = new ImageUrlResizeParameters()
             {
                 Width = width,
                 Quantizer = "octree",
@@ -752,7 +752,7 @@ public class TestImageResizer : TestBase
                 var sut = Create(fetcher);
                 // Act
                 var result = await sut.Resize(
-                    new UrlImageResizeParameters()
+                    new ImageUrlResizeParameters()
                     {
                         Width = Resources.Images.FluffyCatBmp.Width,
                         Url = GetRandomHttpUrlWithPath(),
@@ -792,7 +792,7 @@ public class TestImageResizer : TestBase
                     Resources.Data.FluffyCatBmp
                 );
                 var sut = Create(fetcher);
-                var options = new UrlImageResizeParameters()
+                var options = new ImageUrlResizeParameters()
                 {
                     Width = Resources.Images.FluffyCatBmp.Width,
                     Url = GetRandomHttpUrlWithPath(),
@@ -818,7 +818,7 @@ public class TestImageResizer : TestBase
             var url = GetRandomHttpUrlWithPath();
             var fetcher = CreateFetcherFor(Resources.Streams.FluffyCatBmp, url);
             var sut = Create(fetcher, appSettings);
-            var options = new UrlImageResizeParameters()
+            var options = new ImageUrlResizeParameters()
             {
                 Url = url
             };

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Text.Json.Serialization;
 using DryIoc;
 using DryIoc.Microsoft.DependencyInjection;
 using IRAAS.Middleware;
@@ -83,7 +84,15 @@ public class Startup
         IServiceCollection services
     )
     {
-        services.AddMvc();
+        services.AddMvc()
+            .AddJsonOptions(
+                opts =>
+                {
+                    opts.JsonSerializerOptions.Converters.Add(
+                        new JsonStringEnumConverter()
+                    );
+                }
+            );
 
         var container = new Container(
             Rules.Default

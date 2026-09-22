@@ -340,7 +340,7 @@ public abstract class ImageResizeParameters : IActiveImageResizeParameters
     private string _format;
 }
 
-public class UrlImageResizeParameters
+public class ImageUrlResizeParameters
     : ImageResizeParameters, IUrlImageResizeParameters
 {
 
