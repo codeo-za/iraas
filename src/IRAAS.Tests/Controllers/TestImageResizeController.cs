@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -30,7 +29,7 @@ public class TestImageResizeController : TestBase
     }
 
     [TestFixture]
-    public class Resize : TestBase
+    public class ResizeByUrl : TestBase
     {
         [Test]
         public void ShouldHaveEmptyRoute()
@@ -39,25 +38,6 @@ public class TestImageResizeController : TestBase
             // Act
             Expect(typeof(ImageResizeController))
                 .To.Have.Route(nameof(ImageResizeController.ResizeByUrl), "");
-            // Assert
-        }
-
-        [Test]
-        public void ShouldThrowImageSourceNotAllowedWhenWhitelistSaysNotAllowed()
-        {
-            // Arrange
-            var whiteList = Substitute.For<IWhitelist>();
-            whiteList.IsAllowed(Arg.Any<string>()).Returns(false);
-            var sut = Create(whiteList: whiteList);
-            var options = new ImageUrlResizeParameters()
-            {
-                Url = GetRandomHttpUrl()
-            };
-            // Act
-            Expect(() => sut.ResizeByUrl(options))
-                .To.Throw<ImageSourceNotAllowedException>()
-                .With.Property(e => e.Url)
-                .Equal.To(options.Url);
             // Assert
         }
 
@@ -218,9 +198,13 @@ public class TestImageResizeController : TestBase
                 );
                 using var lease = TestEnvironment.BorrowHttpServer();
                 var server = lease.Instance;
-                server.ServeFile($"/{imageName}", imageData, "image/png");
+                server.ServeFile(
+                    $"/{imageName}",
+                    imageData,
+                    "image/png"
+                );
                 var defaults = GetRandom<DefaultImageResizeParameters>();
-                ImageUrlResizeParameters.SetDefaults(defaults);
+                ImageResizeParameters.SetDefaults(defaults);
                 var options = new ImageUrlResizeParameters()
                 {
                     Url = server.GetFullUrlFor($"/{imageName}")
@@ -273,44 +257,51 @@ public class TestImageResizeController : TestBase
                     .To.Equal(expectedMimeType);
             }
         }
+    }
 
-        private static ImageResizeController Create(
-            IImageResizer resizer = null,
-            IImageMimeTypeProvider mimeTypeProvider = null,
-            IWhitelist whiteList = null,
-            IHttpContextAccessor httpContextAccessor = null
-        )
-        {
-            ImageUrlResizeParameters.SetDefaults(null);
-            return new ImageResizeController(
-                resizer ?? Substitute.For<IImageResizer>(),
-                mimeTypeProvider ?? CreateFakeMimeTypeProvider(),
-                whiteList ?? CreateAllowingWhitelist(),
-                httpContextAccessor ?? CreateFakeHttpContextAccessor()
-            );
-        }
+    [TestFixture]
+    public class ResizeByImageData
+    {
+    }
 
-        private static IHttpContextAccessor CreateFakeHttpContextAccessor()
-        {
-            var result = Substitute.For<IHttpContextAccessor>();
-            result.HttpContext.Returns(new FakeHttpContext());
-            return result;
-        }
+    private static ImageResizeController Create(
+        IImageResizer resizer = null,
+        IImageMimeTypeProvider mimeTypeProvider = null,
+        IWhitelist whiteList = null,
+        IHttpContextAccessor httpContextAccessor = null,
+        IAppSettings appSettings = null
+    )
+    {
+        ImageResizeParameters.SetDefaults(null);
+        return new ImageResizeController(
+            resizer ?? Substitute.For<IImageResizer>(),
+            mimeTypeProvider ?? CreateFakeMimeTypeProvider(),
+            whiteList ?? CreateAllowingWhitelist(),
+            httpContextAccessor ?? CreateFakeHttpContextAccessor(),
+            appSettings ?? Substitute.For<IAppSettings>()
+        );
+    }
 
-        private static IWhitelist CreateAllowingWhitelist()
-        {
-            var result = Substitute.For<IWhitelist>();
-            result.IsAllowed(Arg.Any<string>())
-                .Returns(true);
-            return result;
-        }
+    private static IHttpContextAccessor CreateFakeHttpContextAccessor()
+    {
+        var result = Substitute.For<IHttpContextAccessor>();
+        result.HttpContext.Returns(new FakeHttpContext());
+        return result;
+    }
 
-        private static IImageMimeTypeProvider CreateFakeMimeTypeProvider()
-        {
-            var result = Substitute.For<IImageMimeTypeProvider>();
-            result.DetermineMimeTypeFor(Arg.Any<Stream>())
-                .Returns("image/jpeg");
-            return result;
-        }
+    private static IWhitelist CreateAllowingWhitelist()
+    {
+        var result = Substitute.For<IWhitelist>();
+        result.IsAllowed(Arg.Any<string>())
+            .Returns(true);
+        return result;
+    }
+
+    private static IImageMimeTypeProvider CreateFakeMimeTypeProvider()
+    {
+        var result = Substitute.For<IImageMimeTypeProvider>();
+        result.DetermineMimeTypeFor(Arg.Any<Stream>())
+            .Returns("image/jpeg");
+        return result;
     }
 }

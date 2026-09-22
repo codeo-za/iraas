@@ -1,8 +1,5 @@
 using System;
-using System.IO;
-using System.Text;
 using System.Threading.Tasks;
-using IRAAS.Exceptions;
 using IRAAS.ImageProcessing;
 using IRAAS.Security;
 using Microsoft.AspNetCore.Http;
@@ -18,18 +15,21 @@ public class ImageResizeController
     private readonly IImageMimeTypeProvider _mimeTypeProvider;
     private readonly IWhitelist _whitelist;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IAppSettings _appSettings;
 
     public ImageResizeController(
         IImageResizer imageResizer,
         IImageMimeTypeProvider mimeTypeProvider,
         IWhitelist whitelist,
-        IHttpContextAccessor httpContextAccessor
+        IHttpContextAccessor httpContextAccessor,
+        IAppSettings appSettings
     )
     {
         _imageResizer = imageResizer;
         _mimeTypeProvider = mimeTypeProvider;
         _whitelist = whitelist;
         _httpContextAccessor = httpContextAccessor;
+        _appSettings = appSettings;
     }
 
     [Route("")]
@@ -38,11 +38,6 @@ public class ImageResizeController
         [FromQuery] ImageUrlResizeParameters resizeParameters = null
     )
     {
-        if (!_whitelist.IsAllowed(resizeParameters?.Url))
-        {
-            throw new ImageSourceNotAllowedException(resizeParameters?.Url);
-        }
-
         var result = await _imageResizer.Resize(
             resizeParameters,
             _httpContextAccessor.HttpContext!.Request.Headers.ToDictionary()
@@ -67,10 +62,11 @@ public class ImageResizeController
     //       with a known token
     [Route("")]
     [HttpPost]
-    public async Task<FileStreamResult> ResizeByPostData(
+    public async Task<FileStreamResult> ResizeByImageData(
         [FromBody] ImageDataResizeParameters resizeParameters
     )
     {
+        VerifyCanAcceptPostRequest();
         ArgumentNullException.ThrowIfNull(resizeParameters);
         var result = await _imageResizer.Resize(
             resizeParameters
@@ -82,5 +78,14 @@ public class ImageResizeController
             result.Stream,
             contentType
         );
+    }
+
+    // Middleware converts NotImplementedExceptions to 404s
+    private void VerifyCanAcceptPostRequest()
+    {
+        if (!_appSettings.AllowPostRequests)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

@@ -146,14 +146,9 @@
                 }
                 var img = change.target;
                 console.log("fetching size of image");
-                fetch("", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        url: img.src
-                    })
+                var params = new URLSearchParams({url: img.src})
+                fetch(`size?${params}`, {
+                    method: "GET"
                 }).then(function (response) {
                     response.json().then(function (data) {
                         $$("#" + img.id + "-size").innerText = data + " bytes";
@@ -184,10 +179,10 @@
             fieldset.classList.add("no-border");
         }
     }
-    
+
     document.addEventListener("DOMContentLoaded", () => {
         $$("#iraas-configuration").addEventListener(
-            "click", 
+            "click",
             toggleConfigurationVisibility
         );
     });

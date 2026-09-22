@@ -56,6 +56,7 @@ public class Startup
         app.UseMiddleware<ImageProviderErrorMiddleware>();
         app.UseMiddleware<RedirectTimedOutRequestsMiddleware>();
         app.UseMiddleware<NotModifiedExceptionMiddleware>();
+        app.UseMiddleware<AuthorizationMiddleware>();
 
         app.UseRouting();
         app.UseEndpoints(e => e.MapControllers());

@@ -32,8 +32,8 @@
     <PackageReference Include="log4net" Version="3.4.0" />
     <PackageReference Include="Log4net.Appenders.FluentdAsync" Version="1.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Log4Net.AspNetCore" Version="8.0.0" />
-    <PackageReference Include="PeanutButter.DuckTyping" Version="3.0.436" />
-    <PackageReference Include="PeanutButter.Utils" Version="3.0.436" />
+    <PackageReference Include="PeanutButter.DuckTyping" Version="3.0.439" />
+    <PackageReference Include="PeanutButter.Utils" Version="3.0.439" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
     <PackageReference Include="System.Drawing.Common" Version="8.0.2" />
   </ItemGroup>
