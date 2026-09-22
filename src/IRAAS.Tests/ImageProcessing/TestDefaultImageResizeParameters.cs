@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using IRAAS.ImageProcessing;
+using NSubstitute;
 using NUnit.Framework;
 using PeanutButter.DuckTyping.Extensions;
+using PeanutButter.RandomGenerators;
 using PeanutButter.Utils;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -81,7 +83,7 @@ public class TestDefaultImageResizeParameters : TestBase
 
         // Act
         var result = DefaultImageResizeParameters.From(defaults);
-        
+
         // Assert
         Expect(result.Quantizer)
             .To.Equal(expected);
@@ -96,10 +98,10 @@ public class TestDefaultImageResizeParameters : TestBase
         defaults.Remove(nameof(DefaultImageResizeParameters.Echo));
         Expect(defaults.TryGetValue(nameof(DefaultImageResizeParameters.Echo), out _))
             .To.Be.False();
-        
+
         // Act
         var result = DefaultImageResizeParameters.From(defaults);
-        
+
         // Assert
         Expect(result.Echo)
             .To.Be.False();
@@ -187,5 +189,29 @@ public class TestDefaultImageResizeParameters : TestBase
             ["Echo"] = $"{expected.Echo}"
         };
         return defaults;
+    }
+}
+
+public class ImageResizeParametersBuilder : GenericBuilder<ImageResizeParametersBuilder, IImageResizeParameters>
+{
+    public override IImageResizeParameters ConstructEntity()
+    {
+        return Substitute.For<IImageResizeParameters>();
+    }
+
+    public override ImageResizeParametersBuilder WithRandomProps()
+    {
+        return base.WithRandomProps()
+            .WithValidQuality();
+    }
+
+    public ImageResizeParametersBuilder WithValidQuality()
+    {
+        return WithProp(
+            // when quality is < 1, the underlying
+            // logic will default to 85, causing tests
+            // to flap
+            o => o.Quality = GetRandomInt(40, 90)
+        );
     }
 }

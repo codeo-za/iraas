@@ -32,7 +32,7 @@ public class ImageResizeController
     [Route("")]
     [HttpGet]
     public async Task<FileStreamResult> Resize(
-        [FromQuery] ImageResizeParameters resizeParameters = null
+        [FromQuery] UrlImageResizeParameters resizeParameters = null
     )
     {
         if (!_whitelist.IsAllowed(resizeParameters?.Url))

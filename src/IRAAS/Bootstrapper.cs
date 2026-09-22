@@ -22,7 +22,7 @@ public class Bootstrapper
         container.RegisterInstance<IAppSettings>(AppSettingsProvider.CreateAppSettings());
         var defaults = AppSettingsProvider.CreateDefaultParameters();
         container.RegisterInstance<IDefaultImageResizeParameters>(defaults);
-        ImageResizeParameters.SetDefaults(defaults);
+        UrlImageResizeParameters.SetDefaults(defaults);
         
 
         container.RegisterAllMiddlewareSingleton();
