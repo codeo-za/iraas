@@ -15,6 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".config", ".config", "{5FEB
 	ProjectSection(SolutionItems) = preProject
 		..\.zarro-defaults = ..\.zarro-defaults
 		..\package.json = ..\package.json
+		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{93FEC7FE-990B-4539-AA21-0ADF681732AA}"

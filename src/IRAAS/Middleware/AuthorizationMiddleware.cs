@@ -57,11 +57,11 @@ public class AuthorizationMiddleware : IMiddleware
         {
             return;
         }
-        
+
         VerifyHaveValidUrlParameter(context.Request);
     }
 
-    private bool VerifyHaveValidUrlParameter(
+    private void VerifyHaveValidUrlParameter(
         HttpRequest req
     )
     {
@@ -84,8 +84,6 @@ public class AuthorizationMiddleware : IMiddleware
         {
             throw new ImageSourceNotAllowedException(requestedImageUrl);
         }
-
-        return true;
     }
 
     private static bool IsInvalidUrl(
@@ -100,46 +98,28 @@ public class AuthorizationMiddleware : IMiddleware
     }
 
     private bool IsAllowedTestPageRequest(
-        HttpRequest contextRequest
-    )
-    {
-        if (IsTestPagePath(contextRequest.Path))
-        {
-            return _appSettings.EnableTestPage
-                ? true
-                : throw new NotImplementedException();
-        }
-
-        if (IsValidSizeRequest(contextRequest))
-        {
-            if (!_appSettings.EnableTestPage)
-            {
-                throw new NotImplementedException();
-            }
-
-            return _appSettings.EnableTestPage
-                ? VerifyHaveValidUrlParameter(contextRequest)
-                : throw new NotImplementedException();
-        }
-
-        return false;
-    }
-
-    private bool IsValidSizeRequest(
         HttpRequest req
     )
     {
-        if (!"/size".Equals(req.Path, StringComparison.OrdinalIgnoreCase))
+        var isSizePath = Routes.HasSizeEndpointPath(req);
+        var isTestPath = Routes.HasTestPagePath(req);
+
+        if (!isSizePath && !isTestPath)
         {
             return false;
         }
 
-        return true;
-    }
+        if (!_appSettings.EnableTestPage)
+        {
+            throw new NotImplementedException();
+        }
 
-    private bool IsTestPagePath(string path)
-    {
-        return "/test".Equals(path, StringComparison.OrdinalIgnoreCase);
+        if (isSizePath)
+        {
+            VerifyHaveValidUrlParameter(req);
+        }
+
+        return true;
     }
 
     private void VerifyPostRequestAllowed(

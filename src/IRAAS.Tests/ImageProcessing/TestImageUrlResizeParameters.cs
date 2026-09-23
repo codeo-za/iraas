@@ -1,12 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using IRAAS.ImageProcessing;
-using NSubstitute;
 using NUnit.Framework;
 using PeanutButter.Utils;
 using PeanutButter.Utils.Dictionaries;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -102,7 +99,7 @@ public class TestImageUrlResizeParameters : TestBase
             Expect(result)
                 .To.Equal(85);
             Expect(result)
-                .To.Equal(ImageUrlResizeParameters.DEFAULT_QUALITY);
+                .To.Equal(ImageResizeParameters.DEFAULT_QUALITY);
         }
 
         [Test]
@@ -146,10 +143,10 @@ public class TestImageUrlResizeParameters : TestBase
             Expect(uri.AbsolutePath)
                 .Not.To.Be.Null.Or.Whitespace();
             var sut = Create();
-            
+
             // Act
             sut.Url = url;
-            
+
             // Assert
             Expect(sut.Url)
                 .To.Equal(uri.ToString());
@@ -315,7 +312,7 @@ public class TestImageUrlResizeParameters : TestBase
         public class WhenSamplerNotSet
         {
             [TestFixture]
-            public class AndHaveNoPerFormatDefaults
+            public class AndHaveNoPerFormatDefaults : TestBase
             {
                 [Test]
                 public void ShouldSetDefaultSampler()
@@ -323,14 +320,11 @@ public class TestImageUrlResizeParameters : TestBase
                     // Arrange
                     var defaults = GetRandom<IDefaultImageResizeParameters>()
                         .With(o => o.Sampler = GetRandomString());
-                    using var _ = AutoResetter.Create(
-                        () => ImageUrlResizeParameters.SetDefaults(defaults),
-                        ImageUrlResizeParameters.ClearDefaults
-                    );
+                    ImageResizeParameters.SetDefaults(defaults);
                     var options = GetRandom<ImageUrlResizeParameters>()
                         .With(o => o.Sampler = null);
                     // Act
-                    options.ApplyDefaultsFor(GetRandomFrom(["jpg", "png", "bmp", "gif"]));
+                    options.ApplyDefaultsFor(GetRandomFrom([ "jpg", "png", "bmp", "gif" ]));
                     // Assert
                     Expect(options.Sampler)
                         .To.Equal(defaults.Sampler);
@@ -338,7 +332,7 @@ public class TestImageUrlResizeParameters : TestBase
             }
 
             [TestFixture]
-            public class AndHavePerFormatDefaults
+            public class AndHavePerFormatDefaults : TestBase
             {
                 [Test]
                 public void ShouldSetDefaultForFormat()
@@ -348,7 +342,7 @@ public class TestImageUrlResizeParameters : TestBase
                         .With(o => o.Sampler = "default sampler");
                     var formatDefaults = GetRandom<IDefaultImageResizeParameters>()
                         .With(o => o.Sampler = "format sampler");
-                    var inputFormat = GetRandomFrom(["jpg", "png", "bmp", "gif"]);
+                    var inputFormat = GetRandomFrom([ "jpg", "png", "bmp", "gif" ]);
                     var formatDefaultProps = new DictionaryWrappingObject(formatDefaults)
                         .ToArray()
                         .ToDictionary(kvp => kvp.Key, kvp => $"{kvp.Value}");
@@ -356,10 +350,7 @@ public class TestImageUrlResizeParameters : TestBase
                         inputFormat,
                         formatDefaultProps
                     );
-                    using var _ = AutoResetter.Create(
-                        () => ImageUrlResizeParameters.SetDefaults(defaults),
-                        ImageUrlResizeParameters.ClearDefaults
-                    );
+                    ImageResizeParameters.SetDefaults(defaults);
                     var options = GetRandom<ImageUrlResizeParameters>()
                         .With(o => o.Sampler = null);
                     Expect(options.Sampler)

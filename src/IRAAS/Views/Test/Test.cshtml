@@ -1,5 +1,6 @@
 @using IRAAS
 @using IRAAS.ImageProcessing
+@using IRAAS.Middleware
 @addTagHelper "*, Microsoft.AspNet.Mvc.TagHelpers"
 @addTagHelper "*, IRAAS"
 @model IRAAS.IAppSettings
@@ -64,7 +65,7 @@
 </style>
 <script type="text/javascript">
     function $$(selector, src) {
-        var result = Array.from((src || document).querySelectorAll(selector));
+        const result = Array.from((src || document).querySelectorAll(selector));
         switch (result.length) {
             case 0:
                 return null;
@@ -76,7 +77,7 @@
     }
 
     function update() {
-        var originalUrl = $$("#url").value;
+        const originalUrl = $$("#url").value;
         if (!originalUrl) {
             alert("please paste in an image url first!");
             $$("#url").focus();
@@ -84,9 +85,9 @@
         }
         console.log("fetch for", originalUrl);
 
-        var form = $$("form");
-        var inputs = $$("input,select", form);
-        var params = inputs.reduce(function (acc, cur) {
+        const form = $$("form");
+        const inputs = $$("input,select", form);
+        const params = inputs.reduce(function (acc, cur) {
             if (cur.type === "checkbox") {
                 if (cur.checked) {
                     acc.push({
@@ -105,7 +106,7 @@
             return acc;
         }, []);
 
-        var url = [
+        const url = [
             window.location.protocol,
             "//",
             window.location.host,
@@ -139,15 +140,15 @@
 
     function watch() {
         console.log("watching...");
-        var observer = new MutationObserver(function (changes) {
+        const observer = new MutationObserver(function (changes) {
             changes.forEach(function (change) {
                 if (change.type !== "attributes" || change.attributeName !== "src") {
                     return;
                 }
-                var img = change.target;
+                const img = change.target;
                 console.log("fetching size of image");
-                var params = new URLSearchParams({url: img.src})
-                fetch(`size?${params}`, {
+                const params = new URLSearchParams({url: img.src});
+                fetch(`@(Routes.SIZE)?${params}`, {
                     method: "GET"
                 }).then(function (response) {
                     response.json().then(function (data) {
@@ -168,8 +169,8 @@
     }
 
     function toggleConfigurationVisibility() {
-        var table = $$("#configuration-table");
-        var fieldset = $$("#configuration-fieldset");
+        const table = $$("#configuration-table");
+        const fieldset = $$("#configuration-fieldset");
         if (table.classList.contains("hidden")) {
             table.classList.remove("hidden");
             fieldset.classList.remove("no-border");

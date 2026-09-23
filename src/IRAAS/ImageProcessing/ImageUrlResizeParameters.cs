@@ -43,11 +43,6 @@ public interface IActiveImageResizeParameters: IImageResizeParameters
 
 public abstract class ImageResizeParameters : IActiveImageResizeParameters
 {
-    public static void ClearDefaults()
-    {
-        SetDefaults(null);
-    }
-
     public static void SetDefaults(
         IDefaultImageResizeParameters parameters
     )

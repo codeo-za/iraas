@@ -86,5 +86,6 @@ public interface IAppSettings
     [DefaultSetting(FALSE)]
     bool AllowPostRequests { get; }
     
+    [DefaultSetting("")]
     string PostAuthTokens { get; }
 }

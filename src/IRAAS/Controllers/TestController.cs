@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using IRAAS.ImageProcessing;
+using IRAAS.Middleware;
 using Microsoft.AspNetCore.Mvc;
 
 namespace IRAAS.Controllers;
@@ -20,14 +21,14 @@ public class TestController : Controller
     }
 
     [ResponseCache(NoStore = true)]
-    [Route("test")]
+    [Route(Routes.TEST)]
     [HttpGet]
     public ActionResult Test()
     {
         return View(_settings);
     }
 
-    [Route("size")]
+    [Route(Routes.SIZE)]
     [HttpGet]
     public async Task<long> FileSize([FromQuery] string url)
     {

@@ -5,13 +5,16 @@ using IRAAS.Logging;
 using IRAAS.Security;
 using Microsoft.AspNetCore.Http;
 using PeanutButter.Utils;
-// ReSharper disable RedundantTypeArgumentsOfMethod
 
+// ReSharper disable RedundantTypeArgumentsOfMethod
 namespace IRAAS;
 
 public class Bootstrapper
 {
-    public void Bootstrap(IContainer container)
+    public void Bootstrap(
+        IContainer container,
+        IAppSettings appSettings
+    )
     {
         container
             .RegisterSingleton<IImageResizer, ImageResizer>()
@@ -19,11 +22,11 @@ public class Bootstrapper
             .RegisterSingleton<IUrlFetcher, UrlFetcher>()
             .RegisterSingleton<IWhitelist, Whitelist>()
             .RegisterSingleton<ILogMessageGenerator, LogMessageGenerator>();
-        container.RegisterInstance<IAppSettings>(AppSettingsProvider.CreateAppSettings());
+        container.RegisterInstance<IAppSettings>(appSettings);
         var defaults = AppSettingsProvider.CreateDefaultParameters();
         container.RegisterInstance<IDefaultImageResizeParameters>(defaults);
-        ImageUrlResizeParameters.SetDefaults(defaults);
-        
+        ImageResizeParameters.SetDefaults(defaults);
+
 
         container.RegisterAllMiddlewareSingleton();
         container.Register<IHttpContextAccessor, HttpContextAccessor>();

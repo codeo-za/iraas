@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.MemoryMappedFiles;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using IRAAS.Controllers;
@@ -78,7 +78,6 @@ public class TestTestController : TestBase
         }
 
         [Test]
-        [Ignore("WIP: fixing an issue in PB where request objects are being clobbered")]
         public async Task ShouldFetchUsingUrlFetcher()
         {
             // Arrange
@@ -102,14 +101,19 @@ public class TestTestController : TestBase
                 .WithRandomUrl()
                 .WithHeaders(headers)
                 .Build();
-            var ctx = ControllerContextBuilder.Create()
+            var httpContext = HttpContextBuilder.Create()
                 .WithRequest(req)
+                .Build();
+            var ctx = ControllerContextBuilder.Create()
+                .WithHttpContext(httpContext)
                 .Build();
             var sut = Create(
                 Substitute.For<IAppSettings>(),
                 fetcher,
                 ctx
             );
+            Expect(ctx.HttpContext.Request.Headers.ToDictionary())
+                .To.Contain.All.Of(headers);
             Expect(sut.Request)
                 .To.Be(ctx.HttpContext.Request);
 
@@ -127,7 +131,7 @@ public class TestTestController : TestBase
                         s => s.Equals(url, StringComparison.OrdinalIgnoreCase)
                     ),
                     Arg.Is<Dictionary<string, string>>(
-                        o => o.DeepEquals(headers)
+                        o => o.ContainsAllOf(headers.ToArray())
                     )
                 );
         }

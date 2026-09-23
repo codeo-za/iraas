@@ -125,8 +125,8 @@ public class ConcurrencyMiddleware : IMiddleware
 
     private bool HasTestPagePath(HttpRequest req)
     {
-        return "/test".Equals(req.Path, StringComparison.OrdinalIgnoreCase) ||
-               "/size".Equals(req.Path, StringComparison.OrdinalIgnoreCase);
+        return Routes.HasTestPagePath(req) ||
+               Routes.HasSizeEndpointPath(req);
     }
 
     private bool HasNoStoreCacheControlHeader(

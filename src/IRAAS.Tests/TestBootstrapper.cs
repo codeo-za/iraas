@@ -5,6 +5,7 @@ using IRAAS.ImageProcessing;
 using IRAAS.Logging;
 using IRAAS.Middleware;
 using IRAAS.Security;
+using IRAAS.Tests.ImageProcessing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -14,7 +15,7 @@ using NSubstitute;
 namespace IRAAS.Tests;
 
 [TestFixture]
-public class TestBootstrapper: TestBase
+public class TestBootstrapper : TestBase
 {
     [TestCase(typeof(IImageResizer), typeof(ImageResizer))]
     [TestCase(typeof(IImageMimeTypeProvider), typeof(ImageMimeTypeProvider))]
@@ -28,7 +29,11 @@ public class TestBootstrapper: TestBase
         // Arrange
         var container = new Container();
         var sut = Create();
-        sut.Bootstrap(container);
+        sut.Bootstrap(
+            container,
+            Substitute.For<IAppSettings>()
+                .WithDefaultSettings()
+        );
         SetupLoggersOn(container);
         // Act
         var result1 = container.Resolve(serviceType);
@@ -47,7 +52,10 @@ public class TestBootstrapper: TestBase
         var container = new Container();
         var sut = Create();
         // Act
-        sut.Bootstrap(container);
+        sut.Bootstrap(
+            container,
+            Substitute.For<IAppSettings>()
+        );
         // Assert
         Expect(() => container.Resolve<IAppSettings>())
             .Not.To.Throw();
@@ -69,7 +77,10 @@ public class TestBootstrapper: TestBase
         var container = new Container();
         var sut = Create();
         // Act
-        sut.Bootstrap(container);
+        sut.Bootstrap(
+            container,
+            Substitute.For<IAppSettings>()
+        );
         var result = container.Resolve(middlewareType);
         // Assert
         Expect(result)
@@ -88,7 +99,10 @@ public class TestBootstrapper: TestBase
         object fourth;
         var sut = Create();
         // Act
-        sut.Bootstrap(container);
+        sut.Bootstrap(
+            container,
+            Substitute.For<IAppSettings>()
+        );
         using (var scope = container.CreateScope())
         {
             first = scope.ServiceProvider.GetService(serviceType);
@@ -134,15 +148,32 @@ public class TestBootstrapper: TestBase
     public void ShouldSetImageResizeParameterDefaults()
     {
         // Arrange
-        ImageUrlResizeParameters.SetDefaults(null);
-        Expect(ImageUrlResizeParameters.Defaults)
+        ImageResizeParameters.SetDefaults(null);
+        Expect(ImageResizeParameters.Defaults)
             .To.Be.Null();
         var sut = Create();
         // Act
-        sut.Bootstrap(new Container());
+        sut.Bootstrap(new Container(), Substitute.For<IAppSettings>());
         // Assert
-        Expect(ImageUrlResizeParameters.Defaults)
+        Expect(ImageResizeParameters.Defaults)
             .Not.To.Be.Null();
+    }
+
+    [Test]
+    public void ShouldRegisterProvidedAppSettings()
+    {
+        // Arrange
+        var sut = Create();
+        var container = new Container();
+        var appSettings = Substitute.For<IAppSettings>()
+            .WithDefaultSettings();
+        
+        // Act
+        sut.Bootstrap(container, appSettings);
+        
+        // Assert
+        Expect(container.Resolve<IAppSettings>())
+            .To.Be(appSettings);
     }
 
     private Bootstrapper Create()
@@ -153,7 +184,8 @@ public class TestBootstrapper: TestBase
     private void SetupLoggersOn(Container container)
     {
         // asp.net will set up logging -- we have to fake it here
-        container.RegisterInstance<ILogger<UrlFetcher>>(
-            Substitute.For<ILogger<UrlFetcher>>());
+        container.RegisterInstance(
+            Substitute.For<ILogger<UrlFetcher>>()
+        );
     }
 }

@@ -17,34 +17,30 @@ public static class AppSettingsProvider
 {
     public const string BASE_CONFIG = "appsettings.json";
     public const string DEPLOY_CONFIG = "appsettings.deploy.json";
+    
+    private static IConfigurationRoot _cachedConfig;
 
     public static IAppSettings CreateAppSettings()
     {
-        return _cachedSettings ??= GenerateSettingsFrom(
-            _cachedConfig ??= CreateConfig()
+        return GenerateSettingsFrom(
+            CreateConfig()
         );
     }
 
     public static IDefaultImageResizeParameters CreateDefaultParameters()
     {
-        return _cachedDefaultParameters ??= GenerateParametersFrom(
-            _cachedConfig ??= CreateConfig()
+        return GenerateParametersFrom(
+            CreateConfig()
         );
     }
 
-    public static void ClearCachedSettings()
-    {
-        _cachedSettings = null;
-        _cachedConfig = null;
-        _cachedDefaultParameters = null;
-    }
-
-    private static IAppSettings _cachedSettings;
-    private static IDefaultImageResizeParameters _cachedDefaultParameters;
-    private static IConfigurationRoot _cachedConfig;
-
     public static IConfigurationRoot CreateConfig()
     {
+        if (_cachedConfig is not null)
+        {
+            return _cachedConfig;
+        }
+
         var builder = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile(BASE_CONFIG);
@@ -55,7 +51,7 @@ public static class AppSettingsProvider
 
         builder.AddEnvironmentVariables();
 
-        return builder.Build();
+        return _cachedConfig = builder.Build();
     }
 
     private static bool CanLoad(string deployConfig)

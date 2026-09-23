@@ -27,6 +27,8 @@ public class TestAuthorizationMiddleware
             {
                 [TestCase("/test")]
                 [TestCase("/size")]
+                [TestCase("/test/")]
+                [TestCase("/size/")]
                 public void ShouldThrowNotImplemented(
                     string requestPath
                 )
@@ -216,8 +218,7 @@ public class TestAuthorizationMiddleware
                     .Build();
                 var whitelist = CreateAllowingWhitelist();
                 var appSettings = Substitute.For<IAppSettings>()
-                    .WithDefaultSettings()
-                    .WithTestPageEnabled();
+                    .WithDefaultSettings();
                 var sut = Create(
                     appSettings,
                     whitelist
@@ -254,8 +255,7 @@ public class TestAuthorizationMiddleware
                     .Build();
                 var whitelist = CreateDisallowingWhitelist();
                 var appSettings = Substitute.For<IAppSettings>()
-                    .WithDefaultSettings()
-                    .WithTestPageEnabled();
+                    .WithDefaultSettings();
                 var sut = Create(
                     appSettings,
                     whitelist
@@ -293,8 +293,7 @@ public class TestAuthorizationMiddleware
                     .Build();
                 var whitelist = CreateDisallowingWhitelist();
                 var appSettings = Substitute.For<IAppSettings>()
-                    .WithDefaultSettings()
-                    .WithTestPageEnabled();
+                    .WithDefaultSettings();
                 var sut = Create(
                     appSettings,
                     whitelist

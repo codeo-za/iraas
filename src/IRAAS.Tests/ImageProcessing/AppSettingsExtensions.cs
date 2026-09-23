@@ -18,8 +18,7 @@ public static class AppSettingsExtensions
             .WithMaxUrlFetchRetries(0)
             // don't block anything by default
             .WithDomainWhitelist("*")
-            // enable the test page for testing
-            .WithTestPageEnabled()
+            .WithTestPageDisabled()
             // don't enable keep-alive: let test connections close
             .WithConnectionKeepAliveDisabled()
             // don't allow invalid ssl certs by default
