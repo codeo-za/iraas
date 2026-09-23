@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using IRAAS.Exceptions;
 using IRAAS.Middleware;
 using IRAAS.Security;
+using IRAAS.Tests.ImageProcessing;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
 using NUnit.Framework;
@@ -35,13 +37,14 @@ public class TestAuthorizationMiddleware
                         .WithContext(
                             HttpContextBuilder.Create()
                                 .WithRequestMethod(HttpMethods.Get)
-                                .WithRequestMutator(req => { req.Path = requestPath; })
+                                .WithRequestPath(requestPath)
+                                .WithRequestQueryParameter("url", GetRandomHttpsUrlWithPath())
                                 .Build()
                         ).WithDelegateLogic(c => captured = c)
                         .Build();
                     var whitelist = CreateAllowingWhitelist();
                     var appSettings = Substitute.For<IAppSettings>()
-                        .With(o => o.EnableTestPage.Returns(false));
+                        .WithTestPageDisabled();
                     var sut = Create(appSettings, whitelist);
 
                     // Act
@@ -52,14 +55,48 @@ public class TestAuthorizationMiddleware
                     Expect(captured)
                         .To.Be(null);
                 }
+
+                [TestFixture]
+                public class AndIsGivenInvalidUrl
+                {
+                    [TestCase("/test")]
+                    [TestCase("/size")]
+                    public void ShouldThrowNotImplemented(
+                        string requestPath
+                    )
+                    {
+                        // Arrange
+                        HttpContext captured = null;
+                        var (ctx, next) = RequestDelegateTestArenaBuilder.Create()
+                            .WithContext(
+                                HttpContextBuilder.Create()
+                                    .WithRequestMethod(HttpMethods.Get)
+                                    .WithRequestPath(requestPath)
+                                    .WithRequestQueryParameter("url", "not a valid url")
+                                    .Build()
+                            ).WithDelegateLogic(c => captured = c)
+                            .Build();
+                        var whitelist = CreateAllowingWhitelist();
+                        var appSettings = Substitute.For<IAppSettings>()
+                            .WithTestPageDisabled();
+                        var sut = Create(appSettings, whitelist);
+
+                        // Act
+                        Expect(async () => await sut.InvokeAsync(ctx, next))
+                            .To.Throw<NotImplementedException>();
+
+                        // Assert
+                        Expect(captured)
+                            .To.Be(null);
+                    }
+                }
             }
 
             [TestFixture]
             public class WhenTestViewEnabled
             {
                 [TestCase("/test")]
-                [TestCase("/size")]
-                public void ShouldContinue(
+                public void ShouldContinueToTestPage(
                     string requestPath
                 )
                 {
@@ -69,13 +106,14 @@ public class TestAuthorizationMiddleware
                         .WithContext(
                             HttpContextBuilder.Create()
                                 .WithRequestMethod(HttpMethods.Get)
-                                .WithRequestMutator(req => { req.Path = requestPath; })
+                                .WithRequestPath(requestPath)
                                 .Build()
                         ).WithDelegateLogic(c => captured = c)
                         .Build();
                     var whitelist = CreateAllowingWhitelist();
                     var appSettings = Substitute.For<IAppSettings>()
-                        .With(o => o.EnableTestPage.Returns(true));
+                        .WithDefaultSettings()
+                        .WithTestPageEnabled();
                     var sut = Create(appSettings, whitelist);
 
                     // Act
@@ -85,6 +123,76 @@ public class TestAuthorizationMiddleware
                     // Assert
                     Expect(captured)
                         .To.Be(ctx);
+                }
+
+                [TestFixture]
+                public class WhenHaveValidUrlParameter
+                {
+                    [TestCase("/size")]
+                    public void ShouldContinueToSizePage(
+                        string requestPath
+                    )
+                    {
+                        // Arrange
+                        HttpContext captured = null;
+                        var (ctx, next) = RequestDelegateTestArenaBuilder.Create()
+                            .WithContext(
+                                HttpContextBuilder.Create()
+                                    .WithRequestMethod(HttpMethods.Get)
+                                    .WithRequestPath(requestPath)
+                                    .WithRequestQueryParameter("url", GetRandomHttpsUrlWithPath())
+                                    .Build()
+                            ).WithDelegateLogic(c => captured = c)
+                            .Build();
+                        var whitelist = CreateAllowingWhitelist();
+                        var appSettings = Substitute.For<IAppSettings>()
+                            .WithDefaultSettings()
+                            .WithTestPageEnabled();
+                        var sut = Create(appSettings, whitelist);
+
+                        // Act
+                        Expect(async () => await sut.InvokeAsync(ctx, next))
+                            .Not.To.Throw();
+
+                        // Assert
+                        Expect(captured)
+                            .To.Be(ctx);
+                    }
+                }
+
+                [TestFixture]
+                public class WhenHaveInvalidUrlParameter
+                {
+                    [TestCase("/size")]
+                    public void ShouldThrowInvalidProcessingOptions(
+                        string requestPath
+                    )
+                    {
+                        // Arrange
+                        HttpContext captured = null;
+                        var (ctx, next) = RequestDelegateTestArenaBuilder.Create()
+                            .WithContext(
+                                HttpContextBuilder.Create()
+                                    .WithRequestMethod(HttpMethods.Get)
+                                    .WithRequestPath(requestPath)
+                                    .WithRequestQueryParameter("url", "not a valid url")
+                                    .Build()
+                            ).WithDelegateLogic(c => captured = c)
+                            .Build();
+                        var whitelist = CreateAllowingWhitelist();
+                        var appSettings = Substitute.For<IAppSettings>()
+                            .WithDefaultSettings()
+                            .WithTestPageEnabled();
+                        var sut = Create(appSettings, whitelist);
+
+                        // Act
+                        Expect(async () => await sut.InvokeAsync(ctx, next))
+                            .To.Throw<InvalidProcessingOptionsException>();
+
+                        // Assert
+                        Expect(captured)
+                            .To.Be.Null();
+                    }
                 }
             }
         }
@@ -102,15 +210,18 @@ public class TestAuthorizationMiddleware
                     .WithContext(
                         HttpContextBuilder.Create()
                             .WithRequestMethod(HttpMethods.Get)
-                            .WithRequestQueryParameter(
-                                "url",
-                                requestUrlParameter
-                            )
+                            .WithRequestQueryParameter("url", requestUrlParameter)
                             .Build()
                     ).WithDelegateLogic(c => captured = c)
                     .Build();
                 var whitelist = CreateAllowingWhitelist();
-                var sut = Create(whitelist: whitelist);
+                var appSettings = Substitute.For<IAppSettings>()
+                    .WithDefaultSettings()
+                    .WithTestPageEnabled();
+                var sut = Create(
+                    appSettings,
+                    whitelist
+                );
 
                 // Act
                 sut.InvokeAsync(ctx, next);
@@ -137,14 +248,84 @@ public class TestAuthorizationMiddleware
                     .WithContext(
                         HttpContextBuilder.Create()
                             .WithRequestMethod(HttpMethods.Get)
-                            .WithRequestQueryParameter(
-                                "url",
-                                requestUrlParameter
-                            )
+                            .WithRequestQueryParameter("url", requestUrlParameter)
                             .Build()
                     ).WithDelegateLogic(c => captured = c)
                     .Build();
                 var whitelist = CreateDisallowingWhitelist();
+                var appSettings = Substitute.For<IAppSettings>()
+                    .WithDefaultSettings()
+                    .WithTestPageEnabled();
+                var sut = Create(
+                    appSettings,
+                    whitelist
+                );
+
+                // Act
+                Expect(async () => await sut.InvokeAsync(ctx, next))
+                    .To.Throw<ImageSourceNotAllowedException>();
+
+                // Assert
+                Expect(captured)
+                    .To.Be(null);
+                Expect(whitelist)
+                    .To.Have.Received(1)
+                    .IsAllowed(requestUrlParameter);
+            }
+        }
+
+        [TestFixture]
+        public class AndRequestUrlIsInvalid
+        {
+            [Test]
+            public void ShouldThrowInvalidProcessingOptions()
+            {
+                // Arrange
+                HttpContext captured = null;
+                var requestUrlParameter = "not a valid url";
+                var (ctx, next) = RequestDelegateTestArenaBuilder.Create()
+                    .WithContext(
+                        HttpContextBuilder.Create()
+                            .WithRequestMethod(HttpMethods.Get)
+                            .WithRequestQueryParameter("url", requestUrlParameter)
+                            .Build()
+                    ).WithDelegateLogic(c => captured = c)
+                    .Build();
+                var whitelist = CreateDisallowingWhitelist();
+                var appSettings = Substitute.For<IAppSettings>()
+                    .WithDefaultSettings()
+                    .WithTestPageEnabled();
+                var sut = Create(
+                    appSettings,
+                    whitelist
+                );
+
+                // Act
+                Expect(async () => await sut.InvokeAsync(ctx, next))
+                    .To.Throw<InvalidProcessingOptionsException>();
+
+                // Assert
+                Expect(captured)
+                    .To.Be.Null();
+            }
+        }
+
+        [TestFixture]
+        public class AndNoUrlParameterProvided
+        {
+            [Test]
+            public void ShouldThrowNotImplemented()
+            {
+                // Arrange
+                HttpContext captured = null;
+                var (ctx, next) = RequestDelegateTestArenaBuilder.Create()
+                    .WithContext(
+                        HttpContextBuilder.Create()
+                            .WithRequestMethod(HttpMethods.Get)
+                            .Build()
+                    ).WithDelegateLogic(c => captured = c)
+                    .Build();
+                var whitelist = CreateAllowingWhitelist();
                 var sut = Create(whitelist: whitelist);
 
                 // Act
@@ -153,10 +334,10 @@ public class TestAuthorizationMiddleware
 
                 // Assert
                 Expect(captured)
-                    .To.Be(null);
+                    .To.Be.Null();
                 Expect(whitelist)
-                    .To.Have.Received(1)
-                    .IsAllowed(requestUrlParameter);
+                    .Not.To.Have.Received()
+                    .IsAllowed(Arg.Any<string>());
             }
         }
     }
@@ -175,7 +356,6 @@ public class TestAuthorizationMiddleware
         }
 
         [TestCaseSource(nameof(TestCaseGenerator))]
-        [Test]
         public void ShouldThrowNotImplemented(
             string method
         )
@@ -211,7 +391,8 @@ public class TestAuthorizationMiddleware
             public void ShouldThrowNotImplemented()
             {
                 // Arrange
-                var appSettings = Substitute.For<IAppSettings>();
+                var appSettings = Substitute.For<IAppSettings>()
+                    .WithDefaultSettings();
                 Expect(appSettings.AllowPostRequests)
                     .To.Be.False();
                 HttpContext captured = null;
@@ -238,7 +419,7 @@ public class TestAuthorizationMiddleware
         public class WhenPostIsAllowed
         {
             [TestFixture]
-            public class ButAuthTokensIsEmpty
+            public class ButConfiguredAuthTokensIsEmpty
             {
                 [TestCase("")]
                 [TestCase(" ")]
@@ -249,13 +430,17 @@ public class TestAuthorizationMiddleware
                 {
                     // Arrange
                     var appSettings = Substitute.For<IAppSettings>()
-                        .With(o => o.AllowPostRequests.Returns(true))
-                        .With(o => o.PostAuthTokens.Returns(postTokens));
+                        .WithPostRequestsAllowed()
+                        .WithPostAuthTokens(postTokens);
                     HttpContext captured = null;
                     var (ctx, next) = RequestDelegateTestArenaBuilder.Create()
                         .WithContext(
                             HttpContextBuilder.Create()
                                 .WithRequestMethod(HttpMethods.Post)
+                                .WithRequestHeader(
+                                    "Authorization",
+                                    $"Bearer {Guid.NewGuid()}"
+                                )
                                 .Build()
                         ).WithDelegateLogic(c => captured = c)
                         .Build();
@@ -272,8 +457,136 @@ public class TestAuthorizationMiddleware
             }
 
             [TestFixture]
+            public class WhenAllTokensAllowed
+            {
+                [Test]
+                public void ShouldContinueWhenNoTokenProvided()
+                {
+                    // Arrange
+                    var appSettings = Substitute.For<IAppSettings>()
+                        .With(o => o.AllowPostRequests.Returns(true))
+                        .With(o => o.PostAuthTokens.Returns("*"));
+                    HttpContext captured = null;
+                    var (ctx, next) = RequestDelegateTestArenaBuilder.Create()
+                        .WithContext(
+                            HttpContextBuilder.Create()
+                                .WithRequestMethod(HttpMethods.Post)
+                                .Build()
+                        ).WithDelegateLogic(c => captured = c)
+                        .Build();
+                    var sut = Create(appSettings);
+
+                    // Act
+                    Expect(async () => await sut.InvokeAsync(ctx, next))
+                        .Not.To.Throw();
+
+                    // Assert
+                    Expect(captured)
+                        .To.Be(ctx);
+                }
+
+                [Test]
+                public void ShouldContinueWhenAnyTokenProvided()
+                {
+                    // Arrange
+                    var appSettings = Substitute.For<IAppSettings>()
+                        .With(o => o.AllowPostRequests.Returns(true))
+                        .With(o => o.PostAuthTokens.Returns("*"));
+                    HttpContext captured = null;
+                    var (ctx, next) = RequestDelegateTestArenaBuilder.Create()
+                        .WithContext(
+                            HttpContextBuilder.Create()
+                                .WithRequestMethod(HttpMethods.Post)
+                                .WithRequestHeader(
+                                    "Authorization",
+                                    $"Bearer {Guid.NewGuid()}"
+                                )
+                                .Build()
+                        ).WithDelegateLogic(c => captured = c)
+                        .Build();
+                    var sut = Create(appSettings);
+
+                    // Act
+                    Expect(async () => await sut.InvokeAsync(ctx, next))
+                        .Not.To.Throw();
+
+                    // Assert
+                    Expect(captured)
+                        .To.Be(ctx);
+                }
+            }
+
+            [TestFixture]
             public class AndAuthTokenProvided
             {
+                [TestFixture]
+                public class ButNoAuthorizationHeaderSent
+                {
+                    [Test]
+                    public void ShouldThrowNotImplemented()
+                    {
+                        // Arrange
+                        var appSettings = Substitute.For<IAppSettings>()
+                            .With(o => o.AllowPostRequests.Returns(true))
+                            .With(o => o.PostAuthTokens.Returns($"{Guid.NewGuid()}"));
+                        HttpContext captured = null;
+                        var (ctx, next) = RequestDelegateTestArenaBuilder.Create()
+                            .WithContext(
+                                HttpContextBuilder.Create()
+                                    .WithRequestMethod(HttpMethods.Post)
+                                    .Build()
+                            ).WithDelegateLogic(c => captured = c)
+                            .Build();
+                        var sut = Create(appSettings);
+
+                        // Act
+                        Expect(async () => await sut.InvokeAsync(ctx, next))
+                            .To.Throw<NotImplementedException>();
+
+                        // Assert
+                        Expect(captured)
+                            .To.Be.Null();
+                    }
+                }
+
+                [TestFixture]
+                public class ButAuthSchemeIsNotBearer
+                {
+                    [TestCase("Basic")]
+                    [TestCase("Digest")]
+                    public void ShouldThrowNotImplemented_(
+                        string scheme
+                    )
+                    {
+                        // Arrange
+                        var validToken = $"{Guid.NewGuid()}";
+                        var appSettings = Substitute.For<IAppSettings>()
+                            .With(o => o.AllowPostRequests.Returns(true))
+                            .With(o => o.PostAuthTokens.Returns(validToken));
+                        HttpContext captured = null;
+                        var (ctx, next) = RequestDelegateTestArenaBuilder.Create()
+                            .WithContext(
+                                HttpContextBuilder.Create()
+                                    .WithRequestMethod(HttpMethods.Post)
+                                    .WithRequestHeader(
+                                        "Authorization",
+                                        $"{scheme} {validToken}"
+                                    )
+                                    .Build()
+                            ).WithDelegateLogic(c => captured = c)
+                            .Build();
+                        var sut = Create(appSettings);
+
+                        // Act
+                        Expect(async () => await sut.InvokeAsync(ctx, next))
+                            .To.Throw<NotImplementedException>();
+
+                        // Assert
+                        Expect(captured)
+                            .To.Be.Null();
+                    }
+                }
+
                 [TestFixture]
                 public class ButTokenIsUnknown
                 {
@@ -306,6 +619,41 @@ public class TestAuthorizationMiddleware
                         // Assert
                         Expect(captured)
                             .To.Be.Null();
+                    }
+
+                    [TestFixture]
+                    public class WhenAllTokensAllowed
+                    {
+                        [Test]
+                        public void ShouldContinue()
+                        {
+                            // Arrange
+                            var token = $"{Guid.NewGuid()}";
+                            var appSettings = Substitute.For<IAppSettings>()
+                                .With(o => o.AllowPostRequests.Returns(true))
+                                .With(o => o.PostAuthTokens.Returns("*"));
+                            HttpContext captured = null;
+                            var (ctx, next) = RequestDelegateTestArenaBuilder.Create()
+                                .WithContext(
+                                    HttpContextBuilder.Create()
+                                        .WithRequestMethod(HttpMethods.Post)
+                                        .WithRequestHeader(
+                                            "Authorization",
+                                            $"Bearer {token}"
+                                        )
+                                        .Build()
+                                ).WithDelegateLogic(c => captured = c)
+                                .Build();
+                            var sut = Create(appSettings);
+
+                            // Act
+                            Expect(async () => await sut.InvokeAsync(ctx, next))
+                                .Not.To.Throw();
+
+                            // Assert
+                            Expect(captured)
+                                .To.Be(ctx);
+                        }
                     }
                 }
 
@@ -353,7 +701,9 @@ public class TestAuthorizationMiddleware
     )
     {
         return new(
-            appSettings ?? Substitute.For<IAppSettings>(),
+            appSettings ?? Substitute.For<IAppSettings>()
+                .WithDefaultSettings()
+                .WithTestPageDisabled(),
             whitelist ?? CreateAllowingWhitelist()
         );
     }

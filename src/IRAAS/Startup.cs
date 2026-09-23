@@ -56,6 +56,8 @@ public class Startup
         app.UseMiddleware<ImageProviderErrorMiddleware>();
         app.UseMiddleware<RedirectTimedOutRequestsMiddleware>();
         app.UseMiddleware<NotModifiedExceptionMiddleware>();
+        app.UseMiddleware<ArgumentExceptionMiddleware>();
+        app.UseMiddleware<ArgumentNullExceptionMiddleware>();
         app.UseMiddleware<AuthorizationMiddleware>();
 
         app.UseRouting();

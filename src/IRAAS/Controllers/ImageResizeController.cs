@@ -13,21 +13,18 @@ public class ImageResizeController
 {
     private readonly IImageResizer _imageResizer;
     private readonly IImageMimeTypeProvider _mimeTypeProvider;
-    private readonly IWhitelist _whitelist;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAppSettings _appSettings;
 
     public ImageResizeController(
         IImageResizer imageResizer,
         IImageMimeTypeProvider mimeTypeProvider,
-        IWhitelist whitelist,
         IHttpContextAccessor httpContextAccessor,
         IAppSettings appSettings
     )
     {
         _imageResizer = imageResizer;
         _mimeTypeProvider = mimeTypeProvider;
-        _whitelist = whitelist;
         _httpContextAccessor = httpContextAccessor;
         _appSettings = appSettings;
     }
@@ -55,19 +52,39 @@ public class ImageResizeController
         );
     }
 
-    // Experimental code ahead!
-    // TODO: add appsetting to enable POST resizing (defaulted false)
-    // TODO: add appsetting to hold a list of tokens which are authorised to POST
-    // TODO: add precursor to block the request if it doesn't contain an auth header
-    //       with a known token
+    /// <summary>
+    /// this method is only reachable if allowed by AuthorizationMiddleware:
+    /// - appsettings must have AllowPostRequest set to "true"
+    /// - appsettings must either have tokens set in PostAuthTokens (comma-separated string)
+    ///     or PostAuthTokens can equal "*" for open posting
+    /// </summary>
+    /// <param name="resizeParameters"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
     [Route("")]
     [HttpPost]
     public async Task<FileStreamResult> ResizeByImageData(
         [FromBody] ImageDataResizeParameters resizeParameters
     )
     {
-        VerifyCanAcceptPostRequest();
-        ArgumentNullException.ThrowIfNull(resizeParameters);
+        if ((resizeParameters?.ImageData?.Length ?? 0) > _appSettings.MaxInputImageSize)
+        {
+            // The max input size check is done here rather than in
+            // middleware because otherwise the model would be deserialized
+            // twice - once in the middleware, and again in asp.net model-binding
+            // to get the model here.
+            throw new ArgumentException(
+                "Input image size exceeds allowed size",
+                nameof(
+                    ImageDataResizeParameters.ImageData
+                )
+            );
+        }
+        
+        // intentionally do not dispose of the result here
+        // -> the stream is the bit that needs disposal
+        //    and asp.net should dispose of it when finishing
+        //    the request
         var result = await _imageResizer.Resize(
             resizeParameters
         );
@@ -78,14 +95,5 @@ public class ImageResizeController
             result.Stream,
             contentType
         );
-    }
-
-    // Middleware converts NotImplementedExceptions to 404s
-    private void VerifyCanAcceptPostRequest()
-    {
-        if (!_appSettings.AllowPostRequests)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

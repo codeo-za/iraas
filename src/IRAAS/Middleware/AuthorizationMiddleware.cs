@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using IRAAS.Exceptions;
 using IRAAS.Security;
 using Microsoft.AspNetCore.Http;
 using PeanutButter.Utils;
@@ -13,6 +14,7 @@ public class AuthorizationMiddleware : IMiddleware
     private readonly IAppSettings _appSettings;
     private readonly IWhitelist _whitelist;
     private readonly HashSet<string> _knownTokens;
+    private readonly bool _openPostAllowed;
 
     public AuthorizationMiddleware(
         IAppSettings appSettings,
@@ -23,6 +25,7 @@ public class AuthorizationMiddleware : IMiddleware
         _whitelist = whitelist;
         _knownTokens = Split(appSettings.PostAuthTokens ?? "", ",")
             .AsHashSet();
+        _openPostAllowed = (appSettings.PostAuthTokens ?? "").Trim() == "*";
     }
 
     public Task InvokeAsync(
@@ -43,9 +46,6 @@ public class AuthorizationMiddleware : IMiddleware
 
         VerifyPostRequestAllowed(context);
 
-        // fixme: should verify:
-        // 1. can post
-        // 2. post allowed by token
         return next(context);
     }
 
@@ -57,42 +57,89 @@ public class AuthorizationMiddleware : IMiddleware
         {
             return;
         }
+        
+        VerifyHaveValidUrlParameter(context.Request);
+    }
 
+    private bool VerifyHaveValidUrlParameter(
+        HttpRequest req
+    )
+    {
         if (
-            !context.Request.Query.TryGetValue("url", out var requestedImageUrl)
+            !req.Query.TryGetValue("url", out var requestedImageUrl)
             || requestedImageUrl.IsEmpty()
         )
         {
             throw new NotImplementedException();
         }
 
+        if (IsInvalidUrl(requestedImageUrl))
+        {
+            throw new InvalidProcessingOptionsException(
+                $"Invalid url provided: '{requestedImageUrl}'"
+            );
+        }
+
         if (!_whitelist.IsAllowed(requestedImageUrl))
         {
-            throw new NotImplementedException();
+            throw new ImageSourceNotAllowedException(requestedImageUrl);
         }
+
+        return true;
+    }
+
+    private static bool IsInvalidUrl(
+        string url
+    )
+    {
+        return !Uri.TryCreate(
+            url,
+            UriKind.Absolute,
+            out _
+        );
     }
 
     private bool IsAllowedTestPageRequest(
         HttpRequest contextRequest
     )
     {
-        if (!_appSettings.EnableTestPage)
+        if (IsTestPagePath(contextRequest.Path))
         {
-            return false;
+            return _appSettings.EnableTestPage
+                ? true
+                : throw new NotImplementedException();
         }
 
-        if (IsTestPath(contextRequest.Path))
+        if (IsValidSizeRequest(contextRequest))
         {
-            return true;
+            if (!_appSettings.EnableTestPage)
+            {
+                throw new NotImplementedException();
+            }
+
+            return _appSettings.EnableTestPage
+                ? VerifyHaveValidUrlParameter(contextRequest)
+                : throw new NotImplementedException();
         }
 
         return false;
     }
 
-    private bool IsTestPath(string path)
+    private bool IsValidSizeRequest(
+        HttpRequest req
+    )
     {
-        return "/test".Equals(path, StringComparison.OrdinalIgnoreCase) ||
-               "/size".Equals(path, StringComparison.OrdinalIgnoreCase);
+        if (!"/size".Equals(req.Path, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool IsTestPagePath(string path)
+    {
+        return "/test".Equals(path, StringComparison.OrdinalIgnoreCase);
     }
 
     private void VerifyPostRequestAllowed(
@@ -102,6 +149,11 @@ public class AuthorizationMiddleware : IMiddleware
         if (!_appSettings.AllowPostRequests)
         {
             throw new NotImplementedException();
+        }
+
+        if (_openPostAllowed)
+        {
+            return;
         }
 
         var authHeader = context.Request.Headers.Authorization.FirstOrDefault()

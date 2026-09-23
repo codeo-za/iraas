@@ -4,8 +4,8 @@ using System.Text;
 using System.Threading.Tasks;
 using IRAAS.ImageProcessing;
 using IRAAS.Middleware;
-using IRAAS.Tests.Fakes;
 using NUnit.Framework;
+using PeanutButter.TestUtils.AspNetCore.Builders;
 using NSubstitute;
 using PeanutButter.Utils;
 
@@ -23,7 +23,7 @@ public class TestImageProviderErrorMiddleware : TestBase
             // Arrange
             var sut = Create();
             var expected = GetRandomInt(200, 299);
-            var context = new FakeHttpContext();
+            var context = HttpContextBuilder.BuildDefault();
             // Act
             await sut.InvokeAsync(
                 context,
@@ -46,7 +46,7 @@ public class TestImageProviderErrorMiddleware : TestBase
             // Arrange
             var sut = Create();
             var expected = GetRandomInt(200, 299);
-            var context = new FakeHttpContext();
+            var context = HttpContextBuilder.BuildDefault();
             var ex = GetRandomFrom(
                 new Exception[]
                 {
@@ -75,7 +75,7 @@ public class TestImageProviderErrorMiddleware : TestBase
         {
             // Arrange
             var sut = Create();
-            var context = new FakeHttpContext();
+            var context = HttpContextBuilder.BuildDefault();
             var url = GetRandomHttpUrl();
             var expectedResponseHeader = GetRandomString(1);
             var expectedResponseHeaderValue = GetRandomString(1);

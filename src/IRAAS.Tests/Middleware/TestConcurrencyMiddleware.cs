@@ -4,11 +4,11 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using IRAAS.Middleware;
-using IRAAS.Tests.Fakes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using NSubstitute;
+using PeanutButter.TestUtils.AspNetCore.Builders;
 using PeanutButter.Utils;
 
 namespace IRAAS.Tests.Middleware;
@@ -24,7 +24,7 @@ public class TestConcurrencyMiddleware : TestBase
         public async Task ShouldRunNext()
         {
             // Arrange
-            var context = new FakeHttpContext();
+            var context = HttpContextBuilder.BuildDefault();
             var queryString = "?url=http://foo.bar";
             context.Request.QueryString = new QueryString(queryString);
             var invoked = false;
@@ -61,8 +61,8 @@ public class TestConcurrencyMiddleware : TestBase
         public void ShouldOnlyCallNextOnce()
         {
             // Arrange
-            var context1 = new FakeHttpContext();
-            var context2 = new FakeHttpContext();
+            var context1 = HttpContextBuilder.BuildDefault();
+            var context2 = HttpContextBuilder.BuildDefault();
             var queryString = "?url=http://foo.bar";
             context1.Request.QueryString = new QueryString(queryString);
             context2.Request.QueryString = new QueryString(queryString);
@@ -119,9 +119,9 @@ public class TestConcurrencyMiddleware : TestBase
         public void ShouldNotEjectAnInProgressCacheableRequestWhenAConcurrentNoStoreRequestCompletes()
         {
             // Arrange
-            var context1 = new FakeHttpContext();
-            var context2 = new FakeHttpContext();
-            var context3 = new FakeHttpContext();
+            var context1 = HttpContextBuilder.BuildDefault();
+            var context2 = HttpContextBuilder.BuildDefault();
+            var context3 = HttpContextBuilder.BuildDefault();
             var queryString = "?url=http://foo.bar";
             context1.Request.QueryString = new QueryString(queryString);
             context2.Request.QueryString = new QueryString(queryString);
@@ -217,13 +217,82 @@ public class TestConcurrencyMiddleware : TestBase
             public void ShouldCallNextForEachRequest()
             {
                 // Arrange
-                var context1 = new FakeHttpContext();
-                var context2 = new FakeHttpContext();
-                var queryString = "?url=http://foo.bar";
-                context1.Request.QueryString = new QueryString(queryString);
-                context1.Request.Headers.Append("Cache-Control", "no-store");
-                context2.Request.QueryString = new QueryString(queryString);
-                context2.Request.Headers.Append("Cache-Control", "no-store");
+                var requestedUrl = GetRandomHttpsUrlWithPath();
+                var context1 = HttpContextBuilder.Create()
+                    .WithRequestQueryParameter("url", requestedUrl)
+                    .WithRequestHeader("Cache-Control", "no-store")
+                    .Build();
+                var context2 = HttpContextBuilder.Create()
+                    .WithRequestQueryParameter("url", requestedUrl)
+                    .WithRequestHeader("Cache-Control", "no-store")
+                    .Build();
+                var invoked = 0;
+                var startBarrier = new Barrier(3);
+                var completionBarrier = new Barrier(3);
+                var next1 = new Func<HttpContext, Task>(
+                    ctx =>
+                    {
+                        startBarrier.SignalAndWait();
+                        Thread.Sleep(1000);
+                        invoked++;
+                        return Task.CompletedTask;
+                    }
+                );
+                var next2 = new Func<HttpContext, Task>(
+                    ctx =>
+                    {
+                        Thread.Sleep(1000);
+                        invoked++;
+                        return Task.CompletedTask;
+                    }
+                );
+                var appSettings = CreateAppSettings(1, true);
+
+                var sut = Create(appSettings);
+                // Act
+// #pragma warning disable 4014
+                Task.Run(async () => { 
+                    await sut.InvokeAsync(context1, new RequestDelegate(next1)); 
+                    completionBarrier.SignalAndWait();
+                });
+                Task.Run(
+                    async () =>
+                    {
+                        startBarrier.SignalAndWait();
+                        await sut.InvokeAsync(context2, new RequestDelegate(next2));
+                        completionBarrier.SignalAndWait();
+                    }
+                );
+// #pragma warning restore 4014
+
+                var timeout = 10000;
+                var started = startBarrier.SignalAndWait(timeout);
+                var completed = completionBarrier.SignalAndWait(timeout);
+                // Assert
+                Expect(started)
+                    .To.Be.True("Should have started");
+                Expect(completed)
+                    .To.Be.True("Should have completed");
+                Expect(invoked)
+                    .To.Equal(2);
+            }
+        }
+        [TestFixture]
+        public class WhenRequestIsSizeRequest
+        {
+            [Test]
+            public void ShouldCallNextForEachRequest()
+            {
+                // Arrange
+                var requestedUrl = GetRandomHttpsUrlWithPath();
+                var context1 = HttpContextBuilder.Create()
+                    .WithRequestPath("/size")
+                    .WithRequestQueryParameter("url", requestedUrl)
+                    .Build();
+                var context2 = HttpContextBuilder.Create()
+                    .WithRequestPath("/size")
+                    .WithRequestQueryParameter("url", requestedUrl)
+                    .Build();
                 var invoked = 0;
                 var startBarrier = new Barrier(3);
                 var completionBarrier = new Barrier(3);
@@ -283,8 +352,8 @@ public class TestConcurrencyMiddleware : TestBase
             public void ShouldTreatTheRequestAsNoStore()
             {
                 // Arrange
-                var context1 = new FakeHttpContext();
-                var context2 = new FakeHttpContext();
+                var context1 = HttpContextBuilder.BuildDefault();
+                var context2 = HttpContextBuilder.BuildDefault();
                 var queryString = "?url=http://foo.bar";
                 context1.Request.QueryString = new QueryString(queryString);
                 context1.Request.Headers.Append("Cache-Control", "no-cache, no-store");
@@ -350,8 +419,8 @@ public class TestConcurrencyMiddleware : TestBase
         public void ShouldHaveTheSameResult()
         {
             // Arrange
-            var context1 = new FakeHttpContext();
-            var context2 = new FakeHttpContext();
+            var context1 = HttpContextBuilder.BuildDefault();
+            var context2 = HttpContextBuilder.BuildDefault();
             context1.Response.Body = new MemoryStream();
             context2.Response.Body = new MemoryStream();
             var queryString = "?url=http://foo.bar";
@@ -459,13 +528,9 @@ public class TestConcurrencyMiddleware : TestBase
 
     private static HttpContext CreateContext()
     {
-        return new FakeHttpContext()
-        {
-            Request =
-            {
-                QueryString = new QueryString($"?url={GetRandomString(10)}")
-            }
-        };
+        return HttpContextBuilder.Create()
+            .WithRequestQueryParameter("url", GetRandomString(10))
+            .Build();
     }
 
     [TestFixture]

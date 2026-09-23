@@ -91,6 +91,7 @@ public class ConcurrencyMiddleware : IMiddleware
         var queryString = context.Request.QueryString.ToString();
         var completionSource = new TaskCompletionSource<CachedResponse>();
         var cacheProhibited = HasNoStoreCacheControlHeader(context.Request) ||
+                              HasTestPagePath(context.Request) ||
                               context.Request.Method == HttpMethods.Post;
         if (!cacheProhibited)
         {
@@ -120,6 +121,12 @@ public class ConcurrencyMiddleware : IMiddleware
         {
             _concurrencyLimiter.Release();
         }
+    }
+
+    private bool HasTestPagePath(HttpRequest req)
+    {
+        return "/test".Equals(req.Path, StringComparison.OrdinalIgnoreCase) ||
+               "/size".Equals(req.Path, StringComparison.OrdinalIgnoreCase);
     }
 
     private bool HasNoStoreCacheControlHeader(

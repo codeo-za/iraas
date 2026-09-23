@@ -74,7 +74,7 @@ public class TestImageResizer : TestBase
             };
             // Act
             await sut.Resize(options, NoHeaders);
-            
+
             // Assert
             await Expect(fetcher).To.Have.Received(1)
                 .Fetch(options.Url, Arg.Any<IDictionary<string, string>>());
@@ -872,13 +872,67 @@ public class TestImageResizer : TestBase
         }
     }
 
+    [TestFixture]
+    public class ResizingImageViaPostedData
+    {
+        [Test]
+        public void ShouldThrowForNullResizeParameters()
+        {
+            // Arrange
+            var sut = Create();
+
+            // Act
+            Expect(async () => await sut.Resize(null))
+                .To.Throw<ArgumentNullException>()
+                .For("resizeParameters");
+
+            // Assert
+        }
+
+        [Test]
+        public void ShouldThrowForNullData()
+        {
+            // Arrange
+            var sut = Create();
+            var resizeParameters = new ImageDataResizeParameters();
+            Expect(resizeParameters.ImageData)
+                .To.Be.Null();
+
+            // Act
+            Expect(async () => await sut.Resize(resizeParameters))
+                .To.Throw<ArgumentNullException>()
+                .For("ImageData");
+
+            // Assert
+        }
+
+        [Test]
+        public void ShouldThrowForEmptyData()
+        {
+            // Arrange
+            var sut = Create();
+            var resizeParameters = new ImageDataResizeParameters()
+            {
+                ImageData = []
+            };
+            
+            // Act
+            Expect(async () => await sut.Resize(resizeParameters))
+                .To.Throw<ArgumentException>()
+                .For("ImageData")
+                .With.Message.Containing("empty");
+            
+            // Assert
+        }
+    }
+
     private static ImageResizer Create(
-        IUrlFetcher fetcher,
+        IUrlFetcher fetcher = null,
         IAppSettings appSettings = null
     )
     {
         return new ImageResizer(
-            fetcher,
+            fetcher ?? Substitute.For<IUrlFetcher>(),
             appSettings ?? CreateDefaultAppSettingsWithVerboseEnabled()
         );
     }

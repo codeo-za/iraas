@@ -81,6 +81,19 @@ public class ImageResizer : IImageResizer
         ImageDataResizeParameters resizeParameters
     )
     {
+        ArgumentNullException.ThrowIfNull(resizeParameters);
+        ArgumentNullException.ThrowIfNull(
+            resizeParameters.ImageData,
+            nameof(resizeParameters.ImageData)
+        );
+        if (resizeParameters.ImageData.Length < 1)
+        {
+            throw new ArgumentException(
+                "ImageData is empty",
+                nameof(resizeParameters.ImageData)
+            );
+        }
+
         var timer = CreateTimer();
         var src = new StreamAndHeaders(
             new MemoryStream(
