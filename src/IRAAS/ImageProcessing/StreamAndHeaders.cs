@@ -11,10 +11,26 @@ public class StreamAndHeaders : IDisposable
 
     public StreamAndHeaders(
         Stream stream,
-        IDictionary<string, string> headers)
+        IDictionary<string, string> headers
+    )
     {
         Headers = headers;
         Stream = stream;
+    }
+
+    public StreamAndHeaders(
+        byte[] data
+    ) : this(data, new Dictionary<string, string>())
+    {
+    }
+
+    public StreamAndHeaders(
+        byte[] data,
+        IDictionary<string, string> headers
+    )
+    {
+        Headers = headers;
+        Stream = new MemoryStream(data);
     }
 
     public void Dispose()

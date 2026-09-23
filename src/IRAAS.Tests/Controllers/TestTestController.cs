@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Net.Http;
 using System.Threading.Tasks;
 using IRAAS.Controllers;
@@ -93,10 +94,6 @@ public class TestTestController : TestBase
                     o => o.Fetch(url, Arg.Any<Dictionary<string, string>>())
                         .Returns(_ => fetchResult)
                 );
-            var sut = Create(
-                Substitute.For<IAppSettings>(),
-                fetcher
-            );
             var headers = GetRandom<Dictionary<string, string>>();
             Expect(headers)
                 .Not.To.Be.Empty();
@@ -108,7 +105,11 @@ public class TestTestController : TestBase
             var ctx = ControllerContextBuilder.Create()
                 .WithRequest(req)
                 .Build();
-            sut.ControllerContext = ctx;
+            var sut = Create(
+                Substitute.For<IAppSettings>(),
+                fetcher,
+                ctx
+            );
             Expect(sut.Request)
                 .To.Be(ctx.HttpContext.Request);
 
@@ -132,23 +133,54 @@ public class TestTestController : TestBase
         }
 
         [Test]
-        [Ignore("TODO")]
-        public void ShouldReportSizeFromFetchedStream()
+        public async Task ShouldReportSizeFromFetchedStream()
         {
             // Arrange
+            var data = GetRandomBytes();
+            var url = GetRandomHttpsUrl();
+            var resource = new StreamAndHeaders(data);
+            var fetcher = Substitute.For<IUrlFetcher>()
+                .With(
+                    o => o.Fetch(url, Arg.Any<Dictionary<string, string>>())
+                        .Returns(_ => resource)
+                );
+            var sut = Create(
+                Substitute.For<IAppSettings>(),
+                fetcher
+            );
+
             // Act
+            var result = await sut.FileSize(url);
+
             // Assert
+            Expect(result)
+                .To.Equal(data.Length);
+            await Expect(fetcher)
+                .To.Have.Received(1)
+                .Fetch(
+                    url,
+                    Arg.Is<IDictionary<string, string>>(
+                        o => o.DeepEquals(sut.Request.Headers.ToDictionary())
+                    )
+                );
         }
     }
 
     private static TestController Create(
         IAppSettings settings,
-        IUrlFetcher fetcher = null)
+        IUrlFetcher fetcher = null,
+        ControllerContext ctx = null
+    )
     {
         return new TestController(
             settings,
             fetcher ?? Substitute.For<IUrlFetcher>()
-        );
+        )
+        {
+            ControllerContext = ctx ?? ControllerContextBuilder.Create()
+                .WithRequestHeader(GetRandomString(10), GetRandomString(10))
+                .Build()
+        };
     }
 
     private static IAppSettings CreateAppSettings(bool enabled)
