@@ -199,6 +199,8 @@ public class ConcurrencyMiddleware : IMiddleware
                 ex,
                 $"Error whilst attempting reuse of result for concurrent request ({queryString})"
             );
+            completionSource.TrySetException(ex);
+            throw;
         }
         finally
         {

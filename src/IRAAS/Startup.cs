@@ -65,6 +65,7 @@ public class Startup
         }
 
         app.UseMiddleware<MaxClientsMiddleware>();
+        app.UseMiddleware<BadHttpRequestExceptionMiddleware>();
         app.UseMiddleware<ConcurrencyMiddleware>();
         app.UseMiddleware<InvalidProcessingOptionsExceptionMiddleware>();
         app.UseMiddleware<NotImplementedExceptionMiddleware>();
