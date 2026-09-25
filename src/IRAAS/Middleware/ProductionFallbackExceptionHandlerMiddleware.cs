@@ -27,7 +27,14 @@ public class ProductionFallbackExceptionHandlerMiddleware
             _logger.LogError(
                 $"Unhandled exception servicing:\n{context.Request.QueryString}\n{ex.Message}\n{ex.StackTrace}"
             );
-            context.Response.StatusCode = 500;
+            if (!context.Response.HasStarted)
+            {
+                // we can't change the status code once
+                // the response has started, so if the
+                // exception caught here happened during
+                // content streaming, this set would fail
+                context.Response.StatusCode = 500;
+            }
         }
     }
 }

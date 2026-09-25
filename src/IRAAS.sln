@@ -15,6 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".config", ".config", "{5FEB
 	ProjectSection(SolutionItems) = preProject
 		..\.zarro-defaults = ..\.zarro-defaults
 		..\package.json = ..\package.json
+		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{93FEC7FE-990B-4539-AA21-0ADF681732AA}"
@@ -34,6 +35,8 @@ Global
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 		ReleaseForDocker|Any CPU = ReleaseForDocker|Any CPU
+		Debug.WebRequest|Any CPU = Debug.WebRequest|Any CPU
+		Release.WebRequest|Any CPU = Release.WebRequest|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -53,6 +56,10 @@ Global
 		{602C8FF3-C096-4FDF-BB9E-F645401FA938}.Release|x86.Build.0 = Release|Any CPU
 		{602C8FF3-C096-4FDF-BB9E-F645401FA938}.ReleaseForDocker|Any CPU.ActiveCfg = ReleaseForDocker|Any CPU
 		{602C8FF3-C096-4FDF-BB9E-F645401FA938}.ReleaseForDocker|Any CPU.Build.0 = ReleaseForDocker|Any CPU
+		{602C8FF3-C096-4FDF-BB9E-F645401FA938}.Debug.WebRequest|Any CPU.ActiveCfg = Debug.WebRequest|Any CPU
+		{602C8FF3-C096-4FDF-BB9E-F645401FA938}.Debug.WebRequest|Any CPU.Build.0 = Debug.WebRequest|Any CPU
+		{602C8FF3-C096-4FDF-BB9E-F645401FA938}.Release.WebRequest|Any CPU.ActiveCfg = Release.WebRequest|Any CPU
+		{602C8FF3-C096-4FDF-BB9E-F645401FA938}.Release.WebRequest|Any CPU.Build.0 = Release.WebRequest|Any CPU
 		{74C3EBAC-0C85-4414-ABB6-E8CDAC4D6A0A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{74C3EBAC-0C85-4414-ABB6-E8CDAC4D6A0A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{74C3EBAC-0C85-4414-ABB6-E8CDAC4D6A0A}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -67,6 +74,10 @@ Global
 		{74C3EBAC-0C85-4414-ABB6-E8CDAC4D6A0A}.Release|x86.Build.0 = Release|Any CPU
 		{74C3EBAC-0C85-4414-ABB6-E8CDAC4D6A0A}.ReleaseForDocker|Any CPU.ActiveCfg = ReleaseForDocker|Any CPU
 		{74C3EBAC-0C85-4414-ABB6-E8CDAC4D6A0A}.ReleaseForDocker|Any CPU.Build.0 = ReleaseForDocker|Any CPU
+		{74C3EBAC-0C85-4414-ABB6-E8CDAC4D6A0A}.Debug.WebRequest|Any CPU.ActiveCfg = Debug.WebRequest|Any CPU
+		{74C3EBAC-0C85-4414-ABB6-E8CDAC4D6A0A}.Debug.WebRequest|Any CPU.Build.0 = Debug.WebRequest|Any CPU
+		{74C3EBAC-0C85-4414-ABB6-E8CDAC4D6A0A}.Release.WebRequest|Any CPU.ActiveCfg = Release.WebRequest|Any CPU
+		{74C3EBAC-0C85-4414-ABB6-E8CDAC4D6A0A}.Release.WebRequest|Any CPU.Build.0 = Release.WebRequest|Any CPU
 		{70C616D4-C4EF-4BA9-9F7A-4DA75614A333}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{70C616D4-C4EF-4BA9-9F7A-4DA75614A333}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{70C616D4-C4EF-4BA9-9F7A-4DA75614A333}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -81,6 +92,10 @@ Global
 		{70C616D4-C4EF-4BA9-9F7A-4DA75614A333}.Release|x86.Build.0 = Release|Any CPU
 		{70C616D4-C4EF-4BA9-9F7A-4DA75614A333}.ReleaseForDocker|Any CPU.ActiveCfg = ReleaseForDocker|Any CPU
 		{70C616D4-C4EF-4BA9-9F7A-4DA75614A333}.ReleaseForDocker|Any CPU.Build.0 = ReleaseForDocker|Any CPU
+		{70C616D4-C4EF-4BA9-9F7A-4DA75614A333}.Debug.WebRequest|Any CPU.ActiveCfg = Debug.WebRequest|Any CPU
+		{70C616D4-C4EF-4BA9-9F7A-4DA75614A333}.Debug.WebRequest|Any CPU.Build.0 = Debug.WebRequest|Any CPU
+		{70C616D4-C4EF-4BA9-9F7A-4DA75614A333}.Release.WebRequest|Any CPU.ActiveCfg = Release.WebRequest|Any CPU
+		{70C616D4-C4EF-4BA9-9F7A-4DA75614A333}.Release.WebRequest|Any CPU.Build.0 = Release.WebRequest|Any CPU
 		{5489BE03-DAC7-4D7D-80FC-628258DD9FF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5489BE03-DAC7-4D7D-80FC-628258DD9FF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5489BE03-DAC7-4D7D-80FC-628258DD9FF2}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -95,6 +110,10 @@ Global
 		{5489BE03-DAC7-4D7D-80FC-628258DD9FF2}.Release|x86.Build.0 = Release|Any CPU
 		{5489BE03-DAC7-4D7D-80FC-628258DD9FF2}.ReleaseForDocker|Any CPU.ActiveCfg = ReleaseForDocker|Any CPU
 		{5489BE03-DAC7-4D7D-80FC-628258DD9FF2}.ReleaseForDocker|Any CPU.Build.0 = ReleaseForDocker|Any CPU
+		{5489BE03-DAC7-4D7D-80FC-628258DD9FF2}.Debug.WebRequest|Any CPU.ActiveCfg = Debug.WebRequest|Any CPU
+		{5489BE03-DAC7-4D7D-80FC-628258DD9FF2}.Debug.WebRequest|Any CPU.Build.0 = Debug.WebRequest|Any CPU
+		{5489BE03-DAC7-4D7D-80FC-628258DD9FF2}.Release.WebRequest|Any CPU.ActiveCfg = Release.WebRequest|Any CPU
+		{5489BE03-DAC7-4D7D-80FC-628258DD9FF2}.Release.WebRequest|Any CPU.Build.0 = Release.WebRequest|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{C55FCB13-C06D-43B6-846C-10BCFA05DC64} = {93FEC7FE-990B-4539-AA21-0ADF681732AA}

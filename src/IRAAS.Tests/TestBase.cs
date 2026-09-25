@@ -1,5 +1,4 @@
-﻿using IRAAS.ImageProcessing;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 
 namespace IRAAS.Tests;
 
@@ -8,12 +7,12 @@ public class TestBase
     [SetUp]
     public void SetupBase()
     {
-        ImageResizeParameters.ClearDefaults();
+        TestCacheClearer.ClearAllStaticFieldCaches();
     }
 
     [TearDown]
     public void TearDownBase()
     {
-        ImageResizeParameters.ClearDefaults();
+        TestCacheClearer.ClearAllStaticFieldCaches();
     }
 }

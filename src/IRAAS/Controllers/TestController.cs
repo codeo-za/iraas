@@ -1,11 +1,11 @@
-using System;
 using System.Threading.Tasks;
 using IRAAS.ImageProcessing;
+using IRAAS.Middleware;
 using Microsoft.AspNetCore.Mvc;
 
 namespace IRAAS.Controllers;
 
-[Route("test")]
+[Route("")]
 public class TestController : Controller
 {
     private readonly IAppSettings _settings;
@@ -16,36 +16,26 @@ public class TestController : Controller
         IUrlFetcher fetcher
     )
     {
-        if (!settings.EnableTestPage)
-        {
-            throw new NotImplementedException();
-        }
-
         _settings = settings;
         _fetcher = fetcher;
     }
 
     [ResponseCache(NoStore = true)]
-    [Route("")]
+    [Route(Routes.TEST)]
     [HttpGet]
     public ActionResult Test()
     {
         return View(_settings);
     }
 
-    [Route("")]
-    [HttpPost]
-    public async Task<long> FileSize([FromBody] FileSizeRequest req)
+    [Route(Routes.SIZE)]
+    [HttpGet]
+    public async Task<long> FileSize([FromQuery] string url)
     {
         using var result = await _fetcher.Fetch(
-            req.Url,
+            url,
             Request.Headers.ToDictionary()
         );
         return result.Stream.Length;
-    }
-
-    public class FileSizeRequest
-    {
-        public string Url { get; set; }
     }
 }

@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using IRAAS.ImageProcessing;
+using NSubstitute;
 using NUnit.Framework;
 using PeanutButter.DuckTyping.Extensions;
+using PeanutButter.RandomGenerators;
 using PeanutButter.Utils;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -17,14 +19,92 @@ public class TestDefaultImageResizeParameters : TestBase
     public void ShouldDuckDefaults()
     {
         // Arrange
-        var expected = GetRandom<IImageResizeParameters>();
+        var expected = GetRandom<IImageResizeParameters>()
+            .With(o => o.Quality = GetRandomInt(10, 90));
         var defaults = GenerateStringStringDictionaryFrom(expected);
 
         // Act
         var result = DefaultImageResizeParameters.From(defaults);
+
         // Assert
         Expect(result)
             .To.Deep.Equal(expected);
+    }
+
+    [Test]
+    public void ShouldSanitiseQuality()
+    {
+        // Arrange
+        var input = GetRandom<IImageResizeParameters>()
+            .With(o => o.Quality = 0);
+        var defaults = GenerateStringStringDictionaryFrom(input);
+
+        // Act
+        var result = DefaultImageResizeParameters.From(defaults);
+
+        // Assert
+        Expect(result.Quality)
+            .To.Equal(85);
+    }
+
+    [TestCase("", "Bicubic")]
+    [TestCase(" ", "Bicubic")]
+    [TestCase(null, "Bicubic")]
+    public void ShouldDefaultSamplerWhenSetTo_(
+        string setting,
+        string expected
+    )
+    {
+        // Arrange
+        var input = GetRandom<IImageResizeParameters>()
+            .With(o => o.Sampler = setting);
+        var defaults = GenerateStringStringDictionaryFrom(input);
+
+        // Act
+        var result = DefaultImageResizeParameters.From(defaults);
+
+        // Assert
+        Expect(result.Sampler)
+            .To.Equal(expected);
+    }
+
+    [TestCase("", "Wu")]
+    [TestCase(" ", "Wu")]
+    [TestCase(null, "Wu")]
+    public void ShouldDefaultQuantizer_(
+        string setting,
+        string expected
+    )
+    {
+        // Arrange
+        var input = GetRandom<IImageResizeParameters>()
+            .With(o => o.Quantizer = setting);
+        var defaults = GenerateStringStringDictionaryFrom(input);
+
+        // Act
+        var result = DefaultImageResizeParameters.From(defaults);
+
+        // Assert
+        Expect(result.Quantizer)
+            .To.Equal(expected);
+    }
+
+    [Test]
+    public void ShouldDefaultEchoToFalseWhenNotSet()
+    {
+        // Arrange
+        var input = GetRandom<IImageResizeParameters>();
+        var defaults = GenerateStringStringDictionaryFrom(input);
+        defaults.Remove(nameof(DefaultImageResizeParameters.Echo));
+        Expect(defaults.TryGetValue(nameof(DefaultImageResizeParameters.Echo), out _))
+            .To.Be.False();
+
+        // Act
+        var result = DefaultImageResizeParameters.From(defaults);
+
+        // Assert
+        Expect(result.Echo)
+            .To.Be.False();
     }
 
     [TestFixture]
@@ -61,10 +141,8 @@ public class TestDefaultImageResizeParameters : TestBase
         {
             string ReplaceTransparencyWith { get; set; }
             string Format { get; set; }
-
             [Default(85)]
             int Quality { get; set; }
-
             int? Width { get; set; }
             int? Height { get; set; }
             ResizeMode? ResizeMode { get; set; }
@@ -111,5 +189,29 @@ public class TestDefaultImageResizeParameters : TestBase
             ["Echo"] = $"{expected.Echo}"
         };
         return defaults;
+    }
+}
+
+public class ImageResizeParametersBuilder : GenericBuilder<ImageResizeParametersBuilder, IImageResizeParameters>
+{
+    public override IImageResizeParameters ConstructEntity()
+    {
+        return Substitute.For<IImageResizeParameters>();
+    }
+
+    public override ImageResizeParametersBuilder WithRandomProps()
+    {
+        return base.WithRandomProps()
+            .WithValidQuality();
+    }
+
+    public ImageResizeParametersBuilder WithValidQuality()
+    {
+        return WithProp(
+            // when quality is < 1, the underlying
+            // logic will default to 85, causing tests
+            // to flap
+            o => o.Quality = GetRandomInt(40, 90)
+        );
     }
 }

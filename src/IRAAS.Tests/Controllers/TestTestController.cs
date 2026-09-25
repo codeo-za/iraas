@@ -1,17 +1,23 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 using IRAAS.Controllers;
 using IRAAS.ImageProcessing;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
 using NSubstitute;
+using PeanutButter.TestUtils.AspNetCore.Builders;
+using PeanutButter.Utils;
 
 namespace IRAAS.Tests.Controllers;
 
 [TestFixture]
-public class TestTestController: TestBase
+public class TestTestController : TestBase
 {
-    [TestCase("test")]
+    [TestCase("")]
     public void ControllerShouldHaveRoute_(string expected)
     {
         // Arrange
@@ -21,28 +27,19 @@ public class TestTestController: TestBase
         // Assert
     }
 
-    [Test]
-    public void WhenDisabled_Should404()
-    {
-        // Arrange
-        var appSettings = CreateAppSettings(false);
-        // Act
-        Expect(() => Create(appSettings))
-            .To.Throw<NotImplementedException>();
-        // Assert
-    }
-
     [TestFixture]
-    public class Test: TestBase
+    public class Test : TestBase
     {
-        [Test]
-        public void ShouldHaveEmptyRouteForGET()
+        [TestCase("test")]
+        public void ShouldHaveRouteForGET_(
+            string expected
+        )
         {
             // Arrange
             // Act
             Expect(typeof(TestController))
                 .To.Have.Method(nameof(TestController.Test))
-                .With.Route("")
+                .With.Route(expected)
                 .Supporting(HttpMethod.Get);
             // Assert
         }
@@ -64,36 +61,130 @@ public class TestTestController: TestBase
     }
 
     [TestFixture]
-    public class FileSize: TestBase
+    public class FileSize : TestBase
     {
-        [Test]
-        [Ignore("TODO")]
-        public void ShouldFetchUsingUrlFetcher()
+        [TestCase("size")]
+        public void ShouldHaveRoute_(
+            string expected
+        )
         {
             // Arrange
             // Act
+            Expect(typeof(TestController))
+                .To.Have.Method(nameof(TestController.FileSize))
+                .With.Route(expected)
+                .Supporting(HttpMethod.Get);
             // Assert
         }
 
         [Test]
-        [Ignore("TODO")]
-        public void ShouldReportSizeFromFetchedStream()
+        public async Task ShouldFetchUsingUrlFetcher()
         {
             // Arrange
+            var url = GetRandomHttpsUrlWithPath();
+            var data = GetRandomBytes();
+            var stream = new MemoryStream(data);
+            var fetchResult = new StreamAndHeaders(
+                stream,
+                new Dictionary<string, string>()
+            );
+            var fetcher = Substitute.For<IUrlFetcher>()
+                .With(
+                    o => o.Fetch(url, Arg.Any<Dictionary<string, string>>())
+                        .Returns(_ => fetchResult)
+                );
+            var headers = GetRandom<Dictionary<string, string>>();
+            Expect(headers)
+                .Not.To.Be.Empty();
+            var req = HttpRequestBuilder.Create()
+                .WithMethod(HttpMethod.Get)
+                .WithRandomUrl()
+                .WithHeaders(headers)
+                .Build();
+            var httpContext = HttpContextBuilder.Create()
+                .WithRequest(req)
+                .Build();
+            var ctx = ControllerContextBuilder.Create()
+                .WithHttpContext(httpContext)
+                .Build();
+            var sut = Create(
+                Substitute.For<IAppSettings>(),
+                fetcher,
+                ctx
+            );
+            Expect(ctx.HttpContext.Request.Headers.ToDictionary())
+                .To.Contain.All.Of(headers);
+            Expect(sut.Request)
+                .To.Be(ctx.HttpContext.Request);
+
+
             // Act
+            var result = await sut.FileSize(url);
+
             // Assert
+            Expect(result)
+                .To.Equal(data.Length);
+            await Expect(fetcher)
+                .To.Have.Received(1)
+                .Fetch(
+                    Arg.Is<string>(
+                        s => s.Equals(url, StringComparison.OrdinalIgnoreCase)
+                    ),
+                    Arg.Is<Dictionary<string, string>>(
+                        o => o.ContainsAllOf(headers.ToArray())
+                    )
+                );
         }
 
+        [Test]
+        public async Task ShouldReportSizeFromFetchedStream()
+        {
+            // Arrange
+            var data = GetRandomBytes();
+            var url = GetRandomHttpsUrl();
+            var resource = new StreamAndHeaders(data);
+            var fetcher = Substitute.For<IUrlFetcher>()
+                .With(
+                    o => o.Fetch(url, Arg.Any<Dictionary<string, string>>())
+                        .Returns(_ => resource)
+                );
+            var sut = Create(
+                Substitute.For<IAppSettings>(),
+                fetcher
+            );
+
+            // Act
+            var result = await sut.FileSize(url);
+
+            // Assert
+            Expect(result)
+                .To.Equal(data.Length);
+            await Expect(fetcher)
+                .To.Have.Received(1)
+                .Fetch(
+                    url,
+                    Arg.Is<IDictionary<string, string>>(
+                        o => o.DeepEquals(sut.Request.Headers.ToDictionary())
+                    )
+                );
+        }
     }
 
     private static TestController Create(
         IAppSettings settings,
-        IUrlFetcher fetcher = null)
+        IUrlFetcher fetcher = null,
+        ControllerContext ctx = null
+    )
     {
         return new TestController(
             settings,
             fetcher ?? Substitute.For<IUrlFetcher>()
-        );
+        )
+        {
+            ControllerContext = ctx ?? ControllerContextBuilder.Create()
+                .WithRequestHeader(GetRandomString(10), GetRandomString(10))
+                .Build()
+        };
     }
 
     private static IAppSettings CreateAppSettings(bool enabled)

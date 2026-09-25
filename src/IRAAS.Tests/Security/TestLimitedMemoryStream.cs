@@ -169,6 +169,22 @@ public class TestLimitedMemoryStream: TestBase
         }
     }
 
+    [Test]
+    public void ShouldDisposeUnderlyingStreamWhenDisposed()
+    {
+        // Arrange
+        var data = GetRandomBytes();
+        var sut = Create(data.Length);
+        sut.Write(data, 0, data.Length);
+        // Act
+        sut.Dispose();
+        
+        // Assert
+        var target = new byte[10];
+        Expect(() => sut.Read(target, 0, 10))
+            .To.Throw<ObjectDisposedException>();
+    }
+
     private static LimitedMemoryStream Create(
         long? maxSize = null)
     {

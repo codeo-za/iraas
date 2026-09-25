@@ -1,12 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using IRAAS.ImageProcessing;
-using NSubstitute;
 using NUnit.Framework;
 using PeanutButter.Utils;
 using PeanutButter.Utils.Dictionaries;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -15,7 +12,7 @@ using SixLabors.ImageSharp.Formats.Png;
 namespace IRAAS.Tests.ImageProcessing;
 
 [TestFixture]
-public class TestImageResizeParameters : TestBase
+public class TestImageUrlResizeParameters : TestBase
 {
     [Test]
     public void ShouldBeAbleToConstructWithNoParameters()
@@ -24,7 +21,7 @@ public class TestImageResizeParameters : TestBase
         //    attempt to populate
         // Arrange
         // Act
-        Expect(() => Activator.CreateInstance(typeof(ImageResizeParameters)))
+        Expect(() => Activator.CreateInstance(typeof(ImageUrlResizeParameters)))
             .Not.To.Throw();
         // Assert
     }
@@ -141,16 +138,18 @@ public class TestImageResizeParameters : TestBase
         public void ShouldBeAbleToSetAndGetValidUriWithPath()
         {
             // Arrange
-            var expected = GetRandomHttpUrlWithPath();
-            var uri = new Uri(expected);
+            var url = GetRandomHttpUrlWithPath();
+            var uri = new Uri(url);
             Expect(uri.AbsolutePath)
                 .Not.To.Be.Null.Or.Whitespace();
             var sut = Create();
+
             // Act
-            sut.Url = expected;
+            sut.Url = url;
+
             // Assert
             Expect(sut.Url)
-                .To.Equal(expected);
+                .To.Equal(uri.ToString());
         }
 
         [Test]
@@ -313,7 +312,7 @@ public class TestImageResizeParameters : TestBase
         public class WhenSamplerNotSet
         {
             [TestFixture]
-            public class AndHaveNoPerFormatDefaults
+            public class AndHaveNoPerFormatDefaults : TestBase
             {
                 [Test]
                 public void ShouldSetDefaultSampler()
@@ -321,14 +320,11 @@ public class TestImageResizeParameters : TestBase
                     // Arrange
                     var defaults = GetRandom<IDefaultImageResizeParameters>()
                         .With(o => o.Sampler = GetRandomString());
-                    using var _ = AutoResetter.Create(
-                        () => ImageResizeParameters.SetDefaults(defaults),
-                        ImageResizeParameters.ClearDefaults
-                    );
-                    var options = GetRandom<ImageResizeParameters>()
+                    ImageResizeParameters.SetDefaults(defaults);
+                    var options = GetRandom<ImageUrlResizeParameters>()
                         .With(o => o.Sampler = null);
                     // Act
-                    options.ApplyDefaultsFor(GetRandomFrom(["jpg", "png", "bmp", "gif"]));
+                    options.ApplyDefaultsFor(GetRandomFrom([ "jpg", "png", "bmp", "gif" ]));
                     // Assert
                     Expect(options.Sampler)
                         .To.Equal(defaults.Sampler);
@@ -336,7 +332,7 @@ public class TestImageResizeParameters : TestBase
             }
 
             [TestFixture]
-            public class AndHavePerFormatDefaults
+            public class AndHavePerFormatDefaults : TestBase
             {
                 [Test]
                 public void ShouldSetDefaultForFormat()
@@ -346,7 +342,7 @@ public class TestImageResizeParameters : TestBase
                         .With(o => o.Sampler = "default sampler");
                     var formatDefaults = GetRandom<IDefaultImageResizeParameters>()
                         .With(o => o.Sampler = "format sampler");
-                    var inputFormat = GetRandomFrom(["jpg", "png", "bmp", "gif"]);
+                    var inputFormat = GetRandomFrom([ "jpg", "png", "bmp", "gif" ]);
                     var formatDefaultProps = new DictionaryWrappingObject(formatDefaults)
                         .ToArray()
                         .ToDictionary(kvp => kvp.Key, kvp => $"{kvp.Value}");
@@ -354,11 +350,8 @@ public class TestImageResizeParameters : TestBase
                         inputFormat,
                         formatDefaultProps
                     );
-                    using var _ = AutoResetter.Create(
-                        () => ImageResizeParameters.SetDefaults(defaults),
-                        ImageResizeParameters.ClearDefaults
-                    );
-                    var options = GetRandom<ImageResizeParameters>()
+                    ImageResizeParameters.SetDefaults(defaults);
+                    var options = GetRandom<ImageUrlResizeParameters>()
                         .With(o => o.Sampler = null);
                     Expect(options.Sampler)
                         .To.Be.Null();
@@ -374,8 +367,8 @@ public class TestImageResizeParameters : TestBase
         }
     }
 
-    private static ImageResizeParameters Create()
+    private static ImageUrlResizeParameters Create()
     {
-        return new ImageResizeParameters();
+        return new ImageUrlResizeParameters();
     }
 }

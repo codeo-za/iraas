@@ -16,7 +16,8 @@ public class DefaultSettingAttribute : Attribute
 
 public static class DefaultSettingValues
 {
-    public const string FORTY_MEGABYTES = "${40 * 1024 * 1024}";
+    // 40mb default
+    public const string FORTY_MEGABYTES = "41943040";
     public const string FALSE = "false";
     public const string TRUE = "true";
     public const string HOST_MACHINE_CPU_COUNT = "0";
@@ -78,4 +79,13 @@ public interface IAppSettings
 
     [DefaultSetting(FALSE)]
     bool Verbose { get; }
+    
+    [DefaultSetting(FALSE)]
+    bool AllowInvalidSslCertificates { get; }
+    
+    [DefaultSetting(FALSE)]
+    bool AllowPostRequests { get; }
+    
+    [DefaultSetting("")]
+    string PostAuthTokens { get; }
 }

@@ -7,27 +7,12 @@ using NSubstitute;
 using PeanutButter.Utils;
 
 // ReSharper disable AccessToDisposedClosure
-
 namespace IRAAS.Tests.ImageProcessing;
 
 [TestFixture]
 [Parallelizable(ParallelScope.None)]
 public class TestAppSettingsProvider : TestBase
 {
-    [SetUp]
-    public void Setup()
-    {
-        // don't let tests interact
-        AppSettingsProvider.ClearCachedSettings();
-    }
-
-    [OneTimeTearDown]
-    public void Teardown()
-    {
-        // don't poison app settings for anyone else
-        AppSettingsProvider.ClearCachedSettings();
-    }
-
     [TestCase("appsettings.json")]
     public void ShouldLoadFromCWD_(string filename)
     {
@@ -61,6 +46,35 @@ public class TestAppSettingsProvider : TestBase
         );
         // Arrange
         var json = MakeSettingsWithoutConcurrency(expected);
+        Expect(json)
+            .Not.To.Contain(nameof(IAppSettings.MaxConcurrency));
+        File.WriteAllText(
+            filename,
+            json
+        );
+        // Act
+        var result = AppSettingsProvider.CreateAppSettings();
+        // Assert
+        Expect(result.MaxConcurrency)
+            .To.Equal(Environment.ProcessorCount);
+    }
+
+    [TestCase("appsettings.json")]
+    public void ShouldDefaultMaxConcurrencyToProcessorCountWhenConfiguredLessThan1_(
+        string filename
+    )
+    {
+        var input = GetRandom<IAppSettings>()
+            .With(o => o.MaxConcurrency.Returns(_ => 0));
+        using var tempFolder = new AutoTempFolder();
+        using var _ = new AutoResetter<string>(
+            () => ChDir(tempFolder.Path),
+            prior => ChDir(prior)
+        );
+        // Arrange
+        var json = MakeSettings(input);
+        Expect(json)
+            .To.Contain(nameof(IAppSettings.MaxConcurrency));
         File.WriteAllText(
             filename,
             json
@@ -220,6 +234,65 @@ public class TestAppSettingsProvider : TestBase
         }
     }
 
+    [TestFixture]
+    public class AllowingInvalidSslCertificates : TestBase
+    {
+        [Test]
+        public void ShouldDefaultToFalseWhenNotSetInConfig()
+        {
+            // Arrange
+            var appSettings = Substitute.For<IAppSettings>()
+                .WithDefaultSettings();
+            var json = MakeSettingsWithoutSSLSetting(appSettings);
+            Expect(json)
+                .Not.To.Contain("AllowInvalidSSL", StringComparison.OrdinalIgnoreCase);
+            using var tempFolder = new AutoTempFolder();
+            using var _ = AutoResetter.Create(
+                () => ChDir(tempFolder.Path),
+                prior => ChDir(prior)
+            );
+            File.WriteAllText(
+                Path.Combine(tempFolder.Path, "appsettings.json"),
+                json
+            );
+
+            // Act
+            var result = AppSettingsProvider.CreateAppSettings();
+
+            // Assert
+            Expect(result.AllowInvalidSslCertificates)
+                .To.Be.False();
+        }
+
+        [Test]
+        public void ShouldComeFromConfigWhenSet()
+        {
+            // Arrange
+            var appSettings = Substitute.For<IAppSettings>()
+                .WithDefaultSettings()
+                .WithInvalidSslCertificatesAllowed();
+            var json = MakeSettings(appSettings);
+            Expect(json)
+                .To.Contain("AllowInvalidSSLCertificates", StringComparison.OrdinalIgnoreCase);
+            using var tempFolder = new AutoTempFolder();
+            using var _ = AutoResetter.Create(
+                () => ChDir(tempFolder.Path),
+                prior => ChDir(prior)
+            );
+            File.WriteAllText(
+                Path.Combine(tempFolder.Path, "appsettings.json"),
+                json
+            );
+
+            // Act
+            var result = AppSettingsProvider.CreateAppSettings();
+
+            // Assert
+            Expect(result.AllowInvalidSslCertificates)
+                .To.Be.True();
+        }
+    }
+
     private const string UNSUBSTITUTED_JSON = @"{
             ""Settings"": {
                 ""UseHttps"": ""#{UseHttps}""
@@ -262,6 +335,9 @@ public class TestAppSettingsProvider : TestBase
                       "EnableConnectionKeepAlive": "{{settings.EnableConnectionKeepAlive}}",
                       "LogFolder": "{{settings.LogFolder}}",
                       "SuppressErrorDiagnostics": "{{settings.SuppressErrorDiagnostics}}",
+                      "AllowInvalidSSLCertificates": "{{settings.AllowInvalidSslCertificates}}",
+                      "AllowPostRequests": "{{settings.AllowPostRequests}}",
+                      "PostAuthTokens": "{{settings.PostAuthTokens}}",
                       "Verbose": "{{settings.Verbose}}"
                   },
                   "DefaultParameters": {
@@ -296,68 +372,130 @@ public class TestAppSettingsProvider : TestBase
               """;
     }
 
-    private string MakeSettingsWithoutConcurrency(
+    private static string MakeSettingsWithoutConcurrency(
         IAppSettings settings
     )
     {
         return
-            $$$"""
-               {
-                   "LogLevel": {
-                       "Default": "Warning",
-                       "IRAAS": "{{{settings.IRAASLogLevel}}}"
-                   },
-                   "Kestrel": {
-                       "Endpoints": {
-                           "Http": {
-                               "Url": "http://0.0.0.0:8080"
-                           }
-                       }
-                   },
-                   "Settings": {
-                       "MaxInputImageSize": "{{settings.MaxInputImageSize}}",
-                       "MaxOutputImageSize": "{{settings.MaxOutputImageSize}}",
-                       "UseDeveloperExceptionPage": "{{settings.UseDeveloperExceptionPage}}",
-                       "UseHttps": "{{settings.UseHttps}}",
-                       "EnableTestPage": "{{settings.EnableTestPage}}",
-                       "DomainWhitelist": "{{settings.DomainWhitelist}}",
-                       "ShareConcurrentRequests": "{{settings.ShareConcurrentRequests}}",
-                       "EnableConnectionKeepAlive": "{{settings.EnableConnectionKeepAlive}}",
-                       "LogFolder": "{{settings.LogFolder}}"
-                   },
-                   "DefaultParameters": {
-                       "*": {
-                           "ReplaceTransparencyWith": null,
-                           "Format": null,
-                           "Quality": "85",
-                           "Width": null,
-                           "Height": null,
-                           "ResizeMode": null,
-                           "JpegColorType": null,
-                           "JpegEncodingColor": null,
-                           "Gamma": null,
-                           "Quantizer": null,
-                           "TransparencyThreshold": null,
-                           "BitDepth": null,
-                           "PngColorType": null,
-                           "CompressionLevel": null,
-                           "PngFilterMethod": null,
-                           "Sampler": null,
-                           "GifColorTableMode": null,
-                           "MaxColors": null,
-                           "Dither": null,
-                           "DevicePixelRatio": 1
-                       },
-                       "png": {
-                           "Sampler": "Bicubic"
-                       }
-                   },
-                   "AllowedHosts": "*"
-               }
-               """;
+            $$"""
+              {
+                  "LogLevel": {
+                      "Default": "Warning",
+                      "IRAAS": "{{settings.IRAASLogLevel}}"
+                  },
+                  "Kestrel": {
+                      "Endpoints": {
+                          "Http": {
+                              "Url": "http://0.0.0.0:8080"
+                          }
+                      }
+                  },
+                  "Settings": {
+                      "MaxInputImageSize": "{{settings.MaxInputImageSize}}",
+                      "MaxOutputImageSize": "{{settings.MaxOutputImageSize}}",
+                      "UseDeveloperExceptionPage": "{{settings.UseDeveloperExceptionPage}}",
+                      "UseHttps": "{{settings.UseHttps}}",
+                      "EnableTestPage": "{{settings.EnableTestPage}}",
+                      "DomainWhitelist": "{{settings.DomainWhitelist}}",
+                      "ShareConcurrentRequests": "{{settings.ShareConcurrentRequests}}",
+                      "EnableConnectionKeepAlive": "{{settings.EnableConnectionKeepAlive}}",
+                      "AllowInvalidSSLCertificates": "{{settings.AllowInvalidSslCertificates}}",
+                      "LogFolder": "{{settings.LogFolder}}"
+                  },
+                  "DefaultParameters": {
+                      "*": {
+                          "ReplaceTransparencyWith": null,
+                          "Format": null,
+                          "Quality": "85",
+                          "Width": null,
+                          "Height": null,
+                          "ResizeMode": null,
+                          "JpegColorType": null,
+                          "JpegEncodingColor": null,
+                          "Gamma": null,
+                          "Quantizer": null,
+                          "TransparencyThreshold": null,
+                          "BitDepth": null,
+                          "PngColorType": null,
+                          "CompressionLevel": null,
+                          "PngFilterMethod": null,
+                          "Sampler": null,
+                          "GifColorTableMode": null,
+                          "MaxColors": null,
+                          "Dither": null,
+                          "DevicePixelRatio": 1
+                      },
+                      "png": {
+                          "Sampler": "Bicubic"
+                      }
+                  },
+                  "AllowedHosts": "*"
+              }
+              """;
     }
 
-    private string MakeSettingsWithoutLogFolder(
+    private static string MakeSettingsWithoutSSLSetting(
+        IAppSettings settings
+    )
+    {
+        return
+            $$"""
+              {
+                  "LogLevel": {
+                      "Default": "Warning",
+                      "IRAAS": "{{settings.IRAASLogLevel}}"
+                  },
+                  "Kestrel": {
+                      "Endpoints": {
+                          "Http": {
+                              "Url": "http://0.0.0.0:8080"
+                          }
+                      }
+                  },
+                  "Settings": {
+                      "MaxInputImageSize": "{{settings.MaxInputImageSize}}",
+                      "MaxOutputImageSize": "{{settings.MaxOutputImageSize}}",
+                      "UseDeveloperExceptionPage": "{{settings.UseDeveloperExceptionPage}}",
+                      "UseHttps": "{{settings.UseHttps}}",
+                      "EnableTestPage": "{{settings.EnableTestPage}}",
+                      "DomainWhitelist": "{{settings.DomainWhitelist}}",
+                      "ShareConcurrentRequests": "{{settings.ShareConcurrentRequests}}",
+                      "EnableConnectionKeepAlive": "{{settings.EnableConnectionKeepAlive}}",
+                      "LogFolder": "{{settings.LogFolder}}"
+                  },
+                  "DefaultParameters": {
+                      "*": {
+                          "ReplaceTransparencyWith": null,
+                          "Format": null,
+                          "Quality": "85",
+                          "Width": null,
+                          "Height": null,
+                          "ResizeMode": null,
+                          "JpegColorType": null,
+                          "JpegEncodingColor": null,
+                          "Gamma": null,
+                          "Quantizer": null,
+                          "TransparencyThreshold": null,
+                          "BitDepth": null,
+                          "PngColorType": null,
+                          "CompressionLevel": null,
+                          "PngFilterMethod": null,
+                          "Sampler": null,
+                          "GifColorTableMode": null,
+                          "MaxColors": null,
+                          "Dither": null,
+                          "DevicePixelRatio": 1
+                      },
+                      "png": {
+                          "Sampler": "Bicubic"
+                      }
+                  },
+                  "AllowedHosts": "*"
+              }
+              """;
+    }
+
+    private static string MakeSettingsWithoutLogFolder(
         IAppSettings settings
     )
     {
@@ -385,7 +523,8 @@ public class TestAppSettingsProvider : TestBase
                       "EnableTestPage": "{{settings.EnableTestPage}}",
                       "DomainWhitelist": "{{settings.DomainWhitelist}}",
                       "ShareConcurrentRequests": "{{settings.ShareConcurrentRequests}}",
-                      "EnableConnectionKeepAlive": "{{settings.EnableConnectionKeepAlive}}"
+                      "EnableConnectionKeepAlive": "{{settings.EnableConnectionKeepAlive}}",
+                      "AllowInvalidSSLCertificates": "{{settings.AllowInvalidSslCertificates}}"
                   },
                   "DefaultParameters": {
                       "*": {
@@ -444,4 +583,7 @@ public class AppSettings : IAppSettings
     public LogLevel IRAASLogLevel { get; set; }
     public int MaxUrlFetchRetries { get; set; }
     public bool Verbose { get; set; }
+    public bool AllowInvalidSslCertificates { get; set; }
+    public bool AllowPostRequests { get; set; }
+    public string PostAuthTokens { get; set; }
 }

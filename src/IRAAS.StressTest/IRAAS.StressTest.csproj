@@ -6,12 +6,12 @@
     <RootNamespace>IRAAS.StressTest</RootNamespace>
     <LangVersion>latest</LangVersion>
     <IsPublishable>false</IsPublishable>
-    <Configurations>Debug;Release;ReleaseForDocker</Configurations>
+    <Configurations>Debug;Release;ReleaseForDocker;Debug.WebRequest;Release.WebRequest</Configurations>
     <Platforms>AnyCPU</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="PeanutButter.EasyArgs" Version="3.0.339" />
+    <PackageReference Include="PeanutButter.EasyArgs" Version="3.0.440" />
   </ItemGroup>
 
   <ItemGroup>
