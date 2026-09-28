@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using IRAAS.Middleware;
+using Microsoft.AspNetCore.Mvc;
 namespace IRAAS.Controllers;
 
-[Route("health")]
+[Route(Routes.HEALTH)]
 public class HealthController : ControllerBase
 {
   [HttpGet]

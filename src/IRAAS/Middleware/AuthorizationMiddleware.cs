@@ -53,12 +53,24 @@ public class AuthorizationMiddleware : IMiddleware
         HttpContext context
     )
     {
+        if (IsAllowedHealthRequest(context.Request))
+        {
+            return;
+        }
+
         if (IsAllowedTestPageRequest(context.Request))
         {
             return;
         }
 
         VerifyHaveValidUrlParameter(context.Request);
+    }
+
+    private bool IsAllowedHealthRequest(
+        HttpRequest request
+    )
+    {
+        return Routes.HasHealthPagePath(request);
     }
 
     private void VerifyHaveValidUrlParameter(

@@ -312,31 +312,71 @@ public class TestAuthorizationMiddleware
         [TestFixture]
         public class AndNoUrlParameterProvided
         {
-            [Test]
-            public void ShouldThrowNotImplemented()
+            [TestFixture]
+            public class OnBaseUrl
             {
-                // Arrange
-                HttpContext captured = null;
-                var (ctx, next) = RequestDelegateTestArenaBuilder.Create()
-                    .WithContext(
-                        HttpContextBuilder.Create()
-                            .WithRequestMethod(HttpMethods.Get)
-                            .Build()
-                    ).WithDelegateLogic(c => captured = c)
-                    .Build();
-                var whitelist = CreateAllowingWhitelist();
-                var sut = Create(whitelist: whitelist);
+                [Test]
+                public void ShouldThrowNotImplemented()
+                {
+                    // Arrange
+                    HttpContext captured = null;
+                    var (ctx, next) = RequestDelegateTestArenaBuilder.Create()
+                        .WithContext(
+                            HttpContextBuilder.Create()
+                                .WithRequestMethod(HttpMethods.Get)
+                                .Build()
+                        ).WithDelegateLogic(c => captured = c)
+                        .Build();
+                    var whitelist = CreateAllowingWhitelist();
+                    var sut = Create(whitelist: whitelist);
 
-                // Act
-                Expect(async () => await sut.InvokeAsync(ctx, next))
-                    .To.Throw<NotImplementedException>();
+                    // Act
+                    Expect(async () => await sut.InvokeAsync(ctx, next))
+                        .To.Throw<NotImplementedException>();
 
-                // Assert
-                Expect(captured)
-                    .To.Be.Null();
-                Expect(whitelist)
-                    .Not.To.Have.Received()
-                    .IsAllowed(Arg.Any<string>());
+                    // Assert
+                    Expect(captured)
+                        .To.Be.Null();
+                    Expect(whitelist)
+                        .Not.To.Have.Received()
+                        .IsAllowed(Arg.Any<string>());
+                }
+            }
+
+            [TestFixture]
+            public class OnHealthUrl
+            {
+                [TestCase("/health")]
+                [TestCase("/health/")]
+                public void ShouldNotThrow_(
+                    string path
+                )
+                {
+                    // Arrange
+                    HttpContext captured = null;
+                    var (ctx, next) = RequestDelegateTestArenaBuilder.Create()
+                        .WithContext(
+                            HttpContextBuilder.Create()
+                                .WithRequestMethod(HttpMethods.Get)
+                                .WithRequestQueryParameters(
+                                    GetRandomDictionary<string, string>()
+                                ).WithRequestPath(path)
+                                .Build()
+                        ).WithDelegateLogic(c => captured = c)
+                        .Build();
+                    var whitelist = CreateAllowingWhitelist();
+                    var sut = Create(whitelist: whitelist);
+
+                    // Act
+                    Expect(async () => await sut.InvokeAsync(ctx, next))
+                        .Not.To.Throw();
+
+                    // Assert
+                    Expect(captured)
+                        .Not.To.Be.Null();
+                    Expect(whitelist)
+                        .Not.To.Have.Been.Called();
+                }
             }
         }
     }
