@@ -79,7 +79,7 @@ public class TestImageProviderErrorMiddleware : TestBase
             var url = GetRandomHttpUrl();
             var expectedResponseHeader = GetRandomString(1);
             var expectedResponseHeaderValue = GetRandomString(1);
-            var statusCode = GetRandom<HttpStatusCode>();
+            var statusCode = GetAnother(HttpStatusCode.OK);
             var headers = new WebHeaderCollection()
             {
                 { expectedResponseHeader, expectedResponseHeaderValue }
