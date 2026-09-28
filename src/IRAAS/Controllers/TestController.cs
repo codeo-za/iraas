@@ -20,7 +20,7 @@ public class TestController : Controller
         _fetcher = fetcher;
     }
 
-    [ResponseCache(NoStore = true)]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     [Route(Routes.TEST)]
     [HttpGet]
     public ActionResult Test()
@@ -28,6 +28,7 @@ public class TestController : Controller
         return View(_settings);
     }
 
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     [Route(Routes.SIZE)]
     [HttpGet]
     public async Task<long> FileSize([FromQuery] string url)

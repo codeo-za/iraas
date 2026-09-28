@@ -11,6 +11,7 @@ using NUnit.Framework;
 using NSubstitute;
 using PeanutButter.TestUtils.AspNetCore.Builders;
 using PeanutButter.Utils;
+// ReSharper disable RedundantBoolCompare
 
 namespace IRAAS.Tests.Controllers;
 
@@ -24,6 +25,26 @@ public class TestTestController : TestBase
         // Act
         Expect(typeof(TestController))
             .To.Have.Route(expected);
+        // Assert
+    }
+
+    [TestCase(nameof(TestController.Test))]
+    [TestCase(nameof(TestController.FileSize))]
+    public void ShouldDisableResponseCachingOn_(
+        string method
+    )
+    {
+        // Arrange
+        var sut = typeof(TestController);
+
+        // Act
+        Expect(sut)
+            .To.Have.Method(method)
+            .With.Attribute<ResponseCacheAttribute>(
+                a => a.NoStore == true && 
+                     a.Location == ResponseCacheLocation.None
+            );
+
         // Assert
     }
 
