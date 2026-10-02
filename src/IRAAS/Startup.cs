@@ -48,6 +48,9 @@ public class Startup
                 return next();
             }
         );
+        // registered first so that every response, including errors
+        // produced further down the pipeline, gets the cors headers
+        app.UseMiddleware<TestPageCorsMiddleware>();
         if (env.IsDevelopment() ||
             AppSettings.UseDeveloperExceptionPage)
         {

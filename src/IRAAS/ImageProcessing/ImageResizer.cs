@@ -116,6 +116,7 @@ public class ImageResizer : IImageResizer
         StreamAndHeaders src
     )
     {
+        var sourceSizeHeaders = SourceSizeHeadersFor(src.Stream);
         IImageFormat sourceFormat = null;
         try
         {
@@ -210,9 +211,22 @@ public class ImageResizer : IImageResizer
             new MergeDictionary<string, string>(
                 src.Headers,
                 timer.Timings,
+                sourceSizeHeaders,
                 resizeParameters.DumpIf(_appSettings.Verbose)
             )
         );
+    }
+
+    private Dictionary<string, string> SourceSizeHeadersFor(
+        Stream source
+    )
+    {
+        return _appSettings.Verbose
+            ? new Dictionary<string, string>
+            {
+                [SizeHeaders.SourceSize] = $"{source.Length}"
+            }
+            : new Dictionary<string, string>();
     }
 
     private IResampler DetermineSamplerFor(

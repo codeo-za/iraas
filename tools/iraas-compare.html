@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IRAAS Compare</title>
+    <!--
+        Standalone comparison page for IRAAS (Image Resizing As A Service).
+
+        Just open this file in a browser (double-clicking it is fine) and enter the host
+        name (and port, if needed) of an IRAAS instance with EnableTestPage=true - the
+        page works out whether to talk to it over https or http. With the test page enabled, IRAAS allows
+        any origin to read its resize and size responses, so this page can show byte
+        sizes, the resize parameters IRAAS actually used and its timings (the last two
+        need Verbose=true on the IRAAS side).
+
+        Against an IRAAS without EnableTestPage, images are still shown, but without sizes.
+    -->
+    <style>
+        :root {
+            --bg: #f6f7f9;
+            --panel: #ffffff;
+            --text: #1d2229;
+            --muted: #5f6873;
+            --border: #d8dce2;
+            --accent: #2f6fdb;
+            --accent-text: #ffffff;
+            --error: #c0392b;
+            --ok: #1e7d3c;
+            --warn-bg: #fff4d6;
+            --warn-text: #6b4e00;
+            --checker-a: #e9ebee;
+            --checker-b: #ffffff;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #15181c;
+                --panel: #1e2227;
+                --text: #e4e7eb;
+                --muted: #9aa3ad;
+                --border: #353b43;
+                --accent: #5b92ef;
+                --accent-text: #0b0d10;
+                --error: #ff7b6b;
+                --ok: #6fd08c;
+                --warn-bg: #3a3017;
+                --warn-text: #f3d98a;
+                --checker-a: #2a2f35;
+                --checker-b: #22262b;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 16px;
+            background: var(--bg);
+            color: var(--text);
+            font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        }
+
+        h1 {
+            font-size: 20px;
+            margin: 0 0 12px;
+        }
+
+        h2 {
+            font-size: 15px;
+            margin: 0 0 8px;
+        }
+
+        a {
+            color: var(--accent);
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+        }
+
+        label.block {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        input[type=text], textarea {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg);
+            color: var(--text);
+            font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        code {
+            font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0 4px;
+            word-break: break-all;
+        }
+
+        #options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .option-group {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 10px 8px;
+            margin: 0;
+            min-width: 0;
+        }
+
+        .option-group legend {
+            font-weight: 600;
+            padding: 0 4px;
+        }
+
+        .option-group .toggles {
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .option-group .toggles a {
+            cursor: pointer;
+            margin-right: 8px;
+        }
+
+        .option-group label {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin: 1px 10px 1px 0;
+            white-space: nowrap;
+        }
+
+        .option-group.active {
+            border-color: var(--accent);
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+
+        button {
+            padding: 7px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--panel);
+            color: var(--text);
+            font: inherit;
+            cursor: pointer;
+        }
+
+        button.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--accent-text);
+            font-weight: 600;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        .server-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .server-row input {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .connection {
+            margin-top: 8px;
+            font-size: 13px;
+        }
+
+        .connection:empty {
+            display: none;
+        }
+
+        .connection.ok {
+            color: var(--ok);
+        }
+
+        .connection.warn {
+            color: var(--warn-text);
+            background: var(--warn-bg);
+            border-radius: 6px;
+            padding: 6px 8px;
+        }
+
+        .connection.error {
+            color: var(--error);
+        }
+
+        .connection.checking {
+            color: var(--muted);
+        }
+
+        #summary, #progress {
+            color: var(--muted);
+        }
+
+        #notice {
+            display: none;
+            background: var(--warn-bg);
+            color: var(--warn-text);
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-bottom: 14px;
+        }
+
+        fieldset.source {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px 14px;
+            margin: 0 0 16px;
+            min-width: 0;
+        }
+
+        fieldset.source > legend {
+            font: 600 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            padding: 0 6px;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+        }
+
+        .original {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .outputs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .card {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px;
+            max-width: 100%;
+            min-width: 180px;
+        }
+
+        .card .params {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 6px;
+        }
+
+        .chip {
+            font: 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0 7px;
+        }
+
+        .frame {
+            display: inline-block;
+            max-width: 100%;
+            background-color: var(--checker-b);
+            background-image: linear-gradient(45deg, var(--checker-a) 25%, transparent 25%, transparent 75%, var(--checker-a) 75%),
+                linear-gradient(45deg, var(--checker-a) 25%, transparent 25%, transparent 75%, var(--checker-a) 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 8px 8px;
+            line-height: 0;
+        }
+
+        .frame img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .meta {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 6px;
+            overflow-wrap: anywhere;
+        }
+
+        .meta strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .status {
+            font-size: 12px;
+            color: var(--muted);
+            padding: 20px 0;
+        }
+
+        .card details {
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        .card summary {
+            cursor: pointer;
+            color: var(--muted);
+        }
+
+        .card dl {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 1px 10px;
+            margin: 4px 0 0;
+            font: 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+
+        .card dt {
+            color: var(--muted);
+        }
+
+        .card dd {
+            margin: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .error {
+            color: var(--error);
+            font-size: 12px;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+    </style>
+</head>
+<body>
+<h1>IRAAS Compare</h1>
+
+<div class="panel">
+    <label class="block" for="base-url">IRAAS server</label>
+    <div class="server-row">
+        <input type="text" id="base-url" placeholder="staging.example.com or localhost:5000">
+        <button type="button" id="check">Check</button>
+    </div>
+    <div class="hint">
+        Just the host name, and port if needed &mdash; the page works out whether to use https or http.
+    </div>
+    <div id="connection" class="connection"></div>
+</div>
+
+<div class="panel">
+    <label class="block" for="urls">Source image urls</label>
+    <textarea id="urls" placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.png"></textarea>
+    <div class="hint">
+        One url per line. Blank lines and lines starting with <code>#</code> are ignored. IRAAS urls (eg copied
+        from a live site) are fine &mdash; the source image url is pulled out of their <code>url</code> parameter.
+    </div>
+</div>
+
+<div class="panel">
+    <h2>Options</h2>
+    <div class="hint" style="margin: -4px 0 10px">
+        Every combination of the selected values is tested. Options with nothing selected are left out of the
+        request, so IRAAS uses its defaults.
+    </div>
+    <div id="options"></div>
+</div>
+
+<div class="panel actions">
+    <button type="button" class="primary" id="run">Run</button>
+    <button type="button" id="stop" disabled>Stop</button>
+    <button type="button" id="clear-options">Clear options</button>
+    <span id="summary"></span>
+    <span id="progress"></span>
+</div>
+
+<div id="notice"></div>
+<div id="results"></div>
+
+<script>
+    "use strict";
+
+    const MAX_CONCURRENT_REQUESTS = 2;
+    const WARN_COMBINATION_COUNT = 10;
+    const STORAGE_PREFIX = "iraas-compare:";
+
+    // values here mirror the options IRAAS (and ImageSharp 3.x) supports
+    // -> see src/IRAAS/ImageProcessing/ImageUrlResizeParameters.cs
+    const OPTIONS = [
+        { key: "width", label: "Width", values: [ 200, 400, 800, 1200 ] },
+        { key: "height", label: "Height", values: [ 200, 400, 800, 1200 ] },
+        { key: "devicePixelRatio", label: "Device pixel ratio", values: [ 1, 1.5, 2, 3 ] },
+        { key: "resizeMode", label: "Resize mode", values: [ "Crop", "Pad", "BoxPad", "Max", "Min", "Stretch", "Manual" ] },
+        { key: "sampler", label: "Sampler", values: [ "Bicubic", "Box", "Cubic", "Lanczos", "NearestNeighbor", "Triangle", "Welch" ] },
+        { key: "format", label: "Format", values: [ "jpeg", "png", "gif", "bmp", "webp" ] },
+        { key: "quality", label: "Quality", values: Array.from({ length: 19 }, (_, i) => (i + 1) * 5) },
+        { key: "jpegEncodingColor", label: "Jpeg encoding color", values: [ "YCbCrRatio420", "YCbCrRatio444", "YCbCrRatio422", "YCbCrRatio411", "YCbCrRatio410", "Luminance", "Rgb", "Cmyk", "Ycck" ] },
+        { key: "quantizer", label: "Quantizer", values: [ "Octree", "WebSafePalette", "WernerPalette", "Wu" ] },
+        { key: "maxColors", label: "Max colors", values: [ 16, 64, 128, 256 ] },
+        { key: "dither", label: "Dither", values: [ "true", "false" ] },
+        { key: "bitDepth", label: "Bit depth", values: [ 1, 2, 4, 8, 16, 24, 32 ] },
+        { key: "pngColorType", label: "Png color type", values: [ "Grayscale", "Rgb", "Palette", "GrayscaleWithAlpha", "RgbWithAlpha" ] },
+        { key: "pngFilterMethod", label: "Png filter method", values: [ "None", "Sub", "Up", "Average", "Paeth", "Adaptive" ] },
+        { key: "compressionLevel", label: "Compression level", values: [ 1, 3, 6, 9 ] },
+        { key: "gifColorTableMode", label: "Gif color table mode", values: [ "Global", "Local" ] },
+        { key: "gamma", label: "Gamma", values: [ 0.2, 0.5, 0.8, 1 ] },
+        { key: "transparencyThreshold", label: "Transparency threshold", values: [ 0, 64, 128, 255 ] },
+        { key: "replaceTransparencyWith", label: "Replace transparency with", values: [ "white", "black", "#FF00FF" ] }
+    ];
+
+    function $(selector, src) {
+        return (src || document).querySelector(selector);
+    }
+
+    function el(tag, attrs, ...children) {
+        const result = document.createElement(tag);
+        Object.entries(attrs || {}).forEach(([ k, v ]) => {
+            if (k === "className") {
+                result.className = v;
+            } else {
+                result.setAttribute(k, v);
+            }
+        });
+        children.flat(Infinity).forEach(c => {
+            if (c !== null && c !== undefined) {
+                result.append(c instanceof Node ? c : `${c}`);
+            }
+        });
+        return result;
+    }
+
+    // storage may be unavailable (private windows, blocked site data, file://
+    // in some browsers) - it's only a convenience, so never let it break the page
+    function load(key, fallback) {
+        try {
+            const value = localStorage.getItem(STORAGE_PREFIX + key);
+            return value === null ? fallback : JSON.parse(value);
+        } catch {
+            return fallback;
+        }
+    }
+
+    function save(key, value) {
+        try {
+            localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value));
+        } catch {
+            // ignore
+        }
+    }
+
+    function humanSize(bytes) {
+        if (bytes === null || bytes === undefined || isNaN(bytes)) {
+            return "unknown size";
+        }
+        const units = [ "B", "KB", "MB", "GB" ];
+        let value = bytes;
+        let unit = 0;
+        while (value >= 1024 && unit < units.length - 1) {
+            value /= 1024;
+            unit++;
+        }
+        return unit === 0
+            ? `${bytes} B`
+            : `${value.toFixed(value < 10 ? 2 : 1)} ${units[unit]}`;
+    }
+
+    // ---- option ui ----
+
+    function renderOptions() {
+        const saved = load("options", {});
+        const container = $("#options");
+        OPTIONS.forEach(opt => {
+            const group = el("fieldset", { className: "option-group", "data-key": opt.key },
+                el("legend", {}, opt.label),
+                el("div", { className: "toggles" },
+                    el("a", { "data-action": "all" }, "all"),
+                    el("a", { "data-action": "none" }, "none")
+                ),
+                opt.values.map(v => {
+                    const cb = el("input", { type: "checkbox", value: `${v}` });
+                    cb.checked = (saved[opt.key] || []).includes(`${v}`);
+                    return el("label", {}, cb, `${v}`);
+                })
+            );
+            container.append(group);
+        });
+        container.addEventListener("change", onOptionsChanged);
+        container.addEventListener("click", ev => {
+            const action = ev.target.getAttribute("data-action");
+            if (!action) {
+                return;
+            }
+            const group = ev.target.closest(".option-group");
+            group.querySelectorAll("input[type=checkbox]")
+                .forEach(cb => cb.checked = action === "all");
+            onOptionsChanged();
+        });
+        onOptionsChanged();
+    }
+
+    function selectedOptions() {
+        const result = {};
+        document.querySelectorAll(".option-group").forEach(group => {
+            const values = Array.from(group.querySelectorAll("input:checked")).map(cb => cb.value);
+            group.classList.toggle("active", values.length > 0);
+            if (values.length) {
+                result[group.getAttribute("data-key")] = values;
+            }
+        });
+        return result;
+    }
+
+    function combinationsOf(selected) {
+        // cartesian product, in the order options are declared, so output ordering is predictable
+        return OPTIONS
+            .filter(opt => selected[opt.key])
+            .reduce(
+                (acc, opt) => acc.flatMap(combo => selected[opt.key].map(v => [ ...combo, [ opt.key, v ] ])),
+                [ [] ]
+            );
+    }
+
+    // IRAAS urls (eg copied from a live site) wrap the source image in their url parameter,
+    // possibly more than once - pull out the innermost http(s) url
+    function unwrapSourceUrl(line) {
+        let current = line.trim();
+        for (let i = 0; i < 5; i++) {
+            let inner;
+            try {
+                inner = new URL(current).searchParams.get("url");
+            } catch {
+                break;
+            }
+            if (!inner || !/^https?:\/\//i.test(inner.trim())) {
+                break;
+            }
+            current = inner.trim();
+        }
+        return current;
+    }
+
+    function isComment(line) {
+        return line.trim().startsWith("#");
+    }
+
+    function unwrapUrlsInTextbox() {
+        const textbox = $("#urls");
+        const before = textbox.value;
+        const after = before
+            .split(/\r?\n/)
+            .map(line => isComment(line) || !line.trim() ? line : unwrapSourceUrl(line))
+            .join("\n");
+        if (after === before) {
+            return;
+        }
+        textbox.value = after;
+        textbox.selectionStart = textbox.selectionEnd = after.length;
+        save("urls", after);
+        updateSummary();
+    }
+
+    function sourceUrls() {
+        return $("#urls").value
+            .split(/\r?\n/)
+            .filter(line => line.trim() && !isComment(line))
+            .map(unwrapSourceUrl);
+    }
+
+    function updateSummary() {
+        const combos = combinationsOf(selectedOptions()).length;
+        const urls = sourceUrls().length;
+        $("#summary").textContent =
+            `${combos} combination${combos === 1 ? "" : "s"} × ${urls} image${urls === 1 ? "" : "s"} = ${combos * urls} request${combos * urls === 1 ? "" : "s"}`;
+    }
+
+    function onOptionsChanged() {
+        save("options", selectedOptions());
+        updateSummary();
+    }
+
+    // ---- request queue: never more than MAX_CONCURRENT_REQUESTS to IRAAS at once ----
+
+    class RequestQueue {
+        constructor(limit) {
+            this.limit = limit;
+            this.active = 0;
+            this.pending = [];
+            this.controller = new AbortController();
+        }
+
+        get signal() {
+            return this.controller.signal;
+        }
+
+        add(job, { priority } = {}) {
+            return new Promise((resolve, reject) => {
+                const entry = { job, resolve, reject };
+                if (priority) {
+                    this.pending.unshift(entry);
+                } else {
+                    this.pending.push(entry);
+                }
+                this.next();
+            });
+        }
+
+        next() {
+            while (this.active < this.limit && this.pending.length && !this.signal.aborted) {
+                const { job, resolve, reject } = this.pending.shift();
+                this.active++;
+                Promise.resolve()
+                    .then(() => job(this.signal))
+                    .then(resolve, reject)
+                    .finally(() => {
+                        this.active--;
+                        this.next();
+                    });
+            }
+        }
+
+        abort() {
+            this.controller.abort();
+            const dropped = this.pending.splice(0);
+            dropped.forEach(p => p.reject(new DOMException("Stopped", "AbortError")));
+        }
+    }
+
+    // ---- fetching ----
+
+    // when the page can't read IRAAS responses (cross-origin without CORS), fetch() throws
+    // a TypeError. After the first one we stop trying fetch and fall back to plain <img>
+    // loads for the rest of the run, which still shows the images but not their byte sizes.
+    let fetchBlocked = false;
+    let objectUrls = [];
+
+    function loadImage(img, src, signal) {
+        return new Promise((resolve, reject) => {
+            const cleanup = () => {
+                img.onload = img.onerror = null;
+                signal && signal.removeEventListener("abort", onAbort);
+            };
+            const onAbort = () => {
+                cleanup();
+                img.removeAttribute("src");
+                reject(new DOMException("Stopped", "AbortError"));
+            };
+            img.onload = () => {
+                cleanup();
+                resolve(img);
+            };
+            img.onerror = () => {
+                cleanup();
+                reject(new Error("image failed to load"));
+            };
+            signal && signal.addEventListener("abort", onAbort);
+            img.src = src;
+        });
+    }
+
+    async function fetchAsBlob(url, signal) {
+        const response = await fetch(url, { signal, cache: "no-store" });
+        if (!response.ok) {
+            const body = (await response.text().catch(() => "")).trim();
+            throw new Error(`${response.status} ${response.statusText}${body ? `\n${body.substring(0, 500)}` : ""}`);
+        }
+        return { blob: await response.blob(), headers: response.headers };
+    }
+
+    function isCorsLikeFailure(e) {
+        return e instanceof TypeError;
+    }
+
+    // resolves to { img, size, headers } where size and headers are null when they can't be read
+    async function fetchImage(url, signal, { tryFetch }) {
+        const img = el("img", { alt: "" });
+        if (tryFetch) {
+            try {
+                const { blob, headers } = await fetchAsBlob(url, signal);
+                const objectUrl = URL.createObjectURL(blob);
+                objectUrls.push(objectUrl);
+                await loadImage(img, objectUrl, signal);
+                return { img, size: blob.size, headers, viaFetch: true };
+            } catch (e) {
+                if (!isCorsLikeFailure(e)) {
+                    throw e;
+                }
+            }
+        }
+        await loadImage(img, url, signal);
+        return { img, size: null, headers: null, viaFetch: false };
+    }
+
+    // ---- rendering a run ----
+
+    // ---- finding IRAAS ----
+
+    const PROBE_TIMEOUT_MS = 8000;
+
+    // the user may give just a host (and port), or a full url; when no scheme is given,
+    // https is preferred over http
+    function candidateBasesFor(input) {
+        const raw = input.trim().replace(/\/+$/, "");
+        if (!raw) {
+            return [];
+        }
+        const urls = /^https?:\/\//i.test(raw)
+            ? [ raw ]
+            : [ `https://${raw}`, `http://${raw}` ];
+        return urls.map(u => new URL(u).href.replace(/\/+$/, ""));
+    }
+
+    // "full": IRAAS lets this page read its responses (EnableTestPage=true), so sizes etc work
+    // "limited": something answers, but its responses can't be read - images only
+    // "unreachable": nothing answered (wrong host/port/protocol, down, or an untrusted certificate)
+    async function probe(base) {
+        try {
+            // a GET to the resize endpoint without a url is rejected cheaply (404), and
+            // carries cors headers only when the test page is enabled
+            await fetch(`${base}/`, { cache: "no-store", signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
+            return "full";
+        } catch (e) {
+            if (e.name === "TimeoutError") {
+                return "unreachable";
+            }
+        }
+        try {
+            // no-cors: the response is unreadable, but resolving at all proves the server answered
+            await fetch(`${base}/health`, {
+                mode: "no-cors",
+                cache: "no-store",
+                signal: AbortSignal.timeout(PROBE_TIMEOUT_MS)
+            });
+            return "limited";
+        } catch {
+            return "unreachable";
+        }
+    }
+
+    let connection = null;
+
+    function setConnectionStatus(kind, ...content) {
+        const status = $("#connection");
+        status.className = `connection ${kind}`;
+        status.replaceChildren(...content);
+    }
+
+    function connect() {
+        const input = $("#base-url").value;
+        if (connection && connection.input === input) {
+            return connection.result;
+        }
+        connection = { input, result: findIraas(input) };
+        return connection.result;
+    }
+
+    async function findIraas(input) {
+        let candidates;
+        try {
+            candidates = candidateBasesFor(input);
+        } catch {
+            setConnectionStatus("error", "That doesn't look like a valid server address.");
+            return null;
+        }
+        if (!candidates.length) {
+            setConnectionStatus("error", "Please enter the IRAAS server's address.");
+            return null;
+        }
+
+        const results = [];
+        for (const base of candidates) {
+            setConnectionStatus("checking", `Checking ${base} …`);
+            const mode = await probe(base);
+            if (connection?.input !== input) {
+                return null; // superseded by a newer address
+            }
+            results.push({ base, mode });
+            if (mode === "full") {
+                break;
+            }
+        }
+
+        const best = results.find(r => r.mode === "full") ||
+            results.find(r => r.mode === "limited");
+        const host = input.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+        if (!best) {
+            const httpsBase = candidates.find(c => c.startsWith("https:"));
+            setConnectionStatus("error",
+                `✗ Couldn't reach ${host} over ${candidates.map(c => c.split(":")[0]).join(" or ")}. ` +
+                "Check the address (and port), and that IRAAS is running.",
+                httpsBase
+                    ? el("span", {},
+                        " If it uses a self-signed certificate, open ",
+                        el("a", { href: `${httpsBase}/health`, target: "_blank", rel: "noopener" }, `${httpsBase}/health`),
+                        ", accept the browser's warning, then press Check again.")
+                    : null
+            );
+            return null;
+        }
+
+        const fellBackToHttp = best.base.startsWith("http:") && candidates.length > 1;
+        if (best.mode === "full") {
+            setConnectionStatus("ok",
+                `✓ Connected to ${best.base}. Sizes are shown; parameters used and timings are shown when IRAAS has Verbose=true.`,
+                fellBackToHttp ? " (https didn't answer, so http is being used.)" : ""
+            );
+        } else {
+            setConnectionStatus("warn",
+                `⚠ ${best.base} answered, but doesn't let this page read its responses, so images will be shown ` +
+                "without sizes. Ask for EnableTestPage=true to be set on that IRAAS (if it already is, " +
+                "IRAAS needs updating to a version that supports this page)."
+            );
+        }
+        return best;
+    }
+
+    function buildResizeUrl(base, sourceUrl, combo) {
+        const params = new URLSearchParams();
+        params.append("url", sourceUrl);
+        combo.forEach(([ k, v ]) => params.append(k, v));
+        return `${base}/?${params}`;
+    }
+
+    function describeDimensions(img) {
+        return `${img.naturalWidth} × ${img.naturalHeight}`;
+    }
+
+    function renderOriginal(container, sourceUrl, base, queue, state) {
+        const frame = el("div", { className: "frame" });
+        const meta = el("div", { className: "meta" }, "loading…");
+        container.append(
+            el("div", { className: "original" },
+                el("h2", {}, "Original"),
+                frame,
+                meta
+            )
+        );
+
+        // the original comes from its own host, not IRAAS, so it doesn't go via the queue;
+        // fetch() only works if that host allows CORS, otherwise fall back to IRAAS /size
+        return fetchImage(sourceUrl, queue.signal, { tryFetch: true })
+            .then(async ({ img, size }) => {
+                frame.append(el("a", { href: sourceUrl, target: "_blank", rel: "noopener" }, img));
+                if (size === null) {
+                    meta.textContent = `${describeDimensions(img)} · fetching size…`;
+                    size = await fetchSizeViaIraas(base, sourceUrl, queue);
+                }
+                const sizeText = el("strong", {}, "size unavailable (needs EnableTestPage=true on IRAAS)");
+                meta.replaceChildren(sizeText, ` · ${describeDimensions(img)}`);
+                // outputs also report the source size (when IRAAS is verbose), so this
+                // may still be filled in later even if /size wasn't available
+                state.whenOriginalSizeKnown(known => sizeText.textContent = humanSize(known));
+                state.setOriginalSize(size);
+            })
+            .catch(e => {
+                if (e.name === "AbortError") {
+                    meta.textContent = "stopped";
+                    return;
+                }
+                meta.replaceChildren(el("span", { className: "error" }, `Unable to load original: ${e.message}`));
+            });
+    }
+
+    async function fetchSizeViaIraas(base, sourceUrl, queue) {
+        if (fetchBlocked) {
+            return null;
+        }
+        try {
+            return await queue.add(async signal => {
+                const response = await fetch(`${base}/size?${new URLSearchParams({ url: sourceUrl })}`, {
+                    signal,
+                    cache: "no-store"
+                });
+                if (!response.ok) {
+                    return null;
+                }
+                const value = Number(await response.text());
+                return isNaN(value) ? null : value;
+            }, { priority: true });
+        } catch (e) {
+            if (e.name === "AbortError") {
+                throw e;
+            }
+            if (isCorsLikeFailure(e)) {
+                markFetchBlocked();
+            }
+            return null;
+        }
+    }
+
+    function markFetchBlocked() {
+        if (fetchBlocked) {
+            return;
+        }
+        fetchBlocked = true;
+        const notice = $("#notice");
+        notice.style.display = "block";
+        notice.textContent =
+            "This IRAAS instance doesn't allow this page to read its responses, so images are shown " +
+            "without byte sizes. Enable EnableTestPage on IRAAS to see sizes.";
+    }
+
+    // these headers are only present when IRAAS has Verbose=true
+    function readVerboseHeaders(headers) {
+        const result = { parameters: [], timings: [], totalMs: 0, sourceSize: null };
+        if (!headers) {
+            return result;
+        }
+        headers.forEach((value, name) => {
+            // header names come back lower-cased
+            if (name.startsWith("iraas-resize-parameter-")) {
+                if (value !== "") {
+                    result.parameters.push([ name.substring("iraas-resize-parameter-".length), value ]);
+                }
+            } else if (name.startsWith("iraas-timing-")) {
+                result.timings.push([ name.substring("iraas-timing-".length), `${value} ms` ]);
+                result.totalMs += Number(value) || 0;
+            } else if (name === "iraas-source-size") {
+                const size = Number(value);
+                result.sourceSize = isNaN(size) ? null : size;
+            }
+        });
+        return result;
+    }
+
+    function renderDetails(title, rows) {
+        if (!rows.length) {
+            return null;
+        }
+        return el("details", {},
+            el("summary", {}, title),
+            el("dl", {}, rows.map(([ k, v ]) => [ el("dt", {}, k), el("dd", {}, v) ]))
+        );
+    }
+
+    function renderOutput(container, sourceUrl, base, combo, queue, state, onDone) {
+        const url = buildResizeUrl(base, sourceUrl, combo);
+        const body = el("div", { className: "status" }, "queued…");
+        const meta = el("div", { className: "meta" });
+        container.append(
+            el("div", { className: "card" },
+                el("div", { className: "params" },
+                    combo.length
+                        ? combo.map(([ k, v ]) => el("span", { className: "chip" }, `${k}=${v}`))
+                        : el("span", { className: "chip" }, "(IRAAS defaults)")
+                ),
+                body,
+                meta
+            )
+        );
+
+        return queue.add(async signal => {
+            body.textContent = "loading…";
+            try {
+                const result = await fetchImage(url, signal, { tryFetch: !fetchBlocked });
+                if (!result.viaFetch) {
+                    markFetchBlocked();
+                }
+                return result;
+            } catch (e) {
+                // once fetch is known to be blocked, a failed <img> load gives us no details
+                if (e.name !== "AbortError" && fetchBlocked && e.message === "image failed to load") {
+                    throw new Error("image failed to load (no details available without CORS - open the link to see the error)");
+                }
+                throw e;
+            }
+        }).then(({ img, size, headers }) => {
+            body.replaceWith(el("a", { className: "frame", href: url, target: "_blank", rel: "noopener" }, img));
+            const verbose = readVerboseHeaders(headers);
+            if (verbose.sourceSize !== null) {
+                state.setOriginalSize(verbose.sourceSize);
+            }
+            const ratio = el("span");
+            meta.replaceChildren(
+                el("strong", {}, size === null ? "size unavailable" : humanSize(size)),
+                ` · ${describeDimensions(img)}`,
+                ratio,
+                el("br"),
+                el("a", { href: url, target: "_blank", rel: "noopener" }, url),
+                renderDetails("Parameters used", verbose.parameters),
+                renderDetails(`Timings (${verbose.totalMs} ms)`, verbose.timings)
+            );
+            if (size !== null) {
+                // the original's size may only arrive after this output has loaded
+                state.whenOriginalSizeKnown(original => {
+                    ratio.textContent = ` · ${Math.round(size / original * 100)}% of original`;
+                });
+            }
+        }).catch(e => {
+            if (e.name === "AbortError") {
+                body.textContent = "stopped";
+            } else {
+                body.replaceWith(el("div", { className: "error" }, e.message));
+            }
+            meta.replaceChildren(el("a", { href: url, target: "_blank", rel: "noopener" }, url));
+        }).finally(onDone);
+    }
+
+    // ---- run / stop ----
+
+    let currentQueue = null;
+
+    function createSourceState() {
+        let originalSize = null;
+        const waiting = [];
+        return {
+            setOriginalSize(size) {
+                if (originalSize || !size) {
+                    return;
+                }
+                originalSize = size;
+                waiting.splice(0).forEach(fn => fn(size));
+            },
+            whenOriginalSizeKnown(fn) {
+                if (originalSize) {
+                    fn(originalSize);
+                } else {
+                    waiting.push(fn);
+                }
+            }
+        };
+    }
+
+    async function run() {
+        const server = await connect();
+        if (!server) {
+            $("#base-url").focus();
+            return;
+        }
+        const base = server.base;
+
+        const urls = sourceUrls();
+        if (!urls.length) {
+            alert("Please enter at least one source image url.");
+            return;
+        }
+
+        const combos = combinationsOf(selectedOptions());
+        const total = combos.length * urls.length;
+        if (combos.length > WARN_COMBINATION_COUNT &&
+            !confirm(`You've selected ${combos.length} combinations of options. With ${urls.length} image(s), that's ${total} requests to IRAAS (max ${MAX_CONCURRENT_REQUESTS} at a time).\n\nContinue?`)) {
+            return;
+        }
+
+        stop();
+        objectUrls.forEach(u => URL.revokeObjectURL(u));
+        objectUrls = [];
+        fetchBlocked = false;
+        $("#notice").style.display = "none";
+        if (server.mode === "limited") {
+            // don't attempt (and repeat) requests we already know can't be read
+            markFetchBlocked();
+        }
+
+        const queue = new RequestQueue(MAX_CONCURRENT_REQUESTS);
+        currentQueue = queue;
+        $("#stop").disabled = false;
+
+        const results = $("#results");
+        results.replaceChildren();
+        let done = 0;
+        const progress = () => {
+            $("#progress").textContent = `${done} / ${total} done`;
+            if (done === total && currentQueue === queue) {
+                $("#stop").disabled = true;
+            }
+        };
+        progress();
+
+        urls.forEach(sourceUrl => {
+            const fieldset = el("fieldset", { className: "source" }, el("legend", {}, sourceUrl));
+            const outputs = el("div", { className: "outputs" });
+            results.append(fieldset);
+            // shared per-source so outputs can report a % of the original once it's known
+            const state = createSourceState();
+            renderOriginal(fieldset, sourceUrl, base, queue, state);
+            fieldset.append(outputs);
+            combos.forEach(combo => renderOutput(outputs, sourceUrl, base, combo, queue, state, () => {
+                done++;
+                progress();
+            }));
+        });
+    }
+
+    function stop() {
+        if (currentQueue) {
+            currentQueue.abort();
+            currentQueue = null;
+        }
+        $("#stop").disabled = true;
+    }
+
+    function clearOptions() {
+        document.querySelectorAll("#options input[type=checkbox]").forEach(cb => cb.checked = false);
+        onOptionsChanged();
+    }
+
+    // ---- init ----
+
+    $("#base-url").value = load("baseUrl", "localhost:5000");
+    $("#urls").value = load("urls", "");
+    let connectTimer = null;
+    $("#base-url").addEventListener("input", () => {
+        save("baseUrl", $("#base-url").value);
+        clearTimeout(connectTimer);
+        connectTimer = setTimeout(connect, 800);
+    });
+    $("#check").addEventListener("click", () => {
+        connection = null; // always re-check when asked explicitly
+        connect();
+    });
+    $("#urls").addEventListener("input", ev => {
+        save("urls", $("#urls").value);
+        updateSummary();
+        // only rewrite pasted / dropped text, so urls being typed by hand aren't changed underfoot
+        if (ev.inputType === "insertFromPaste" || ev.inputType === "insertFromDrop") {
+            unwrapUrlsInTextbox();
+        }
+    });
+    $("#urls").addEventListener("blur", unwrapUrlsInTextbox);
+    $("#run").addEventListener("click", run);
+    $("#stop").addEventListener("click", stop);
+    $("#clear-options").addEventListener("click", clearOptions);
+    renderOptions();
+    if ($("#base-url").value.trim()) {
+        connect();
+    }
+</script>
+</body>
+</html>

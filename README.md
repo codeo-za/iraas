@@ -30,6 +30,11 @@ the parameters sent to the resize service. This can be useful for
 testing what defaults to use and ensuring that domain whitelists
 are appropriately set.
 
+For comparing the output of many option combinations side-by-side,
+open [tools/iraas-compare.html](tools/iraas-compare.html) directly in a
+browser (no web server required) and point it at an IRAAS instance with
+`EnableTestPage` set to `true`.
+
 ## Requirements
 - Node (for build)
 - dotnet sdk 7.0 or better
@@ -43,7 +48,7 @@ MaxInputImageSize               | 41943040 (40mb)              | The maximum siz
 MaxOutputImageSize              | 41943040 (40mb)              | The maximum output size, in bytes, to allow. Outputs which are larger than this are discarded
 UseDeveloperExceptionPage       | false                        | Flag: when enabled, if IRAAS encounters an error, it will show the developer exception page instead of the default short response
 UseHttps                        | false                        | Flag: when enabled, requests coming in on http will be redirected to the https url you configure in `Urls`
-EnableTestPage                  | false                        | Flag: when enabled, the path `/test` will serve a (very basic) web page to test resizing images
+EnableTestPage                  | false                        | Flag: when enabled, the path `/test` will serve a (very basic) web page to test resizing images. GET resize and `/size` responses also allow cross-origin reads (`Access-Control-Allow-Origin: *`, `Access-Control-Expose-Headers: *`, `Timing-Allow-Origin: *`) so that standalone test pages, like `tools/iraas-compare.html`, can read sizes and headers
 DomainWhitelist                 | *                            | Comma-delimited list of domains or domain globs which are allowed as image sources, eg `*.mydomain.com`. Setting this to "*" allows all domains.
 MaxConcurrency                  | 0                            | The maximum number of image resize operations to perform concurrently. When set to 0, will default to using the number of processors on the host
 MaxImageFetchTimeInMilliseconds | 10000 (10s)                  | The maximum time to wait for a remote service to provide a requested image, in milliseconds
@@ -54,6 +59,7 @@ SuppressErrorDiagnostics        | false                        | Flag: when set 
 MaxUrlFetchRetries              | 1                            | The number of times to _retry_ a failed image fetch request. If set to zero, only the initial request is performed. Setting this to a low number like 1 or 2 may work around transient errors from remote image servers
 AllowInvalidSSLCertificates     | false                        | Flag: when set to true, invalid ssl certificates are ignored when fetching images to resize (useful for dev-testing against self-signed certificates)
 AllowPostRequests               | false                        | Flag: when set to true, clients may post raw image data and resize parameters to IRAAS and receive the resize result, if they pass other limitations
+Verbose                         | false                        | Flag: when enabled, resize responses include `IRAAS-Timing-*` headers (milliseconds per processing step), `IRAAS-Resize-Parameter-*` headers (the final parameters used, after defaults are applied) and an `IRAAS-Source-Size` header (source image size, in bytes). The shipped `appsettings.json` enables this
 PostAuthTokens                  | ""                           | A comma-separated list of allowed tokens for Bearer authentication when POST requests are allowed. When it's empty, no POST request will be allowed. You may allow all POST requests by setting this to '*'.
 
 ## Operation notes
