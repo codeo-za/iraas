@@ -381,7 +381,10 @@
 <div class="panel">
     <label class="block" for="urls">Source image urls</label>
     <textarea id="urls" placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.png"></textarea>
-    <div class="hint">One url per line. Blank lines and lines starting with <code>#</code> are ignored.</div>
+    <div class="hint">
+        One url per line. Blank lines and lines starting with <code>#</code> are ignored. IRAAS urls (eg copied
+        from a live site) are fine &mdash; the source image url is pulled out of their <code>url</code> parameter.
+    </div>
 </div>
 
 <div class="panel">
@@ -414,8 +417,8 @@
     // values here mirror the options IRAAS (and ImageSharp 3.x) supports
     // -> see src/IRAAS/ImageProcessing/ImageUrlResizeParameters.cs
     const OPTIONS = [
-        { key: "width", label: "Width", values: [ 200, 400, 800 ] },
-        { key: "height", label: "Height", values: [ 200, 400, 800 ] },
+        { key: "width", label: "Width", values: [ 200, 400, 800, 1200 ] },
+        { key: "height", label: "Height", values: [ 200, 400, 800, 1200 ] },
         { key: "devicePixelRatio", label: "Device pixel ratio", values: [ 1, 1.5, 2, 3 ] },
         { key: "resizeMode", label: "Resize mode", values: [ "Crop", "Pad", "BoxPad", "Max", "Min", "Stretch", "Manual" ] },
         { key: "sampler", label: "Sampler", values: [ "Bicubic", "Box", "Cubic", "Lanczos", "NearestNeighbor", "Triangle", "Welch" ] },
@@ -547,11 +550,50 @@
             );
     }
 
+    // IRAAS urls (eg copied from a live site) wrap the source image in their url parameter,
+    // possibly more than once - pull out the innermost http(s) url
+    function unwrapSourceUrl(line) {
+        let current = line.trim();
+        for (let i = 0; i < 5; i++) {
+            let inner;
+            try {
+                inner = new URL(current).searchParams.get("url");
+            } catch {
+                break;
+            }
+            if (!inner || !/^https?:\/\//i.test(inner.trim())) {
+                break;
+            }
+            current = inner.trim();
+        }
+        return current;
+    }
+
+    function isComment(line) {
+        return line.trim().startsWith("#");
+    }
+
+    function unwrapUrlsInTextbox() {
+        const textbox = $("#urls");
+        const before = textbox.value;
+        const after = before
+            .split(/\r?\n/)
+            .map(line => isComment(line) || !line.trim() ? line : unwrapSourceUrl(line))
+            .join("\n");
+        if (after === before) {
+            return;
+        }
+        textbox.value = after;
+        textbox.selectionStart = textbox.selectionEnd = after.length;
+        save("urls", after);
+        updateSummary();
+    }
+
     function sourceUrls() {
         return $("#urls").value
             .split(/\r?\n/)
-            .map(s => s.trim())
-            .filter(s => s && !s.startsWith("#"));
+            .filter(line => line.trim() && !isComment(line))
+            .map(unwrapSourceUrl);
     }
 
     function updateSummary() {
@@ -1096,10 +1138,15 @@
         connection = null; // always re-check when asked explicitly
         connect();
     });
-    $("#urls").addEventListener("input", () => {
+    $("#urls").addEventListener("input", ev => {
         save("urls", $("#urls").value);
         updateSummary();
+        // only rewrite pasted / dropped text, so urls being typed by hand aren't changed underfoot
+        if (ev.inputType === "insertFromPaste" || ev.inputType === "insertFromDrop") {
+            unwrapUrlsInTextbox();
+        }
     });
+    $("#urls").addEventListener("blur", unwrapUrlsInTextbox);
     $("#run").addEventListener("click", run);
     $("#stop").addEventListener("click", stop);
     $("#clear-options").addEventListener("click", clearOptions);
