@@ -166,6 +166,7 @@ public class TestStartup : TestBase
         /// </summary>
         private static readonly Type[] ExpectedPipeline =
         [
+            typeof(TestPageCorsMiddleware),
             typeof(ProductionFallbackExceptionHandlerMiddleware),
             typeof(MaxClientsMiddleware),
             typeof(BadHttpRequestExceptionMiddleware),

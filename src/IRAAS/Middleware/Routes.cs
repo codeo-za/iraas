@@ -37,6 +37,17 @@ public static class Routes
         );
     }
 
+    public static bool HasResizeEndpointPath(
+        HttpRequest request
+    )
+    {
+        return AnyPathMatches(
+            request,
+            "",
+            "/"
+        );
+    }
+
     public static bool HasSizeEndpointPath(
         HttpRequest request
     )

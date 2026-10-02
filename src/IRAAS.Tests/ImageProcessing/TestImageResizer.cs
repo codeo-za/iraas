@@ -808,6 +808,50 @@ public class TestImageResizer : TestBase
             }
         }
 
+        [TestFixture]
+        public class SourceSizeHeader
+        {
+            [Test]
+            public async Task ShouldIncludeSourceSizeWhenVerbose()
+            {
+                // Arrange
+                var data = Resources.Data.FluffyCatBmp;
+                var fetcher = CreateFetcherFor(data);
+                var sut = Create(fetcher);
+                var options = new ImageUrlResizeParameters()
+                {
+                    Url = GetRandomHttpUrlWithPath(),
+                    Format = "PNG"
+                };
+                // Act
+                var result = await sut.Resize(options, NoHeaders);
+                // Assert
+                Expect(result.Headers)
+                    .To.Contain.Key(SizeHeaders.SourceSize)
+                    .With.Value($"{data.Length}");
+            }
+
+            [Test]
+            public async Task ShouldNotIncludeSourceSizeWhenNotVerbose()
+            {
+                // Arrange
+                var fetcher = CreateFetcherFor(Resources.Data.FluffyCatBmp);
+                var appSettings = CreateDefaultAppSettingsWithVerboseEnabled();
+                appSettings.Verbose.Returns(false);
+                var sut = Create(fetcher, appSettings);
+                var options = new ImageUrlResizeParameters()
+                {
+                    Url = GetRandomHttpUrlWithPath(),
+                    Format = "PNG"
+                };
+                // Act
+                var result = await sut.Resize(options, NoHeaders);
+                // Assert
+                Expect(result.Headers)
+                    .Not.To.Contain.Key(SizeHeaders.SourceSize);
+            }
+        }
+
         [Test]
         public void ShouldThrowIfOutputWillExceedMaxOutputSize()
         {
@@ -875,6 +919,27 @@ public class TestImageResizer : TestBase
     [TestFixture]
     public class ResizingImageViaPostedData
     {
+        [Test]
+        public async Task ShouldIncludeSourceSizeWhenVerbose()
+        {
+            // Arrange
+            var data = Resources.Data.FluffyCatBmp;
+            var sut = Create();
+            var resizeParameters = new ImageDataResizeParameters()
+            {
+                ImageData = data,
+                Format = "PNG"
+            };
+
+            // Act
+            var result = await sut.Resize(resizeParameters);
+
+            // Assert
+            Expect(result.Headers)
+                .To.Contain.Key(SizeHeaders.SourceSize)
+                .With.Value($"{data.Length}");
+        }
+
         [Test]
         public void ShouldThrowForNullResizeParameters()
         {
