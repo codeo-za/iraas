@@ -7,8 +7,9 @@
     <!--
         Standalone comparison page for IRAAS (Image Resizing As A Service).
 
-        Just open this file in a browser (double-clicking it is fine) and point it at an
-        IRAAS instance with EnableTestPage=true. With the test page enabled, IRAAS allows
+        Just open this file in a browser (double-clicking it is fine) and enter the host
+        name (and port, if needed) of an IRAAS instance with EnableTestPage=true - the
+        page works out whether to talk to it over https or http. With the test page enabled, IRAAS allows
         any origin to read its resize and size responses, so this page can show byte
         sizes, the resize parameters IRAAS actually used and its timings (the last two
         need Verbose=true on the IRAAS side).
@@ -25,6 +26,7 @@
             --accent: #2f6fdb;
             --accent-text: #ffffff;
             --error: #c0392b;
+            --ok: #1e7d3c;
             --warn-bg: #fff4d6;
             --warn-text: #6b4e00;
             --checker-a: #e9ebee;
@@ -41,6 +43,7 @@
                 --accent: #5b92ef;
                 --accent-text: #0b0d10;
                 --error: #ff7b6b;
+                --ok: #6fd08c;
                 --warn-bg: #3a3017;
                 --warn-text: #f3d98a;
                 --checker-a: #2a2f35;
@@ -188,6 +191,44 @@
             cursor: default;
         }
 
+        .server-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .server-row input {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .connection {
+            margin-top: 8px;
+            font-size: 13px;
+        }
+
+        .connection:empty {
+            display: none;
+        }
+
+        .connection.ok {
+            color: var(--ok);
+        }
+
+        .connection.warn {
+            color: var(--warn-text);
+            background: var(--warn-bg);
+            border-radius: 6px;
+            padding: 6px 8px;
+        }
+
+        .connection.error {
+            color: var(--error);
+        }
+
+        .connection.checking {
+            color: var(--muted);
+        }
+
         #summary, #progress {
             color: var(--muted);
         }
@@ -326,12 +367,15 @@
 <h1>IRAAS Compare</h1>
 
 <div class="panel">
-    <label class="block" for="base-url">IRAAS base url</label>
-    <input type="text" id="base-url" placeholder="http://localhost:5000">
-    <div class="hint">
-        eg <code>http://localhost:5000</code>. Byte sizes need <code>EnableTestPage=true</code> on that
-        IRAAS instance; parameters used and timings also need <code>Verbose=true</code>.
+    <label class="block" for="base-url">IRAAS server</label>
+    <div class="server-row">
+        <input type="text" id="base-url" placeholder="staging.example.com or localhost:5000">
+        <button type="button" id="check">Check</button>
     </div>
+    <div class="hint">
+        Just the host name, and port if needed &mdash; the page works out whether to use https or http.
+    </div>
+    <div id="connection" class="connection"></div>
 </div>
 
 <div class="panel">
@@ -636,12 +680,125 @@
 
     // ---- rendering a run ----
 
-    function resolveBaseUrl() {
-        const raw = $("#base-url").value.trim() || "http://localhost:5000";
-        // relative bases resolve against this page; trailing slashes are trimmed
-        // so we can append /?... and /size?... consistently
-        return new URL(raw, window.location.href.startsWith("file:") ? "http://localhost/" : window.location.href)
-            .href.replace(/\/+$/, "");
+    // ---- finding IRAAS ----
+
+    const PROBE_TIMEOUT_MS = 8000;
+
+    // the user may give just a host (and port), or a full url; when no scheme is given,
+    // https is preferred over http
+    function candidateBasesFor(input) {
+        const raw = input.trim().replace(/\/+$/, "");
+        if (!raw) {
+            return [];
+        }
+        const urls = /^https?:\/\//i.test(raw)
+            ? [ raw ]
+            : [ `https://${raw}`, `http://${raw}` ];
+        return urls.map(u => new URL(u).href.replace(/\/+$/, ""));
+    }
+
+    // "full": IRAAS lets this page read its responses (EnableTestPage=true), so sizes etc work
+    // "limited": something answers, but its responses can't be read - images only
+    // "unreachable": nothing answered (wrong host/port/protocol, down, or an untrusted certificate)
+    async function probe(base) {
+        try {
+            // a GET to the resize endpoint without a url is rejected cheaply (404), and
+            // carries cors headers only when the test page is enabled
+            await fetch(`${base}/`, { cache: "no-store", signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
+            return "full";
+        } catch (e) {
+            if (e.name === "TimeoutError") {
+                return "unreachable";
+            }
+        }
+        try {
+            // no-cors: the response is unreadable, but resolving at all proves the server answered
+            await fetch(`${base}/health`, {
+                mode: "no-cors",
+                cache: "no-store",
+                signal: AbortSignal.timeout(PROBE_TIMEOUT_MS)
+            });
+            return "limited";
+        } catch {
+            return "unreachable";
+        }
+    }
+
+    let connection = null;
+
+    function setConnectionStatus(kind, ...content) {
+        const status = $("#connection");
+        status.className = `connection ${kind}`;
+        status.replaceChildren(...content);
+    }
+
+    function connect() {
+        const input = $("#base-url").value;
+        if (connection && connection.input === input) {
+            return connection.result;
+        }
+        connection = { input, result: findIraas(input) };
+        return connection.result;
+    }
+
+    async function findIraas(input) {
+        let candidates;
+        try {
+            candidates = candidateBasesFor(input);
+        } catch {
+            setConnectionStatus("error", "That doesn't look like a valid server address.");
+            return null;
+        }
+        if (!candidates.length) {
+            setConnectionStatus("error", "Please enter the IRAAS server's address.");
+            return null;
+        }
+
+        const results = [];
+        for (const base of candidates) {
+            setConnectionStatus("checking", `Checking ${base} …`);
+            const mode = await probe(base);
+            if (connection?.input !== input) {
+                return null; // superseded by a newer address
+            }
+            results.push({ base, mode });
+            if (mode === "full") {
+                break;
+            }
+        }
+
+        const best = results.find(r => r.mode === "full") ||
+            results.find(r => r.mode === "limited");
+        const host = input.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+        if (!best) {
+            const httpsBase = candidates.find(c => c.startsWith("https:"));
+            setConnectionStatus("error",
+                `✗ Couldn't reach ${host} over ${candidates.map(c => c.split(":")[0]).join(" or ")}. ` +
+                "Check the address (and port), and that IRAAS is running.",
+                httpsBase
+                    ? el("span", {},
+                        " If it uses a self-signed certificate, open ",
+                        el("a", { href: `${httpsBase}/health`, target: "_blank", rel: "noopener" }, `${httpsBase}/health`),
+                        ", accept the browser's warning, then press Check again.")
+                    : null
+            );
+            return null;
+        }
+
+        const fellBackToHttp = best.base.startsWith("http:") && candidates.length > 1;
+        if (best.mode === "full") {
+            setConnectionStatus("ok",
+                `✓ Connected to ${best.base}. Sizes are shown; parameters used and timings are shown when IRAAS has Verbose=true.`,
+                fellBackToHttp ? " (https didn't answer, so http is being used.)" : ""
+            );
+        } else {
+            setConnectionStatus("warn",
+                `⚠ ${best.base} answered, but doesn't let this page read its responses, so images will be shown ` +
+                "without sizes. Ask for EnableTestPage=true to be set on that IRAAS (if it already is, " +
+                "IRAAS needs updating to a version that supports this page)."
+            );
+        }
+        return best;
     }
 
     function buildResizeUrl(base, sourceUrl, combo) {
@@ -851,18 +1008,17 @@
         };
     }
 
-    function run() {
+    async function run() {
+        const server = await connect();
+        if (!server) {
+            $("#base-url").focus();
+            return;
+        }
+        const base = server.base;
+
         const urls = sourceUrls();
         if (!urls.length) {
             alert("Please enter at least one source image url.");
-            return;
-        }
-
-        let base;
-        try {
-            base = resolveBaseUrl();
-        } catch {
-            alert("The IRAAS base url isn't valid.");
             return;
         }
 
@@ -878,6 +1034,10 @@
         objectUrls = [];
         fetchBlocked = false;
         $("#notice").style.display = "none";
+        if (server.mode === "limited") {
+            // don't attempt (and repeat) requests we already know can't be read
+            markFetchBlocked();
+        }
 
         const queue = new RequestQueue(MAX_CONCURRENT_REQUESTS);
         currentQueue = queue;
@@ -924,9 +1084,18 @@
 
     // ---- init ----
 
-    $("#base-url").value = load("baseUrl", "http://localhost:5000");
+    $("#base-url").value = load("baseUrl", "localhost:5000");
     $("#urls").value = load("urls", "");
-    $("#base-url").addEventListener("input", () => save("baseUrl", $("#base-url").value));
+    let connectTimer = null;
+    $("#base-url").addEventListener("input", () => {
+        save("baseUrl", $("#base-url").value);
+        clearTimeout(connectTimer);
+        connectTimer = setTimeout(connect, 800);
+    });
+    $("#check").addEventListener("click", () => {
+        connection = null; // always re-check when asked explicitly
+        connect();
+    });
     $("#urls").addEventListener("input", () => {
         save("urls", $("#urls").value);
         updateSummary();
@@ -935,6 +1104,9 @@
     $("#stop").addEventListener("click", stop);
     $("#clear-options").addEventListener("click", clearOptions);
     renderOptions();
+    if ($("#base-url").value.trim()) {
+        connect();
+    }
 </script>
 </body>
 </html>
