@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 using IRAAS.Controllers;
-using IRAAS.Exceptions;
 using IRAAS.ImageProcessing;
-using IRAAS.Security;
 using IRAAS.Tests.Fakes;
 using IRAAS.Tests.ImageProcessing;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
 using NSubstitute;
 using PeanutButter.TestUtils.AspNetCore.Builders;
@@ -30,34 +30,17 @@ public class TestImageResizeController : TestBase
     }
 
     [TestFixture]
-    public class Resize : TestBase
+    public class ResizeByUrl : TestBase
     {
         [Test]
-        public void ShouldHaveEmptyRoute()
+        public void ShouldHaveEmptyRouteForGetRequest()
         {
             // Arrange
             // Act
             Expect(typeof(ImageResizeController))
-                .To.Have.Route(nameof(ImageResizeController.Resize), "");
-            // Assert
-        }
-
-        [Test]
-        public void ShouldThrowImageSourceNotAllowedWhenWhitelistSaysNotAllowed()
-        {
-            // Arrange
-            var whiteList = Substitute.For<IWhitelist>();
-            whiteList.IsAllowed(Arg.Any<string>()).Returns(false);
-            var sut = Create(whiteList: whiteList);
-            var options = new ImageResizeParameters()
-            {
-                Url = GetRandomHttpUrl()
-            };
-            // Act
-            Expect(() => sut.Resize(options))
-                .To.Throw<ImageSourceNotAllowedException>()
-                .With.Property(e => e.Url)
-                .Equal.To(options.Url);
+                .To.Have.Method(nameof(ImageResizeController.ResizeByUrl))
+                .With.Route("")
+                .Supporting(HttpMethod.Get);
             // Assert
         }
 
@@ -66,12 +49,12 @@ public class TestImageResizeController : TestBase
         {
             // Arrange
             var resizer = Substitute.For<IImageResizer>();
-            resizer.Resize(Arg.Any<ImageResizeParameters>(), Arg.Any<IDictionary<string, string>>())
+            resizer.Resize(Arg.Any<ImageUrlResizeParameters>(), Arg.Any<IDictionary<string, string>>())
                 .Returns(new StreamAndHeaders(new MemoryStream(), new Dictionary<string, string>()));
             var sut = Create(resizer);
-            var options = GetRandom<ImageResizeParameters>();
+            var options = GetRandom<ImageUrlResizeParameters>();
             // Act
-            await sut.Resize(options);
+            await sut.ResizeByUrl(options);
             // Assert
             await Expect(resizer).To.Have.Received(1)
                 .Resize(
@@ -86,20 +69,24 @@ public class TestImageResizeController : TestBase
             // Arrange
             var resizer = Substitute.For<IImageResizer>();
             resizer.Resize(
-                Arg.Any<ImageResizeParameters>(),
+                Arg.Any<ImageUrlResizeParameters>(),
                 Arg.Any<IDictionary<string, string>>()
             ).Returns(new StreamAndHeaders(new MemoryStream(), new Dictionary<string, string>()));
+            var headerKey = GetRandomString(10);
+            var headerValue = GetRandomString(10);
             var headers = new Dictionary<string, string>()
             {
-                [GetRandomString(10)] = GetRandomString(10)
+                [headerKey] = headerValue
             };
-            var httpContext = new FakeHttpContext(headers);
+            var httpContext = HttpContextBuilder.Create()
+                .WithRequestHeader(headerKey, headerValue)
+                .Build();
             var accessor = Substitute.For<IHttpContextAccessor>();
             accessor.HttpContext.Returns(httpContext);
-            var options = GetRandom<ImageResizeParameters>();
+            var options = GetRandom<ImageUrlResizeParameters>();
             var sut = Create(resizer, httpContextAccessor: accessor);
             // Act
-            await sut.Resize(options);
+            await sut.ResizeByUrl(options);
             // Assert
             await Expect(resizer)
                 .To.Have.Received(1)
@@ -118,7 +105,7 @@ public class TestImageResizeController : TestBase
             var resizer = Substitute.For<IImageResizer>();
             var expected = GetRandomBytes(1024);
             var processStream = new MemoryStream(expected);
-            var options = GetRandom<ImageResizeParameters>();
+            var options = GetRandom<ImageUrlResizeParameters>();
             resizer.Resize(
                 options,
                 Arg.Any<IDictionary<string, string>>()
@@ -127,7 +114,7 @@ public class TestImageResizeController : TestBase
             );
             var sut = Create(resizer);
             // Act
-            var result = await sut.Resize(options);
+            var result = await sut.ResizeByUrl(options);
             // Assert
             var resultStream = new MemoryStream();
             await result.FileStream.CopyToAsync(resultStream);
@@ -148,7 +135,7 @@ public class TestImageResizeController : TestBase
                 ]
             );
             var resizer = Substitute.For<IImageResizer>();
-            var options = GetRandom<ImageResizeParameters>();
+            var options = GetRandom<ImageUrlResizeParameters>();
             var imageStream = new MemoryStream();
             resizer.Resize(options, Arg.Any<IDictionary<string, string>>()).Returns(
                 new StreamAndHeaders(imageStream, new Dictionary<string, string>())
@@ -158,7 +145,7 @@ public class TestImageResizeController : TestBase
                 .Returns(expected);
             var sut = Create(resizer, mimeTypeProvider);
             // Act
-            var result = await sut.Resize(options);
+            var result = await sut.ResizeByUrl(options);
             // Assert
             Expect(result.ContentType)
                 .To.Equal(expected);
@@ -175,7 +162,7 @@ public class TestImageResizeController : TestBase
                 [key] = value
             };
             var resizer = Substitute.For<IImageResizer>();
-            var options = GetRandom<ImageResizeParameters>();
+            var options = GetRandom<ImageUrlResizeParameters>();
             var imageStream = new MemoryStream();
             resizer.Resize(
                     options,
@@ -187,12 +174,12 @@ public class TestImageResizeController : TestBase
                         headers
                     )
                 );
-            var httpContext = new FakeHttpContext();
+            var httpContext = HttpContextBuilder.BuildDefault();
             var accessor = Substitute.For<IHttpContextAccessor>();
             accessor.HttpContext.Returns(httpContext);
             var sut = Create(resizer, httpContextAccessor: accessor);
             // Act
-            await sut.Resize(options);
+            await sut.ResizeByUrl(options);
             // Assert
             var responseHeaders = accessor.HttpContext!.Response.Headers.ToDictionary();
             Expect(responseHeaders[key])
@@ -218,17 +205,21 @@ public class TestImageResizeController : TestBase
                 );
                 using var lease = TestEnvironment.BorrowHttpServer();
                 var server = lease.Instance;
-                server.ServeFile($"/{imageName}", imageData, "image/png");
+                server.ServeFile(
+                    $"/{imageName}",
+                    imageData,
+                    "image/png"
+                );
                 var defaults = GetRandom<DefaultImageResizeParameters>();
                 ImageResizeParameters.SetDefaults(defaults);
-                var options = new ImageResizeParameters()
+                var options = new ImageUrlResizeParameters()
                 {
                     Url = server.GetFullUrlFor($"/{imageName}")
                 };
                 var resizer = Substitute.For<IImageResizer>()
                     .With(
                         o => o.Resize(
-                            Arg.Any<ImageResizeParameters>(),
+                            Arg.Any<ImageUrlResizeParameters>(),
                             Arg.Any<IDictionary<string, string>>()
                         ).Returns(_ => expected)
                     );
@@ -237,10 +228,10 @@ public class TestImageResizeController : TestBase
                         o => o.DetermineMimeTypeFor(expected.Stream)
                             .Returns(_ => expectedMimeType)
                     );
-                var httpContext = HttpContextBuilder.BuildRandom();
+                var httpContext = HttpContextBuilder.BuildDefault();
                 var accessor = Substitute.For<IHttpContextAccessor>()
                     .For(httpContext);
-                var expectedOptions = new ImageResizeParameters();
+                var expectedOptions = new ImageUrlResizeParameters();
                 options.CopyPropertiesTo(expectedOptions);
                 defaults.CopyPropertiesTo(expectedOptions);
                 var expectedHeaders = httpContext.Response.Headers
@@ -256,7 +247,7 @@ public class TestImageResizeController : TestBase
                     httpContextAccessor: accessor
                 );
                 // Act
-                var result = await sut.Resize(options);
+                var result = await sut.ResizeByUrl(options);
                 // Assert
                 await Expect(resizer)
                     .To.Have.Received(1)
@@ -273,44 +264,123 @@ public class TestImageResizeController : TestBase
                     .To.Equal(expectedMimeType);
             }
         }
+    }
 
-        private static ImageResizeController Create(
-            IImageResizer resizer = null,
-            IImageMimeTypeProvider mimeTypeProvider = null,
-            IWhitelist whiteList = null,
-            IHttpContextAccessor httpContextAccessor = null
-        )
+    [TestFixture]
+    public class ResizeByImageData
+    {
+        [Test]
+        public void ShouldHaveEmptyRouteForPostRequest()
         {
-            ImageResizeParameters.SetDefaults(null);
-            return new ImageResizeController(
-                resizer ?? Substitute.For<IImageResizer>(),
-                mimeTypeProvider ?? CreateFakeMimeTypeProvider(),
-                whiteList ?? CreateAllowingWhitelist(),
-                httpContextAccessor ?? CreateFakeHttpContextAccessor()
+            // Arrange
+            // Act
+            Expect(typeof(ImageResizeController))
+                .To.Have.Method(nameof(ImageResizeController.ResizeByImageData))
+                .With.Route("")
+                .Supporting(HttpMethod.Post);
+            // Assert
+        }
+
+        [Test]
+        public async Task ShouldResizeImageAndReturnResultWithDeterminedMimeType()
+        {
+            // Arrange
+            var parameters = GetRandom<ImageDataResizeParameters>();
+            var stream = new MemoryStream(GetRandomBytes());
+            var expectedMimeType = GetRandomMimeType();
+            var streamAndHeaders = new StreamAndHeaders(
+                stream,
+                GetRandom<Dictionary<string, string>>()
             );
+            Expect(stream.CanRead)
+                .To.Be.True();
+            Expect(stream.CanWrite)
+                .To.Be.True();
+            var imageResizer = Substitute.For<IImageResizer>()
+                .With(
+                    o => o.Resize(Arg.Any<ImageDataResizeParameters>())
+                        .Returns(_ => Task.FromResult(streamAndHeaders))
+                );
+            var mimeTypeProvider = Substitute.For<IImageMimeTypeProvider>()
+                .With(
+                    o => o.DetermineMimeTypeFor(Arg.Any<Stream>())
+                        .Returns(_ => expectedMimeType)
+                );
+            var sut = Create(imageResizer, mimeTypeProvider);
+
+            // Act
+            var result = await sut.ResizeByImageData(parameters);
+
+            // Assert
+            Expect(result)
+                .To.Be.An.Instance.Of<FileStreamResult>();
+            Expect(result.FileStream)
+                .To.Be(stream);
+            Expect(result.ContentType)
+                .To.Equal(expectedMimeType);
+
+            // verify that the stream was not disposed
+            // -> the returned FileStreamResult will dispose
+            // of the internal stream
+            Expect(stream.CanRead)
+                .To.Be.True();
+            Expect(stream.CanWrite)
+                .To.Be.True();
         }
 
-        private static IHttpContextAccessor CreateFakeHttpContextAccessor()
+        [Test]
+        public void ShouldThrowArgumentExceptionWhenInputDataExceedsConfiguredMaxInputImageSize()
         {
-            var result = Substitute.For<IHttpContextAccessor>();
-            result.HttpContext.Returns(new FakeHttpContext());
-            return result;
-        }
+            // Arrange
+            var parameters = new ImageDataResizeParameters()
+            {
+                ImageData = GetRandomBytes(1000, 2000)
+            };
+            var appSettings = Substitute.For<IAppSettings>()
+                .With(o => o.AllowPostRequests.Returns(true))
+                .With(o => o.PostAuthTokens.Returns("*"))
+                .With(o => o.MaxInputImageSize.Returns(_ => parameters.ImageData.Length - 1));
+            var resizer = Substitute.For<IImageResizer>();
+            var sut = Create(resizer, appSettings: appSettings);
 
-        private static IWhitelist CreateAllowingWhitelist()
-        {
-            var result = Substitute.For<IWhitelist>();
-            result.IsAllowed(Arg.Any<string>())
-                .Returns(true);
-            return result;
-        }
+            // Act
+            Expect(async () => await sut.ResizeByImageData(parameters))
+                .To.Throw<ArgumentException>()
+                .For(nameof(parameters.ImageData));
 
-        private static IImageMimeTypeProvider CreateFakeMimeTypeProvider()
-        {
-            var result = Substitute.For<IImageMimeTypeProvider>();
-            result.DetermineMimeTypeFor(Arg.Any<Stream>())
-                .Returns("image/jpeg");
-            return result;
+            // Assert
         }
+    }
+
+    private static ImageResizeController Create(
+        IImageResizer resizer = null,
+        IImageMimeTypeProvider mimeTypeProvider = null,
+        IHttpContextAccessor httpContextAccessor = null,
+        IAppSettings appSettings = null
+    )
+    {
+        ImageResizeParameters.SetDefaults(null);
+        return new ImageResizeController(
+            resizer ?? Substitute.For<IImageResizer>(),
+            mimeTypeProvider ?? CreateFakeMimeTypeProvider(),
+            httpContextAccessor ?? CreateFakeHttpContextAccessor(),
+            appSettings ?? Substitute.For<IAppSettings>()
+                .WithDefaultSettings()
+        );
+    }
+
+    private static IHttpContextAccessor CreateFakeHttpContextAccessor()
+    {
+        var result = Substitute.For<IHttpContextAccessor>();
+        result.HttpContext.Returns(HttpContextBuilder.BuildDefault());
+        return result;
+    }
+
+    private static IImageMimeTypeProvider CreateFakeMimeTypeProvider()
+    {
+        var result = Substitute.For<IImageMimeTypeProvider>();
+        result.DetermineMimeTypeFor(Arg.Any<Stream>())
+            .Returns("image/jpeg");
+        return result;
     }
 }

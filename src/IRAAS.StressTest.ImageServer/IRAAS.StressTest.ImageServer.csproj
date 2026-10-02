@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <IsPublishable>true</IsPublishable>
-    <Configurations>Debug;Release;ReleaseForDocker</Configurations>
+    <Configurations>Debug;Release;ReleaseForDocker;Debug.WebRequest;Release.WebRequest</Configurations>
     <Platforms>AnyCPU</Platforms>
   </PropertyGroup>
 

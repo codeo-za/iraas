@@ -16,23 +16,30 @@ public abstract class ExceptionHandlerMiddleware<T>
     private readonly Func<T, HttpContext, string> _errorMessageGenerator;
     private readonly IAppSettings _appSettings;
     private readonly Func<T, int> _errorCodeGenerator;
-
     public LogLevel LogLevel { get; }
 
     public ExceptionHandlerMiddleware(
         int errorCode,
         string errorMessage,
         IAppSettings appSettings
-    ) : this(errorCode, (e, c) => errorMessage, appSettings)
+    ) : this(
+        errorCode,
+        (e, c) => errorMessage,
+        appSettings
+    )
     {
     }
-
 
     public ExceptionHandlerMiddleware(
         int errorCode,
         Func<T, HttpContext, string> errorMessageGenerator,
         IAppSettings appSettings
-    ) : this(errorCode, errorMessageGenerator, appSettings, LogLevel.Error)
+    ) : this(
+        errorCode,
+        errorMessageGenerator,
+        appSettings,
+        LogLevel.Error
+    )
     {
     }
 
@@ -41,7 +48,12 @@ public abstract class ExceptionHandlerMiddleware<T>
         Func<T, HttpContext, string> errorMessageGenerator,
         IAppSettings appSettings,
         LogLevel logLevel
-    ) : this(_ => errorCode, errorMessageGenerator, appSettings, logLevel)
+    ) : this(
+        _ => errorCode,
+        errorMessageGenerator,
+        appSettings,
+        logLevel
+    )
     {
     }
 
@@ -50,7 +62,7 @@ public abstract class ExceptionHandlerMiddleware<T>
         Func<T, HttpContext, string> errorMessageGenerator,
         IAppSettings appSettings
     ) : this(
-        e => (int) statusCodeGenerator(e),
+        e => (int)statusCodeGenerator(e),
         errorMessageGenerator,
         appSettings,
         LogLevel.Error
@@ -64,7 +76,7 @@ public abstract class ExceptionHandlerMiddleware<T>
         IAppSettings appSettings,
         LogLevel logLevel
     ) : this(
-        e => (int) statusCodeGenerator(e),
+        e => (int)statusCodeGenerator(e),
         errorMessageGenerator,
         appSettings,
         logLevel
@@ -96,6 +108,15 @@ public abstract class ExceptionHandlerMiddleware<T>
         }
         catch (T ex)
         {
+            if (context.Response.HasStarted)
+            {
+                // we can't modify the request once it has
+                // started - if an exception is thrown whilst
+                // streaming, handle it accordingly
+                TryLogException(context, ex);
+                return;
+            }
+
             context.Response.StatusCode = _errorCodeGenerator(ex);
             var content = _appSettings.SuppressErrorDiagnostics
                 ? ""
@@ -104,7 +125,11 @@ public abstract class ExceptionHandlerMiddleware<T>
 
             var asBytes = Encoding.UTF8.GetBytes(content);
             context.Response.Headers["Content-Type"] = "text/plain; charset=utf-8";
-            await context.Response.Body.WriteAsync(asBytes, 0, asBytes.Length);
+            await context.Response.Body.WriteAsync(
+                asBytes,
+                0,
+                asBytes.Length
+            );
             TryLogException(context, ex);
         }
     }

@@ -81,4 +81,14 @@ public class LimitedMemoryStream : Stream
     {
         return _actual.ToArray();
     }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _actual.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
 }

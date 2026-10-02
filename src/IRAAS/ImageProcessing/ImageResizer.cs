@@ -19,14 +19,17 @@ using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 // ReSharper disable AccessToDisposedClosure
-
 namespace IRAAS.ImageProcessing;
 
 public interface IImageResizer
 {
     Task<StreamAndHeaders> Resize(
-        ImageResizeParameters resizeParameters,
+        IUrlImageResizeParameters resizeParameters,
         IDictionary<string, string> requestHeaders
+    );
+
+    Task<StreamAndHeaders> Resize(
+        ImageDataResizeParameters resizeParameters
     );
 }
 
@@ -45,7 +48,7 @@ public class ImageResizer : IImageResizer
     }
 
     public async Task<StreamAndHeaders> Resize(
-        ImageResizeParameters resizeParameters,
+        IUrlImageResizeParameters resizeParameters,
         IDictionary<string, string> requestHeaders
     )
     {
@@ -54,7 +57,7 @@ public class ImageResizer : IImageResizer
             throw new InvalidProcessingOptionsException($"Url is required (received: {resizeParameters.Url})");
         }
 
-        var timer = new Timer(_appSettings);
+        var timer = CreateTimer();
         using var src = await timer.Time(
             TimingHeaders.Fetch,
             () => _fetcher.Fetch(
@@ -62,6 +65,57 @@ public class ImageResizer : IImageResizer
                 requestHeaders
             )
         );
+        return ResizeImage(
+            resizeParameters,
+            timer,
+            src
+        );
+    }
+
+    private Timer CreateTimer()
+    {
+        return new Timer(_appSettings);
+    }
+
+    public Task<StreamAndHeaders> Resize(
+        ImageDataResizeParameters resizeParameters
+    )
+    {
+        ArgumentNullException.ThrowIfNull(resizeParameters);
+        ArgumentNullException.ThrowIfNull(
+            resizeParameters.ImageData,
+            nameof(resizeParameters.ImageData)
+        );
+        if (resizeParameters.ImageData.Length < 1)
+        {
+            throw new ArgumentException(
+                "ImageData is empty",
+                nameof(resizeParameters.ImageData)
+            );
+        }
+
+        var timer = CreateTimer();
+        var src = new StreamAndHeaders(
+            new MemoryStream(
+                resizeParameters.ImageData
+            ),
+            new Dictionary<string, string>()
+        );
+        return Task.FromResult(
+            ResizeImage(
+                resizeParameters,
+                timer,
+                src
+            )
+        );
+    }
+
+    private StreamAndHeaders ResizeImage(
+        IActiveImageResizeParameters resizeParameters,
+        Timer timer,
+        StreamAndHeaders src
+    )
+    {
         IImageFormat sourceFormat = null;
         try
         {
@@ -78,11 +132,20 @@ public class ImageResizer : IImageResizer
 
         if (sourceFormat is null)
         {
-            throw new NotSupportedException(
-                $"Data source at {resizeParameters.Url} is not a supported image format"
-            );
+            if (resizeParameters is IUrlImageResizeParameters urlImageResizeParameters)
+            {
+                throw new NotSupportedException(
+                    $"Data source at {urlImageResizeParameters.Url} is not a supported image format"
+                );
+            }
+            else
+            {
+                throw new NotSupportedException(
+                    "Unsupported image format"
+                );
+            }
         }
-        
+
         resizeParameters.ApplyDefaultsFor(sourceFormat.Name);
 
         timer.Time(
@@ -135,7 +198,11 @@ public class ImageResizer : IImageResizer
 
         timer.Time(
             TimingHeaders.EncodeOutput,
-            () => reEncoder(clone, targetStream, resizeParameters)
+            () => reEncoder(
+                clone,
+                targetStream,
+                resizeParameters
+            )
         );
         targetStream.Rewind();
         return new StreamAndHeaders(
@@ -148,7 +215,9 @@ public class ImageResizer : IImageResizer
         );
     }
 
-    private IResampler DetermineSamplerFor(ImageResizeParameters resizeParameters)
+    private IResampler DetermineSamplerFor(
+        IActiveImageResizeParameters resizeParameters
+    )
     {
         if (resizeParameters.Sampler is null)
         {
@@ -160,19 +229,19 @@ public class ImageResizer : IImageResizer
             : CreateDefaultResampler();
     }
 
-    private static readonly Dictionary<string, Func<ImageResizeParameters, IResampler>> Resamplers
+    private static readonly Dictionary<string, Func<IImageResizeParameters, IResampler>> Resamplers
         = GenerateResamplerLookup();
 
     public static string[] SamplerNames { get; } = Resamplers.Keys.ToArray();
 
-    private static Dictionary<string, Func<ImageResizeParameters, IResampler>> GenerateResamplerLookup()
+    private static Dictionary<string, Func<IImageResizeParameters, IResampler>> GenerateResamplerLookup()
     {
         return GenerateLookupFor<IResampler>(
             type => type.Name.RegexReplace("Resampler$", "")
         );
     }
 
-    private static IQuantizer DetermineQuantizerFor(ImageResizeParameters resizeParameters)
+    private static IQuantizer DetermineQuantizerFor(IImageResizeParameters resizeParameters)
     {
         if (resizeParameters.Quantizer is null)
         {
@@ -185,12 +254,12 @@ public class ImageResizer : IImageResizer
         return result;
     }
 
-    private static readonly Dictionary<string, Func<ImageResizeParameters, IQuantizer>> Quantizers
+    private static readonly Dictionary<string, Func<IImageResizeParameters, IQuantizer>> Quantizers
         = GenerateQuantizerLookup();
 
     public static string[] QuantizerNames { get; } = Quantizers.Keys.ToArray();
 
-    private static Dictionary<string, Func<ImageResizeParameters, IQuantizer>> GenerateQuantizerLookup()
+    private static Dictionary<string, Func<IImageResizeParameters, IQuantizer>> GenerateQuantizerLookup()
     {
         return GenerateLookupFor(
             type => type.Name.RegexReplace("Quantizer$", ""),
@@ -201,7 +270,7 @@ public class ImageResizer : IImageResizer
         );
     }
 
-    private static readonly Dictionary<Type, Func<ImageResizeParameters, IQuantizer>> QuantizerFactories
+    private static readonly Dictionary<Type, Func<IImageResizeParameters, IQuantizer>> QuantizerFactories
         = new()
         {
             [typeof(WuQuantizer)] = CreateWuQuantizer,
@@ -210,29 +279,35 @@ public class ImageResizer : IImageResizer
             [typeof(WebSafePaletteQuantizer)] = CreateWebSafePaletteQuantizer
         };
 
-    private static IQuantizer CreateWebSafePaletteQuantizer(ImageResizeParameters arg)
+    private static IQuantizer CreateWebSafePaletteQuantizer(
+        IImageResizeParameters arg
+    )
     {
         return new WebSafePaletteQuantizer(arg.AsQuantizerOptions());
     }
 
-    private static IQuantizer CreateOctreeQuantizer(ImageResizeParameters arg)
+    private static IQuantizer CreateOctreeQuantizer(
+        IImageResizeParameters arg
+    )
     {
         return new OctreeQuantizer(arg.AsQuantizerOptions());
     }
 
-    private static IQuantizer CreateWernerPaletteQuantizer(ImageResizeParameters arg)
+    private static IQuantizer CreateWernerPaletteQuantizer(
+        IImageResizeParameters arg
+    )
     {
         return new WernerPaletteQuantizer(arg.AsQuantizerOptions());
     }
 
-    private static IQuantizer CreateWuQuantizer(ImageResizeParameters arg)
+    private static IQuantizer CreateWuQuantizer(IImageResizeParameters arg)
     {
         return new WuQuantizer(arg.AsQuantizerOptions());
     }
 
-    private static Dictionary<string, Func<ImageResizeParameters, T>> GenerateLookupFor<T>(
+    private static Dictionary<string, Func<IImageResizeParameters, T>> GenerateLookupFor<T>(
         Func<Type, string> keyGenerator,
-        Func<Type, ImageResizeParameters, T> generator = null,
+        Func<Type, IImageResizeParameters, T> generator = null,
         Func<Type, bool> filter = null
     ) where T : class
     {
@@ -248,12 +323,12 @@ public class ImageResizer : IImageResizer
             .Where(filter)
             .ToDictionary(
                 keyGenerator,
-                type => new Func<ImageResizeParameters, T>(opts => generator(type, opts)),
+                type => new Func<IImageResizeParameters, T>(opts => generator(type, opts)),
                 StringComparer.OrdinalIgnoreCase
             );
     }
 
-    private readonly Dictionary<string, Action<Image, Stream, ImageResizeParameters>>
+    private readonly Dictionary<string, Action<Image, Stream, IImageResizeParameters>>
         _reEncoders =
             new(StringComparer.OrdinalIgnoreCase)
             {
@@ -268,7 +343,7 @@ public class ImageResizer : IImageResizer
     private static void ReEncodeAsWebp(
         Image source,
         Stream target,
-        ImageResizeParameters resizeParameters
+        IImageResizeParameters resizeParameters
     )
     {
         source.SaveAsWebp(
@@ -286,7 +361,7 @@ public class ImageResizer : IImageResizer
     private static void ReEncodeAsBmp(
         Image source,
         Stream target,
-        ImageResizeParameters resizeParameters
+        IImageResizeParameters resizeParameters
     )
     {
         source.SaveAsBmp(
@@ -301,7 +376,7 @@ public class ImageResizer : IImageResizer
     private static void ReEncodeAsGif(
         Image source,
         Stream target,
-        ImageResizeParameters resizeParameters
+        IImageResizeParameters resizeParameters
     )
     {
         source.SaveAsGif(
@@ -317,7 +392,7 @@ public class ImageResizer : IImageResizer
     private static void ReEncodeAsPng(
         Image source,
         Stream target,
-        ImageResizeParameters resizeParameters
+        IImageResizeParameters resizeParameters
     )
     {
         source.SaveAsPng(
@@ -338,7 +413,7 @@ public class ImageResizer : IImageResizer
     private static void ReEncodeAsJpeg(
         Image source,
         Stream target,
-        ImageResizeParameters resizeParameters
+        IImageResizeParameters resizeParameters
     )
     {
         source.SaveAsJpeg(
@@ -410,7 +485,7 @@ public static class ConfigurationExtensions
 
         try
         {
-            return (PngCompressionLevel) compressionLevel.Value;
+            return (PngCompressionLevel)compressionLevel.Value;
         }
         catch
         {
@@ -419,7 +494,7 @@ public static class ConfigurationExtensions
     }
 
     public static QuantizerOptions AsQuantizerOptions(
-        this ImageResizeParameters arg
+        this IImageResizeParameters arg
     )
     {
         var opts = new QuantizerOptions();

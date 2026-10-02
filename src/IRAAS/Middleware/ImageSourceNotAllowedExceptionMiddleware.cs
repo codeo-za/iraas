@@ -7,7 +7,11 @@ public class ImageSourceNotAllowedExceptionMiddleware
 {
     public ImageSourceNotAllowedExceptionMiddleware(
         IAppSettings appSettings)
-        : base(403, (e, _) => $"Image source not allowed: {e?.Url}", appSettings)
+        : base(
+            403,
+            (e, _) => $"Image source not allowed: {e?.Url}",
+            appSettings
+        )
     {
     }
 }

@@ -10,15 +10,17 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Http;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using PeanutButter.Utils;
+
 #if USE_WEBREQUEST
 #else
-using System.Net.Http;
 using System.Linq;
 using System.Threading;
-
 #endif
 
 namespace IRAAS.ImageProcessing;
@@ -32,7 +34,10 @@ public class UrlFetcher : IUrlFetcher
 {
     private readonly IAppSettings _appSettings;
     private readonly ILogger<UrlFetcher> _logger;
-
+#if USE_WEBREQUEST
+#else
+    private readonly HttpClient HttpClient;
+#endif
 
     public UrlFetcher(
         IAppSettings appSettings,
@@ -41,106 +46,170 @@ public class UrlFetcher : IUrlFetcher
     {
         _appSettings = appSettings;
         _logger = logger;
-    }
-
 #if USE_WEBREQUEST
 #else
-    private static readonly HttpClient HttpClient;
-    static UrlFetcher()
-    {
-        HttpClient = new HttpClient();
-    }
+        if (appSettings.AllowInvalidSslCertificates)
+        {
+            HttpClient = new HttpClient(
+                new HttpClientHandler()
+                {
+                    ServerCertificateCustomValidationCallback = AllowInvalidSslCallback
+                }
+            );
+        }
+        else
+        {
+            HttpClient = new HttpClient();
+        }
 #endif
+    }
+
+    private bool AllowInvalidSslCallback(
+        HttpRequestMessage request,
+        X509Certificate2 _,
+        X509Chain __,
+        SslPolicyErrors errors
+    )
+    {
+        if (errors != SslPolicyErrors.None)
+        {
+            _logger.LogWarning(
+                $"Accepting invalid SSL certificate for request: {
+                    request.RequestUri
+                }"
+            );
+        }
+
+        return true;
+    }
 
 #if USE_WEBREQUEST
-        public async Task<StreamAndHeaders> Fetch(
-            string url,
-            IDictionary<string, string> headers)
+    private bool WebRequestSslHandler(
+        object sender,
+        X509Certificate certificate,
+        X509Chain chain,
+        SslPolicyErrors sslPolicyErrors
+    )
+    {
+        if (sslPolicyErrors == SslPolicyErrors.None)
         {
-            var req = WebRequest.Create(url);
-            req.Timeout = _appSettings.MaxImageFetchTimeInMilliseconds;
-            SetRequestHeaders(url, headers, req);
+            return true;
+        }
 
-            try
-            {
-                var res = await req.GetResponseAsync();
-                return new StreamAndHeaders(
-                    new WebResponseStream(res, _appSettings),
-                    res.Headers.ToDictionary()
-                );
-            }
-            catch (WebException ex) when (ex.Status == WebExceptionStatus.Timeout)
-            {
-                throw new RequestTimedOutException(
-                    url,
-                    ex.Response
-                );
-            }
-            catch (WebException ex)
-            {
-                if (!(ex.Response is HttpWebResponse httpResponse))
-                {
-                    throw;
-                }
+        if (sender is not HttpWebRequest httpRequest)
+        {
+            return true;
+        }
 
-                if (HttpHandlers.TryGetValue(httpResponse.StatusCode, out var handler))
-                {
-                    return handler(req, httpResponse);
-                }
+        _logger.LogWarning(
+            $"Accepting invalid SSL certificate for request: {
+                httpRequest.RequestUri
+            }"
+        );
 
-                throw new ImageProviderErrorException(
-                    httpResponse.StatusCode,
-                    url,
-                    req.Headers.ToDictionary().Clone(),
-                    ex.Response.Headers.ToDictionary().Clone()
-                );
+        return true;
+    }
+
+    public async Task<StreamAndHeaders> Fetch(
+        string url,
+        IDictionary<string, string> headers)
+    {
+#pragma warning disable SYSLIB0014
+        var req = WebRequest.Create(url);
+#pragma warning restore SYSLIB0014
+        req.Timeout = _appSettings.MaxImageFetchTimeInMilliseconds;
+        if (_appSettings.AllowInvalidSslCertificates)
+        {
+            if (req is HttpWebRequest httpRequest)
+            {
+                httpRequest.ServerCertificateValidationCallback = WebRequestSslHandler;
             }
         }
 
-        private Dictionary<HttpStatusCode, Func<WebRequest, HttpWebResponse, StreamAndHeaders>> HttpHandlers =
-            new Dictionary<HttpStatusCode, Func<WebRequest, HttpWebResponse, StreamAndHeaders>>()
-            {
-                [HttpStatusCode.NotModified] = ThrowNotModifiedException,
-            };
+        SetRequestHeaders(
+            url,
+            headers,
+            req
+        );
 
-
-        private static StreamAndHeaders ThrowNotModifiedException(
-            WebRequest request,
-            HttpWebResponse response
-        )
+        try
         {
-            throw new NotModifiedException();
-        }
-
-        private void SetRequestHeaders(
-            string url,
-            IDictionary<string, string> headers,
-            WebRequest req)
-        {
-            headers?.ForEach(
-                kvp => req.Headers[kvp.Key] = kvp.Value
+            var res = await req.GetResponseAsync();
+            return new StreamAndHeaders(
+                new WebResponseStream(res, _appSettings),
+                res.Headers.ToDictionary()
             );
-            OverrideUnreasonableHeaders(url, req);
         }
-
-        private void OverrideUnreasonableHeaders(
-            string url,
-            WebRequest req)
+        catch (WebException ex) when (ex.Status == WebExceptionStatus.Timeout)
         {
-            var host = new Uri(url).Host;
-            req.Headers["Host"] = host;
-            req.Headers["Referrer"] = host;
-            req.Headers["Origin"] = host;
-            req.Headers.Remove(HttpRequestHeader.Connection); // do not honor keep-alive from caller
-            if (req is HttpWebRequest httpWebRequest)
+            throw new RequestTimedOutException(
+                url,
+                ex.Response
+            );
+        }
+        catch (WebException ex)
+        {
+            if (!(ex.Response is HttpWebResponse httpResponse))
             {
-                httpWebRequest.KeepAlive =
- _appSettings.EnableConnectionKeepAlive; // ensure we don't add our own keep-alive
+                throw;
             }
 
-            req.Headers["Accept"] = "image/*";
+            if (HttpHandlers.TryGetValue(httpResponse.StatusCode, out var handler))
+            {
+                return handler(req, httpResponse);
+            }
+
+            throw new ImageProviderErrorException(
+                httpResponse.StatusCode,
+                url,
+                req.Headers.ToDictionary().Clone(),
+                ex.Response.Headers.ToDictionary().Clone()
+            );
+        }
+    }
+
+    private Dictionary<HttpStatusCode, Func<WebRequest, HttpWebResponse, StreamAndHeaders>> HttpHandlers =
+        new Dictionary<HttpStatusCode, Func<WebRequest, HttpWebResponse, StreamAndHeaders>>()
+        {
+            [HttpStatusCode.NotModified] = ThrowNotModifiedException,
+        };
+
+    private static StreamAndHeaders ThrowNotModifiedException(
+        WebRequest request,
+        HttpWebResponse response
+    )
+    {
+        throw new NotModifiedException();
+    }
+
+    private void SetRequestHeaders(
+        string url,
+        IDictionary<string, string> headers,
+        WebRequest req)
+    {
+        headers?.ForEach(
+            kvp => req.Headers[kvp.Key] = kvp.Value
+        );
+        OverrideUnreasonableHeaders(url, req);
+    }
+
+    private void OverrideUnreasonableHeaders(
+        string url,
+        WebRequest req)
+    {
+        var host = new Uri(url).Host;
+        req.Headers["Host"] = host;
+        req.Headers["Referrer"] = host;
+        req.Headers["Origin"] = host;
+        req.Headers.Remove(HttpRequestHeader.Connection); // do not honor keep-alive from caller
+        if (req is HttpWebRequest httpWebRequest)
+        {
+            httpWebRequest.KeepAlive =
+                _appSettings.EnableConnectionKeepAlive; // ensure we don't add our own keep-alive
         }
 
+        req.Headers["Accept"] = "image/*";
+    }
 #else
     public async Task<StreamAndHeaders> Fetch(
         string url,
@@ -175,7 +244,11 @@ public class UrlFetcher : IUrlFetcher
         {
             RequestUri = new Uri(url),
         };
-        SetRequestHeaders(url, headers, request);
+        SetRequestHeaders(
+            url,
+            headers,
+            request
+        );
         var cancellationTokenSource = new CancellationTokenSource(
             _appSettings.MaxImageFetchTimeInMilliseconds
         );

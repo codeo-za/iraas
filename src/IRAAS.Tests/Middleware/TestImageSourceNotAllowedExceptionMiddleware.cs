@@ -3,18 +3,18 @@ using System.Text;
 using System.Threading.Tasks;
 using IRAAS.Exceptions;
 using IRAAS.Middleware;
-using IRAAS.Tests.Fakes;
 using NSubstitute;
 using NUnit.Framework;
+using PeanutButter.TestUtils.AspNetCore.Builders;
 using PeanutButter.Utils;
 
 namespace IRAAS.Tests.Middleware;
 
 [TestFixture]
-public class TestImageSourceNotAllowedExceptionMiddleware: TestBase
+public class TestImageSourceNotAllowedExceptionMiddleware : TestBase
 {
     [TestFixture]
-    public class WhenNoExceptionThrown: TestBase
+    public class WhenNoExceptionThrown : TestBase
     {
         [Test]
         public async Task ShouldNotInterfereWithTheResponse()
@@ -22,15 +22,12 @@ public class TestImageSourceNotAllowedExceptionMiddleware: TestBase
             // Arrange
             var sut = Create();
             var expected = GetRandomInt(200, 299);
-            var context = new FakeHttpContext();
+            var context = HttpContextBuilder.BuildDefault();
             // Act
             await sut.InvokeAsync(
                 context,
                 ctx => Task.Run(
-                    () =>
-                    {
-                        ctx.Response.StatusCode = expected;
-                    }
+                    () => { ctx.Response.StatusCode = expected; }
                 )
             );
             // Assert
@@ -40,7 +37,7 @@ public class TestImageSourceNotAllowedExceptionMiddleware: TestBase
     }
 
     [TestFixture]
-    public class WhenAnotherExceptionIsThrown: TestBase
+    public class WhenAnotherExceptionIsThrown : TestBase
     {
         [Test]
         public void ShouldNotInterfere()
@@ -48,7 +45,7 @@ public class TestImageSourceNotAllowedExceptionMiddleware: TestBase
             // Arrange
             var sut = Create();
             var expected = GetRandomInt(200, 299);
-            var context = new FakeHttpContext();
+            var context = HttpContextBuilder.BuildDefault();
             var ex = GetRandomFrom(
                 new Exception[]
                 {
@@ -70,14 +67,14 @@ public class TestImageSourceNotAllowedExceptionMiddleware: TestBase
     }
 
     [TestFixture]
-    public class WhenImageSourceNotAllowedExceptionThrown: TestBase
+    public class WhenImageSourceNotAllowedExceptionThrown : TestBase
     {
         [Test]
         public async Task ShouldSetResultStatusCodeTo_403()
         {
             // Arrange
             var sut = Create();
-            var context = new FakeHttpContext();
+            var context = HttpContextBuilder.BuildDefault();
             var expected = 403;
             var url = GetRandomHttpUrl();
             Expect(context.Response.StatusCode)
@@ -93,7 +90,7 @@ public class TestImageSourceNotAllowedExceptionMiddleware: TestBase
             context.Response.Body.Rewind();
             Expect(
                 Encoding.UTF8.GetString(
-                    context.Response.Body.ReadAllBytes()
+                    await context.Response.Body.ReadAllBytesAsync()
                 )
             ).To.Contain(url);
         }

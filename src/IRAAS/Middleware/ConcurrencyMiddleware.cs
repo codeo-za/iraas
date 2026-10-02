@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 using PeanutButter.Utils;
 
 namespace IRAAS.Middleware;
@@ -54,7 +55,6 @@ public class ConcurrencyMiddleware : IMiddleware
     private static readonly ConcurrentDictionary<string, TaskCompletionSource<CachedResponse>>
         CurrentRequests = new();
 
-
     private async Task Throttle(
         HttpContext context,
         RequestDelegate next)
@@ -90,14 +90,20 @@ public class ConcurrencyMiddleware : IMiddleware
     {
         var queryString = context.Request.QueryString.ToString();
         var completionSource = new TaskCompletionSource<CachedResponse>();
-        // look for an existing current query with the same parameters
-        if (!CurrentRequests.TryAdd(queryString, completionSource) &&
-            CurrentRequests.TryGetValue(queryString, out var src))
+        var cacheProhibited = HasNoStoreCacheControlHeader(context.Request) ||
+                              HasTestPagePath(context.Request) ||
+                              context.Request.Method == HttpMethods.Post;
+        if (!cacheProhibited)
         {
-            // a request is currently underway for this query
-            // -> subscribe to the completed result
-            await ReuseResult(context, src);
-            return;
+            // look for an existing current query with the same parameters
+            if (!CurrentRequests.TryAdd(queryString, completionSource) &&
+                CurrentRequests.TryGetValue(queryString, out var src))
+            {
+                // a request is currently underway for this query
+                // -> subscribe to the completed result
+                await ReuseResult(context, src);
+                return;
+            }
         }
 
         await _concurrencyLimiter.WaitAsync();
@@ -107,7 +113,8 @@ public class ConcurrencyMiddleware : IMiddleware
                 context,
                 next,
                 queryString,
-                completionSource
+                completionSource,
+                cacheProhibited
             );
         }
         finally
@@ -116,14 +123,44 @@ public class ConcurrencyMiddleware : IMiddleware
         }
     }
 
-    private async Task PerformFullRequestWith(
-        HttpContext context,
+    private bool HasTestPagePath(HttpRequest req)
+    {
+        return Routes.HasTestPagePath(req) ||
+               Routes.HasSizeEndpointPath(req);
+    }
+
+    private bool HasNoStoreCacheControlHeader(
+        HttpRequest request
+    )
+    {
+        var cacheControl = request.Headers["Cache-Control"];
+        if (cacheControl == StringValues.Empty)
+        {
+            return false;
+        }
+
+        return cacheControl.Any(
+            s => s.Split(',').Any(
+                part => part.Trim().Equals(
+                    "no-store",
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+        );
+    }
+
+    private async Task PerformFullRequestWith(HttpContext context,
         RequestDelegate next,
         string queryString,
-        TaskCompletionSource<CachedResponse> completionSource)
+        TaskCompletionSource<CachedResponse> completionSource,
+        bool cacheProhibited
+    )
     {
         var originalBody = context.Response.Body;
-        CurrentRequests.TryAdd(queryString, completionSource);
+        if (!cacheProhibited)
+        {
+            CurrentRequests.TryAdd(queryString, completionSource);
+        }
 
         await using var memStream = new MemoryStream();
         try
@@ -162,12 +199,18 @@ public class ConcurrencyMiddleware : IMiddleware
                 ex,
                 $"Error whilst attempting reuse of result for concurrent request ({queryString})"
             );
+            completionSource.TrySetException(ex);
+            throw;
         }
         finally
         {
             // this request is no longer "current"
             // -> remove from collection
-            CurrentRequests.TryRemove(queryString, out _);
+            if (!cacheProhibited)
+            {
+                CurrentRequests.TryRemove(queryString, out _);
+            }
+
             context.Response.Body = originalBody;
         }
     }
@@ -187,13 +230,15 @@ public class ConcurrencyMiddleware : IMiddleware
         queryString = queryString.Substring(1); // remove leading ?
 
         var parameters = queryString.Split("&")
-            .Select(part =>
-            {
-                var sub = part.Split('=');
-                var key = sub.First();
-                var value = string.Join("&", sub.Skip(1));
-                return (key, value);
-            })
+            .Select(
+                part =>
+                {
+                    var sub = part.Split('=');
+                    var key = sub.First();
+                    var value = string.Join("&", sub.Skip(1));
+                    return (key, value);
+                }
+            )
             .ToDictionary(p => p.key, p => p.value);
         if (!parameters.TryGetValue("url", out var url))
         {
@@ -202,7 +247,8 @@ public class ConcurrencyMiddleware : IMiddleware
 
         parameters.Remove("url");
         var longest = parameters.Keys.Aggregate(
-            3, (acc, cur) => cur.Length > acc
+            3,
+            (acc, cur) => cur.Length > acc
                 ? cur.Length
                 : acc
         );
@@ -211,9 +257,11 @@ public class ConcurrencyMiddleware : IMiddleware
         {
             "Serviced request:",
             $"{"url".PadRight(longest)}: {HttpUtility.UrlDecode(url)}"
-        }.Concat(parameters.Select(
-            kvp => $"{kvp.Key.PadRight(longest)}: {HttpUtility.UrlDecode(kvp.Value)}"
-        ));
+        }.Concat(
+            parameters.Select(
+                kvp => $"{kvp.Key.PadRight(longest)}: {HttpUtility.UrlDecode(kvp.Value)}"
+            )
+        );
         _logger.LogInformation(
             string.Join(
                 "\n",

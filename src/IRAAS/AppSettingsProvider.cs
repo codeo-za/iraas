@@ -17,34 +17,30 @@ public static class AppSettingsProvider
 {
     public const string BASE_CONFIG = "appsettings.json";
     public const string DEPLOY_CONFIG = "appsettings.deploy.json";
+    
+    private static IConfigurationRoot _cachedConfig;
 
     public static IAppSettings CreateAppSettings()
     {
-        return _cachedSettings ??= GenerateSettingsFrom(
-            _cachedConfig ??= CreateConfig()
+        return GenerateSettingsFrom(
+            CreateConfig()
         );
     }
 
     public static IDefaultImageResizeParameters CreateDefaultParameters()
     {
-        return _cachedDefaultParameters ??= GenerateParametersFrom(
-            _cachedConfig ??= CreateConfig()
+        return GenerateParametersFrom(
+            CreateConfig()
         );
     }
 
-    public static void ClearCachedSettings()
-    {
-        _cachedSettings = null;
-        _cachedConfig = null;
-        _cachedDefaultParameters = null;
-    }
-
-    private static IAppSettings _cachedSettings;
-    private static IDefaultImageResizeParameters _cachedDefaultParameters;
-    private static IConfigurationRoot _cachedConfig;
-
     public static IConfigurationRoot CreateConfig()
     {
+        if (_cachedConfig is not null)
+        {
+            return _cachedConfig;
+        }
+
         var builder = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile(BASE_CONFIG);
@@ -55,7 +51,7 @@ public static class AppSettingsProvider
 
         builder.AddEnvironmentVariables();
 
-        return builder.Build();
+        return _cachedConfig = builder.Build();
     }
 
     private static bool CanLoad(string deployConfig)
@@ -96,11 +92,15 @@ public static class AppSettingsProvider
             var result = merged.FuzzyDuckAs<IAppSettings>(
                 throwOnError: true
             );
-            if (result.MaxUrlFetchRetries < 0)
+            if (result.AllowInvalidSslCertificates)
             {
-                // alter the underlying dictionary of settings
-                // -> the IAppSettings interface is read-only
-                providedConfig[nameof(result.MaxUrlFetchRetries)] = "0";
+                Console.WriteLine(
+                    """
+                    ---------------------------------------------------------------
+                    WARNING: invalid ssl certificates allowed for remote image urls
+                    ---------------------------------------------------------------
+                    """
+                );
             }
 
             return result;
@@ -133,10 +133,11 @@ public static class AppSettingsProvider
                 {
                     continue;
                 }
+
                 var sub = LoadSection(config, $"DefaultParameters:{item.Key}");
                 result.RegisterPerFormatDefaultsFor(item.Key, sub);
             }
-            
+
             return result;
         }
         catch (UnDuckableException ex)
@@ -155,7 +156,8 @@ public static class AppSettingsProvider
             .GetChildren()
             .ToDictionary(
                 o => o.Key,
-                o => o.Value
+                o => o.Value,
+                StringComparer.OrdinalIgnoreCase
             );
     }
 
@@ -165,10 +167,14 @@ public static class AppSettingsProvider
             .GetProperties()
             .Select(
                 pi => (pi.Name, pi.GetCustomAttributes(true)
-                           .OfType<DefaultSettingAttribute>()
-                           .FirstOrDefault()?.Value)
+                    .OfType<DefaultSettingAttribute>()
+                    .FirstOrDefault()?.Value)
             )
-            .ToDictionary(o => o.Name, o => o.Value);
+            .ToDictionary(
+                o => o.Name,
+                o => o.Value,
+                StringComparer.OrdinalIgnoreCase
+            );
     }
 
     private static string FindLogLevelFor(
@@ -190,8 +196,22 @@ public static class AppSettingsProvider
         {
             [SETTING_MAX_CONCURRENCY] = ResolveMaxConcurrency,
             [SETTING_MAX_IMAGE_FETCH_TIME_IN_MILLISECONDS] = ResolveMaxImageFetchTimeInMilliseconds,
-            [SETTING_LOG_FOLDER] = ResolveDefaultLogFolder
+            [SETTING_LOG_FOLDER] = ResolveDefaultLogFolder,
+            [SETTING_MAX_URL_FETCH_RETRIES] = ResolveMaxUrlFetchRetries,
+            [SETTING_POST_AUTH_TOKENS] = ResolvePostAuthTokens
         };
+
+    private static string ResolvePostAuthTokens(
+        IDictionary<string, string> arg
+    )
+    {
+        return arg.TryGetValue(
+            SETTING_POST_AUTH_TOKENS,
+            out var value
+        )
+            ? value ?? ""
+            : "";
+    }
 
     private static string ResolveDefaultLogFolder(
         IDictionary<string, string> arg
@@ -202,8 +222,8 @@ public static class AppSettingsProvider
         // - we just need to set a value so that duck-typing won't
         //    throw
 
-        return arg.ContainsKey(SETTING_LOG_FOLDER)
-            ? arg[SETTING_LOG_FOLDER]
+        return arg.TryGetValue(SETTING_LOG_FOLDER, out var value)
+            ? value
             : "";
     }
 
@@ -250,6 +270,19 @@ public static class AppSettingsProvider
         );
     }
 
+    private static string ResolveMaxUrlFetchRetries(
+        IDictionary<string, string> config
+    )
+    {
+        return ResolveSetting(
+            config,
+            SETTING_MAX_URL_FETCH_RETRIES,
+            i => i > 0,
+            // when not set or set negative, set to 0
+            0
+        );
+    }
+
     private static string ResolveSetting<T>(
         IDictionary<string, string> config,
         string key,
@@ -278,7 +311,7 @@ public static class AppSettingsProvider
         result = default(T);
         try
         {
-            result = (T) Convert.ChangeType(value, typeof(T));
+            result = (T)Convert.ChangeType(value, typeof(T));
             return true;
         }
         catch
@@ -287,10 +320,14 @@ public static class AppSettingsProvider
         }
     }
 
-    private const string SETTING_MAX_CONCURRENCY = "MaxConcurrency";
-    private const string SETTING_MAX_IMAGE_FETCH_TIME_IN_MILLISECONDS = "MaxImageFetchTimeInMilliseconds";
-    private const string SETTING_LOG_FOLDER = "LogFolder";
+    private const string SETTING_MAX_CONCURRENCY = nameof(IAppSettings.MaxConcurrency);
+    private const string SETTING_POST_AUTH_TOKENS = nameof(IAppSettings.PostAuthTokens);
 
+    private const string SETTING_MAX_IMAGE_FETCH_TIME_IN_MILLISECONDS =
+        nameof(IAppSettings.MaxImageFetchTimeInMilliseconds);
+
+    private const string SETTING_LOG_FOLDER = nameof(IAppSettings.LogFolder);
+    private const string SETTING_MAX_URL_FETCH_RETRIES = nameof(IAppSettings.MaxUrlFetchRetries);
     private const int DEFAULT_MAX_IMAGE_FETCH_TIME_IN_MILLISECONDS = 1000;
     private static readonly int DEFAULT_MAX_CONCURRENCY = Environment.ProcessorCount;
 }
